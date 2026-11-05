@@ -3,6 +3,7 @@ import { useRoute, type RouteName } from './app/router'
 import { useToday } from './app/useToday'
 import { ToastProvider } from './components/Toast'
 import { freezeLockedDays } from './db/daily'
+import { LoginDialog } from './features/auth/LoginDialog'
 import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
 import { MobileTop } from './features/nav/MobileTop'
@@ -64,6 +65,7 @@ function Shell() {
       <TabBar active={route.name} onCapture={() => setCapture(true)} />
       <CaptureSheet open={capture} onClose={() => setCapture(false)} />
       <PwaUpdater />
+      <LoginDialog />
     </div>
   )
 }
