@@ -4,6 +4,15 @@
 
 PWA offline-first: bisa dipasang di layar utama HP, iPad, dan laptop, jalan tanpa internet, dan tersinkron lewat Dexie Cloud. Keputusan desain lengkap ada di [DESIGN.md](DESIGN.md).
 
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="docs/screenshots/beranda-hp.png" width="240" alt="Beranda di HP: tipe hari, strip XP, tidur 24 jam, tugas, tentir, pengeluaran" /><br /><sub>HP</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/beranda-laptop.png" width="560" alt="Beranda di laptop dengan sidebar, ritme hari ini, tugas, mutaba'ah, jalan ke PPDS" /><br /><sub>Laptop</sub></td>
+  </tr>
+</table>
+
+<sub>Screenshot memakai data contoh.</sub>
+
 ## Yang sudah ada (awal Fase 1)
 
 - **Beranda**: kalimat pembuka per tipe hari, strip level/XP/pengali tidur/streak, tidur 24 jam, tugas, tentir, pengeluaran, ritme hari ini, tugas + rutin, mutaba'ah tanpa skor, tutup hari, jalan ke PPDS, minggu ini.
