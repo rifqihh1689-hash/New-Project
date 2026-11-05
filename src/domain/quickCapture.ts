@@ -52,7 +52,7 @@ export function parseQuickTask(input: string, today: ISODate, roles: RoleRef[]):
     return m
   }
 
-  if (take(/\s(!+|penting)(?=\s)/i)) important = true
+  if (take(/\s(!+|penting[:!]?)(?=\s)/i)) important = true
 
   if (take(/\s(hari ini|hr ini)(?=\s)/i)) date = today
   else if (take(/\s(besok|bsk)(?=\s)/i)) date = addDays(today, 1)
