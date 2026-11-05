@@ -82,6 +82,8 @@ export interface Profile extends CloudFields {
   /** Template "Ritme hari ini" per tipe hari. */
   ritme: Partial<Record<DayType, RitmeSlot[]>>
   tentirCapacity: { min: number; max: number }
+  /** Pengaturan modul Menu (berat badan, fase, target protein, anggaran). */
+  nutrition?: Partial<NutritionSettings>
   updatedAt: number
 }
 
@@ -342,6 +344,56 @@ export interface Proposal extends Stamped {
   status: 'menunggu' | 'disetujui' | 'ditolak'
   source: 'claude'
   decidedAt: number | null
+}
+
+// ---------- Menu & makan ----------
+
+export type MealSlot = 'sarapan' | 'snack1' | 'siang' | 'snack2' | 'malam'
+export type FoodPhase = 'bulk' | 'maintain' | 'cut'
+
+export interface NutritionSettings {
+  /** Berat badan (kg) untuk menghitung target protein. `null` = belum diisi. */
+  weightKg: number | null
+  phase: FoodPhase
+  /** Jumlah makan per hari (3–5). Bawaan mengikuti fase: bulk 5, maintain 4, cut 3. */
+  mealsPerDay: 3 | 4 | 5
+  proteinPerKg: number
+  /** Anggaran makan per minggu (Rupiah). */
+  weeklyBudget: number
+}
+
+export interface Ingredient {
+  name: string
+  qty: number
+  unit: string
+}
+
+/** Satu menu di daftar: beli atau masak, dengan perkiraan protein & biaya per porsi. */
+export interface Menu extends Stamped {
+  name: string
+  source: 'masak' | 'beli'
+  /** Waktu makan yang cocok. */
+  slots: MealSlot[]
+  proteinG: number
+  costRp: number
+  /** Bahan per porsi (menu masak), untuk daftar belanja. */
+  ingredients: Ingredient[]
+  /** Cocok dibawa saat jaga / disiapkan sekaligus. */
+  bekal: boolean
+  /** Butuh masak sungguhan (bukan sekadar rebus/seduh): hanya disusun di hari libur atau dari stok. */
+  heavyCook: boolean
+  place?: string
+  note?: string
+  archived: boolean
+}
+
+export interface MealPlanEntry extends CloudFields {
+  /** `#meal:<date>:<slot>`. */
+  id: string
+  date: ISODate
+  slot: MealSlot
+  menuId: string | null
+  updatedAt: number
 }
 
 export type ThemePreference = 'light' | 'dark' | 'system'

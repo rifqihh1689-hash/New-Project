@@ -8,6 +8,7 @@ import { CloseDayCard } from './CloseDayCard'
 import { useBeranda } from './data'
 import { DayTypePicker } from './DayTypePicker'
 import { GameStrip } from './GameStrip'
+import { MealsCard } from './MealsCard'
 import { MutabaahCard } from './MutabaahCard'
 import { PrioritiesCard } from './PrioritiesCard'
 import { Ritme } from './Ritme'
@@ -56,6 +57,7 @@ export function BerandaPage() {
         <div className="grid content-start gap-3">
           {!isPasca && <PrioritiesCard data={data} />}
           <MutabaahCard data={data} />
+          <MealsCard data={data} />
           <CloseDayCard data={data} />
           {!isPasca && <RoadCard data={data} />}
         </div>

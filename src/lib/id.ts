@@ -19,4 +19,5 @@ export const privateId = {
   budget: (month: string, categoryId: string) => `#bud:${month}:${categoryId}`,
   weeklyReview: (monday: string) => `#rev:minggu:${monday}`,
   monthlyReview: (month: string) => `#rev:bulan:${month}`,
+  meal: (date: string, slot: string) => `#meal:${date}:${slot}`,
 }

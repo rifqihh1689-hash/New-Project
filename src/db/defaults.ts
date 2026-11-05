@@ -1,5 +1,5 @@
 import { DEFAULT_RULES } from '../domain/rules'
-import type { DayType, Habit, MutabaahItem, Phase, Profile, Role, RitmeSlot } from '../types'
+import type { DayType, Habit, MealSlot, Menu, MutabaahItem, Phase, Profile, Role, RitmeSlot } from '../types'
 
 /**
  * Bawaan aplikasi hidup di kode, bukan "diisi" ke database. Yang disimpan hanya perubahan pengguna
@@ -167,3 +167,88 @@ export function mergeWithDefaults<T extends { id: string; order: number }>(defau
   for (const row of stored) map.set(row.id, row)
   return [...map.values()].sort((a, b) => a.order - b.order)
 }
+
+// ---------- Menu bawaan ----------
+// Perkiraan protein & biaya per porsi (harga Malang, bisa diubah). Dominan ayam & telur,
+// sesuai kebiasaan; menu ikan/sapi/udang tidak dimasukkan karena jarang dimasak.
+
+const ing = (name: string, qty: number, unit: string) => ({ name, qty, unit })
+const menu = (
+  key: string,
+  name: string,
+  source: Menu['source'],
+  slots: MealSlot[],
+  proteinG: number,
+  costRp: number,
+  extra: Partial<Menu> = {},
+): Menu => ({
+  id: `#menu:${key}`,
+  name,
+  source,
+  slots,
+  proteinG,
+  costRp,
+  ingredients: [],
+  bekal: false,
+  heavyCook: false,
+  archived: false,
+  createdAt: T0,
+  updatedAt: T0,
+  ...extra,
+})
+
+export const DEFAULT_MENUS: Menu[] = [
+  // Masak cepat (bisa di hari stase).
+  menu('telur-dadar', 'Nasi + telur dadar 2 butir', 'masak', ['sarapan', 'malam'], 17, 6_000, {
+    ingredients: [ing('Telur', 2, 'butir'), ing('Beras', 80, 'g')],
+  }),
+  menu('oat-telur', 'Oat susu + 2 telur rebus', 'masak', ['sarapan'], 27, 8_500, {
+    ingredients: [ing('Oat', 50, 'g'), ing('Susu UHT', 250, 'ml'), ing('Telur', 2, 'butir')],
+  }),
+  menu('telur-rebus', 'Telur rebus 3 butir', 'masak', ['snack1', 'snack2'], 19, 6_000, {
+    ingredients: [ing('Telur', 3, 'butir')],
+    bekal: true,
+  }),
+  menu('susu-pisang', 'Susu 250 ml + pisang', 'masak', ['snack1', 'snack2'], 9, 6_500, {
+    ingredients: [ing('Susu UHT', 250, 'ml'), ing('Pisang', 1, 'buah')],
+    bekal: true,
+  }),
+  menu('omelet', 'Omelet 3 telur + sayur + nasi', 'masak', ['sarapan', 'malam'], 23, 9_000, {
+    ingredients: [ing('Telur', 3, 'butir'), ing('Sayur', 50, 'g'), ing('Beras', 80, 'g')],
+  }),
+  menu('nasgor', 'Nasi goreng ayam + telur', 'masak', ['sarapan', 'malam'], 35, 9_000, {
+    ingredients: [ing('Dada ayam', 80, 'g'), ing('Telur', 1, 'butir'), ing('Beras', 100, 'g')],
+  }),
+  // Masak di hari libur, disiapkan untuk beberapa hari / bekal.
+  menu('ayam-panggang', 'Dada ayam panggang 150 g + nasi + sayur', 'masak', ['siang', 'malam'], 48, 12_000, {
+    ingredients: [ing('Dada ayam', 150, 'g'), ing('Beras', 80, 'g'), ing('Sayur', 100, 'g')],
+    bekal: true,
+    heavyCook: true,
+  }),
+  menu('ayam-kecap', 'Tumis ayam kecap + nasi', 'masak', ['siang', 'malam'], 36, 10_500, {
+    ingredients: [ing('Paha ayam fillet', 120, 'g'), ing('Beras', 80, 'g')],
+    bekal: true,
+    heavyCook: true,
+  }),
+  menu('ayam-suwir', 'Ayam suwir + telur balado + nasi', 'masak', ['siang', 'malam'], 40, 11_000, {
+    ingredients: [ing('Dada ayam', 100, 'g'), ing('Telur', 1, 'butir'), ing('Beras', 80, 'g')],
+    bekal: true,
+    heavyCook: true,
+  }),
+  menu('sup-ayam', 'Sup ayam sayur + nasi', 'masak', ['malam'], 30, 10_000, {
+    ingredients: [ing('Dada ayam', 120, 'g'), ing('Sayur sup', 150, 'g'), ing('Beras', 80, 'g')],
+    heavyCook: true,
+  }),
+  menu('tempe-tahu-telur', 'Tempe tahu bacem + telur + nasi', 'masak', ['siang', 'malam'], 28, 8_000, {
+    ingredients: [ing('Tempe', 100, 'g'), ing('Tahu', 100, 'g'), ing('Telur', 1, 'butir'), ing('Beras', 80, 'g')],
+    bekal: true,
+    heavyCook: true,
+  }),
+  // Beli.
+  menu('geprek', 'Nasi ayam geprek', 'beli', ['siang', 'malam'], 25, 15_000, { place: 'warung dekat RS' }),
+  menu('lalapan-dada', 'Nasi lalapan ayam (dada)', 'beli', ['siang', 'malam'], 30, 18_000),
+  menu('pecel-telur', 'Nasi pecel + telur', 'beli', ['sarapan', 'siang'], 14, 12_000),
+  menu('soto-ayam', 'Soto ayam + nasi', 'beli', ['siang', 'malam'], 18, 14_000),
+  menu('nasi-campur', 'Nasi campur ayam + telur', 'beli', ['siang'], 28, 17_000),
+  menu('roti-susu', 'Roti gandum + susu (minimarket)', 'beli', ['sarapan', 'snack1', 'snack2'], 14, 12_000, { bekal: true }),
+]

@@ -96,3 +96,34 @@ describe('impor', () => {
     expect(parseImport('hanya catatan biasa', ctx)[0].error).toMatch(/nama kolom/)
   })
 })
+
+describe('impor menu', () => {
+  it('menu dari Sheets dan dari Claude (kolom "waktu" berisi nama waktu makan)', () => {
+    const tsv =
+      'jenis\tjudul\tsumber\twaktu_makan\tprotein\tbiaya\tbahan\tbekal\nmenu\tAyam bakar madu\tmasak\tsiang, malam\t40\t12rb\tDada ayam 130 g; Beras 80 g\tya'
+    expect(parseImport(tsv, ctx)[0].item).toEqual({
+      kind: 'menu',
+      name: 'Ayam bakar madu',
+      source: 'masak',
+      slots: ['siang', 'malam'],
+      proteinG: 40,
+      costRp: 12_000,
+      ingredients: [
+        { name: 'Dada ayam', qty: 130, unit: 'g' },
+        { name: 'Beras', qty: 80, unit: 'g' },
+      ],
+      bekal: true,
+      heavyCook: false,
+    })
+    const json =
+      '```json\n[{"jenis":"menu","judul":"Nasi geprek","sumber":"beli","waktu":"siang","protein":25,"biaya":15000,"tempat":"warung"}]\n```'
+    expect(parseImport(json, ctx)[0].item).toMatchObject({
+      kind: 'menu',
+      source: 'beli',
+      slots: ['siang'],
+      costRp: 15_000,
+      place: 'warung',
+      ingredients: [],
+    })
+  })
+})

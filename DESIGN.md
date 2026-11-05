@@ -240,7 +240,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Muhasabah mingguan (+50 XP, prioritas di Beranda) | selesai |
 | Setelan: stase & jamnya, ritme harian, fase hidup, peran, export JSON | selesai |
 | Impor jadwal (Sheets/CSV/Claude) | selesai |
-| Makan & belanja | sedang dibangun |
+| Makan & belanja: setelan gizi, menu bawaan ayam & telur, isi otomatis per tipe hari, daftar belanja → tugas, Makan hari ini, impor menu | selesai (v1) |
 | Impor MBAPPE OS, connector + Usulan | Fase 1, belum |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |

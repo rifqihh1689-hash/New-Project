@@ -8,6 +8,7 @@ import {
   SquareCheck,
   Target,
   Users,
+  UtensilsCrossed,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
@@ -49,6 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
     soon: { phase: 2, what: 'Port Dompetku: transaksi, anggaran, berulang, ditambah tabungan, utang, dan dana jembatan.' },
   },
   { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
+  { route: 'menu', label: 'Menu', Icon: UtensilsCrossed },
   {
     route: 'target',
     label: 'Target & PPDS',
