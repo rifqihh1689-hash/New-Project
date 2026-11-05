@@ -146,6 +146,7 @@ Berbasis bukti: game fiction dan interaksi sosial memperbesar efek pada perilaku
 - **Jaga:** `round(min(Σ, 100) × 1,0)`, tanpa penalti malam.
 - **Pasca-jaga:** `round(100 × selesai/total)`, hanya sah bila kemarin jaga; selain itu dihitung stase.
 - **Lolos** bila ≥ 60% isi hari selesai. **Level** L → L+1 butuh `150 + 50·L`.
+- **Quest mingguan** (habit 1×/minggu): XP-nya masuk Σ hanya di hari pertama selesai minggu itu, tidak masuk penyebut lolos, tidak dihitung di pasca-jaga.
 
 ## Arsitektur
 
@@ -250,7 +251,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Sinkron Dexie Cloud + layar masuk Indonesia | selesai |
 | Beranda (prototipe), Catat cepat, pemilih tipe hari, XP/level/streak/pengali tidur, hari beku | selesai |
 | Tugas: tampilan Hari & papan Minggu, subtugas | selesai |
-| Habit & Mutaba'ah: kotak 7 hari, target menit, catatan program | selesai |
+| Habit & Mutaba'ah: kotak 7 hari, target menit, catatan program, quest mingguan (1×/minggu, XP di hari pertama selesai, di luar syarat lolos) | selesai |
 | Muhasabah mingguan (+50 XP, prioritas di Beranda) | selesai |
 | Setelan: stase & jamnya, ritme harian, fase hidup, peran, export JSON | selesai |
 | Impor jadwal (Sheets/CSV/Claude) | selesai |

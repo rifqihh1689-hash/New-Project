@@ -29,13 +29,14 @@ describe('konversi MBAPPE OS', () => {
     expect(plan.stats.notesDropped).toBe(1)
   })
 
-  it('quest jadi habit; padanan bawaan dipakai, quest khusus & mingguan dilewati', () => {
+  it('quest jadi habit; padanan bawaan dipakai, quest khusus dilewati, mingguan jadi habit mingguan', () => {
     const ids = plan.habits.map((h) => h.id)
     expect(ids).toContain('#mbp:habit:q_lift')
     expect(ids).not.toContain('#mbp:habit:q_sleep') // pakai #habit:sleep
     expect(ids).not.toContain('#mbp:habit:j_nap') // pakai #habit:jaga-nap
     expect(ids).not.toContain('#mbp:habit:q_tentir')
     expect(plan.stats.weeklyQuests).toEqual(['Setor Dana Jembatan', '1 post edukasi'])
+    expect(plan.habits.filter((h) => h.freq === 'weekly').map((h) => h.name)).toEqual(['Setor Dana Jembatan', '1 post edukasi'])
     expect(plan.habits.find((h) => h.id === '#mbp:habit:q_lift')).toMatchObject({
       weekdays: [1, 3, 5],
       size: 'besar',

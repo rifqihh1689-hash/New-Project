@@ -3,7 +3,7 @@ import { db } from '../../db/db'
 import { loadHabits, loadMutabaah, loadProfile, loadRoles, rulesOf } from '../../db/structure'
 import { habitCell, habitRowSummary, lastDays } from '../../domain/habitGrid'
 import { consistency } from '../../domain/progress'
-import { addDays } from '../../domain/time'
+import { addDays, weekStart } from '../../domain/time'
 import { privateId } from '../../lib/id'
 import type { ISODate } from '../../types'
 
@@ -48,6 +48,8 @@ export async function loadHabitPage(today: ISODate) {
     inactive: habits.filter((h) => !h.active),
     habits,
     roles,
+    /** Quest mingguan yang sudah selesai minggu ini (Senin–hari ini). */
+    weekDone: new Set(logs.filter((l) => l.done && l.date >= weekStart(today)).map((l) => l.habitId)),
     mutabaah,
     archivedMutabaah: mutItems.filter((m) => m.archived),
     allMutabaah: mutItems,

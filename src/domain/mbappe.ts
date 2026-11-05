@@ -148,10 +148,8 @@ export function convertMbappe(data: Obj, roles: RoleRef[], now: number = Date.no
       return
     }
     if (SKIP_TAGS.has(str(q.tag))) return
-    if (q.freq === 'weekly') {
-      stats.weeklyQuests.push(str(q.name))
-      return
-    }
+    const weekly = q.freq === 'weekly'
+    if (weekly) stats.weeklyQuests.push(str(q.name))
     const id = `#mbp:habit:${qid}`
     habitIdFor.set(qid, id)
     const name = str(q.name).trim() || qid
@@ -167,6 +165,7 @@ export function convertMbappe(data: Obj, roles: RoleRef[], now: number = Date.no
       kind: 'normal',
       active: q.active !== false,
       order: 100 + i,
+      ...(weekly ? { freq: 'weekly' as const } : {}),
       createdAt: now,
       updatedAt: now,
     })

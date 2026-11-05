@@ -56,7 +56,7 @@ export function MbappeCard({ data, onDone }: { data: Record<string, unknown>; on
         <li>Tanggal, habit, dan Muhasabah yang sudah ada di Qawwam tidak ditimpa; impor aman diulang.</li>
         <li>Tidur, jam kerja, pra-jaga, dan pasca-jaga digabung ke habit bawaan Qawwam; "Tahajjud" ke "Qiyamul lail".</li>
         {s.weeklyQuests.length > 0 && (
-          <li>Quest mingguan belum diimpor (XP-nya tetap terbawa di hari beku): {s.weeklyQuests.join(', ')}.</li>
+          <li>Quest mingguan jadi habit mingguan (1× per minggu, di luar syarat lolos): {s.weeklyQuests.join(', ')}.</li>
         )}
         {s.notImported.length > 0 && <li>Belum ada tempatnya di Qawwam, jadi belum diimpor: {s.notImported.join(', ')}.</li>}
         {s.skippedSample > 0 && <li>{s.skippedSample} data contoh MBAPPE OS dilewati.</li>}

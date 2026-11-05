@@ -29,6 +29,16 @@ describe('rumus XP (MBAPPE OS)', () => {
     expect(r).toMatchObject({ base: 30, capped: 30, mult: 0.8, xp: 24, total: 3, doneCount: 2, pass: true })
   })
 
+  it('quest mingguan: XP ditambah, tetapi tidak masuk syarat lolos', () => {
+    const weekly = (done: boolean): DayItem => ({ ...item('w', 'besar', done), weekly: true })
+    const r = computeDay(day({ items: [item('a', 'sedang', true), item('b', 'sedang', false), weekly(true)] }), R)
+    expect(r).toMatchObject({ base: 30, xp: 30, total: 2, doneCount: 1, pass: false })
+    const open = computeDay(day({ items: [item('a', 'sedang', true), weekly(false)] }), R)
+    expect(open).toMatchObject({ base: 10, total: 1, pass: true })
+    const pasca = computeDay(day({ type: 'pasca', prevType: 'jaga', items: [item('r', 'kecil', true, true), weekly(true)] }), R)
+    expect(pasca).toMatchObject({ xp: 100, total: 1 })
+  })
+
   it('batas 100 sebelum pengali: begadang menambah tugas tidak menolong', () => {
     const items = Array.from({ length: 8 }, (_, i) => item(String(i), 'besar', true)) // 160
     expect(computeDay(day({ sleepNight: 4, items }), R).xp).toBe(60) // 100 × 0,6

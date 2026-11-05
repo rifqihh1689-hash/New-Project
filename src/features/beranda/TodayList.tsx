@@ -3,6 +3,7 @@ import { RoleTag } from '../../components/RoleTag'
 import { useToast } from '../../components/toast-context'
 import { setHabitDone, toggleTask, type DailyRow } from '../../db/daily'
 import { roleLookup } from '../../db/structure'
+import { formatDateShort } from '../../domain/time'
 import { isItemDone, itemsForDay, itemXp } from '../../domain/xp'
 import type { BerandaData } from './data'
 
@@ -12,7 +13,10 @@ export function TodayList({ data }: { data: BerandaData }) {
   const { snap, rules } = data
   const role = roleLookup(data.roles)
   const effType = snap.result.effType
-  const rows = itemsForDay(snap.rows, effType)
+  const all = itemsForDay(snap.rows, effType)
+  // Quest mingguan dihitung terpisah: tidak masuk syarat lolos, tidak muncul di pasca-jaga.
+  const rows = all.filter((r) => !r.weekly)
+  const weekly = effType === 'pasca' ? [] : all.filter((r) => r.weekly)
   const tasks = rows.filter((r) => r.kind === 'task')
   const habits = rows.filter((r) => r.kind === 'habit')
   const input = { sleepNight: snap.day?.sleepNight ?? null, nap: snap.day?.nap ?? 0, workEnd: snap.day?.workEnd ?? null }
@@ -26,13 +30,15 @@ export function TodayList({ data }: { data: BerandaData }) {
   }
 
   const row = (r: DailyRow) => {
-    const done = doneOf(r)
-    const xp = data.snap.day?.type ? itemXp(r.size, effType, rows.length, rules) : 0
+    const other = r.weekly && r.doneOn
+    const done = doneOf(r) || !!other
+    const xp = data.snap.day?.type && !other ? itemXp(r.size, effType, rows.length, rules) : 0
     return (
       <li key={r.id} className="flex items-start gap-3 border-t border-line px-1 py-[9px] first:border-t-0">
-        <Check checked={done} onChange={() => void toggle(r)} label={`Centang ${r.title}`} />
+        <Check checked={done} disabled={!!other} onChange={() => void toggle(r)} label={`Centang ${r.title}`} />
         <div className={`flex-1 ${done ? 'text-faint line-through' : ''}`}>
           {r.title}
+          {other && <span className="ml-1.5 text-[11px] text-faint no-underline">selesai {formatDateShort(r.doneOn!)}</span>}
           {r.important && !done && (
             <span
               className="ml-1.5 rounded-md px-[7px] py-0.5 text-[11px] text-danger"
@@ -74,6 +80,15 @@ export function TodayList({ data }: { data: BerandaData }) {
             </a>
           </div>
           <ul>{habits.map(row)}</ul>
+        </>
+      )}
+      {weekly.length > 0 && (
+        <>
+          <div className="mt-3 mb-1 flex items-center text-xs font-medium tracking-wide text-faint uppercase">
+            Mingguan · 1× per minggu
+            <span className="ml-auto font-normal tracking-normal normal-case">tidak masuk syarat lolos</span>
+          </div>
+          <ul>{weekly.map(row)}</ul>
         </>
       )}
       {!snap.day?.type && <p className="mt-2 text-xs text-faint">Rutin muncul setelah tipe hari dipilih.</p>}

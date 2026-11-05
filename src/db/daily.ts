@@ -1,7 +1,7 @@
 import { isAllowedOnDayType } from '../domain/dayType'
 import { applyMinutes } from '../domain/habitGrid'
 import { detectPatientIdentity } from '../domain/phi'
-import { addDays } from '../domain/time'
+import { addDays, weekStart } from '../domain/time'
 import { computeDay, habitsForDay, isLocked, type DayInput, type DayItem } from '../domain/xp'
 import { createId, privateId } from '../lib/id'
 import type { Day, DayResult, DayType, Habit, HabitLog, ISODate, Role, Task, WorkEnd, XpRules, XpSize } from '../types'
@@ -192,6 +192,10 @@ export interface DailyRow {
   habitKind?: Habit['kind']
   important?: boolean
   task?: Task
+  /** Quest mingguan (1× per minggu, di luar syarat lolos). */
+  weekly?: boolean
+  /** Quest mingguan yang sudah selesai di hari lain minggu ini. */
+  doneOn?: ISODate | null
 }
 
 export interface DaySnapshot {
@@ -203,7 +207,19 @@ export interface DaySnapshot {
   frozen: boolean
 }
 
-/** Baris harian (tugas + habit) sebelum disaring tipe hari. */
+/** Hari pertama quest mingguan selesai dalam minggu `date` (dari log yang diberikan). */
+export function weeklyFirstDone(habitId: string, date: ISODate, logs: HabitLog[]): ISODate | null {
+  const from = weekStart(date)
+  const to = addDays(from, 6)
+  let first: ISODate | null = null
+  for (const l of logs) if (l.habitId === habitId && l.done && l.date >= from && l.date <= to && (!first || l.date < first)) first = l.date
+  return first
+}
+
+/**
+ * Baris harian (tugas + habit) sebelum disaring tipe hari.
+ * `logs` boleh berisi log seminggu (dibutuhkan quest mingguan); log harian tetap diambil per tanggal.
+ */
 export function dailyRows(
   date: ISODate,
   type: DayType | null,
@@ -225,21 +241,33 @@ export function dailyRows(
     important: t.important,
     task: t,
   }))
-  const habitRows: DailyRow[] = habitsForDay(habits, date, type).map((h) => ({
-    kind: 'habit',
-    id: h.id,
-    title: h.name,
-    roleId: h.roleId,
-    size: h.size,
-    done: logMap.get(h.id) ?? false,
-    recovery: recovery.has(h.roleId),
-    habitKind: h.kind,
-  }))
+  const habitRows: DailyRow[] = habitsForDay(habits, date, type).map((h) => {
+    const row: DailyRow = {
+      kind: 'habit',
+      id: h.id,
+      title: h.name,
+      roleId: h.roleId,
+      size: h.size,
+      done: logMap.get(h.id) ?? false,
+      recovery: recovery.has(h.roleId),
+      habitKind: h.kind,
+    }
+    if (h.freq !== 'weekly' || h.kind !== 'normal') return row
+    const first = weeklyFirstDone(h.id, date, logs)
+    return { ...row, weekly: true, done: row.done && first === date, doneOn: first && first !== date ? first : null }
+  })
   return [...taskRows, ...habitRows]
 }
 
 export function toDayInput(day: Day | null, prevType: DayType | null, rows: DailyRow[]): DayInput {
-  const items: DayItem[] = rows.map((r) => ({ id: r.id, size: r.size, done: r.done, recovery: r.recovery, kind: r.habitKind }))
+  const items: DayItem[] = rows.map((r) => ({
+    id: r.id,
+    size: r.size,
+    done: r.done,
+    recovery: r.recovery,
+    kind: r.habitKind,
+    weekly: r.weekly,
+  }))
   return {
     type: day?.type ?? null,
     prevType,
@@ -257,7 +285,10 @@ export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<Da
     db.days.get(privateId.day(addDays(date, -1))),
     db.tasks.where('date').equals(date).toArray(),
     loadHabits(),
-    db.habitLogs.where('date').equals(date).toArray(),
+    db.habitLogs
+      .where('date')
+      .between(weekStart(date), addDays(weekStart(date), 6), true, true)
+      .toArray(),
     loadRoles(),
     loadProfile(),
   ])
@@ -286,7 +317,7 @@ export async function loadAllResults(
   const rules = rulesOf(profile)
   const byDate = new Map(days.map((d) => [d.date, d]))
   const tasksByDate = groupBy(tasks, (t) => t.date)
-  const logsByDate = groupBy(logs, (l) => l.date)
+  const logsByWeek = groupBy(logs, (l) => weekStart(l.date))
   const results = new Map<ISODate, DayResult>()
   for (const day of days) {
     if (day.date > today || !day.type) continue
@@ -295,7 +326,7 @@ export async function loadAllResults(
       continue
     }
     const prevType = byDate.get(addDays(day.date, -1))?.type ?? null
-    const rows = dailyRows(day.date, day.type, tasksByDate.get(day.date) ?? [], habits, logsByDate.get(day.date) ?? [], roles)
+    const rows = dailyRows(day.date, day.type, tasksByDate.get(day.date) ?? [], habits, logsByWeek.get(weekStart(day.date)) ?? [], roles)
     results.set(day.date, computeDay(toDayInput(day, prevType, rows), rules, { final: isLocked(day.date, today, rules) }))
   }
   const dates = [...results.keys()].sort()

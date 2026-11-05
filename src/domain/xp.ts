@@ -12,6 +12,11 @@ export interface DayItem {
   recovery: boolean
   /** `sleep` & `workend` dinilai otomatis, bukan dari centang. */
   kind?: Habit['kind']
+  /**
+   * Quest mingguan: `done` hanya benar di hari pertama selesai minggu itu. XP-nya ditambahkan (ikut batas harian),
+   * tetapi tidak masuk syarat lolos. Di pasca-jaga tidak dihitung.
+   */
+  weekly?: boolean
 }
 
 export interface DayInput {
@@ -62,12 +67,17 @@ export function itemsForDay<T extends { recovery: boolean }>(items: T[], effType
  * - JAGA: `round(min(Σ, 100) × 1,0)`, tanpa penalti malam.
  * - PASCA-JAGA: `round(100 × selesai/total) − penalti`, hanya sah bila kemarin jaga.
  * - Lolos bila selesai/total ≥ 60%.
+ * - Quest mingguan: XP di hari pertama selesai saja, di luar syarat lolos.
  * `final` = hari sudah terkunci: jam berhenti kerja yang kosong dianggap lewat 21.00.
  */
 export function computeDay(input: DayInput, rules: XpRules, opts: { final?: boolean } = {}): DayResult {
   if (!input.type) return { ...EMPTY_RESULT }
   const { type: effType, invalidPasca } = effectiveDayType(input.type, input.prevType)
-  const items = itemsForDay(input.items, effType)
+  const items = itemsForDay(
+    input.items.filter((i) => !i.weekly),
+    effType,
+  )
+  const weeklyDone = effType === 'pasca' ? [] : input.items.filter((i) => i.weekly && i.done)
   const done = items.filter((i) => isItemDone(i, input, rules))
   const total = items.length
   const doneCount = done.length
@@ -89,7 +99,7 @@ export function computeDay(input: DayInput, rules: XpRules, opts: { final?: bool
     base = gross
     capped = gross
   } else {
-    base = done.reduce((sum, i) => sum + (rules.xpSize[i.size] ?? 0), 0)
+    base = [...done, ...weeklyDone].reduce((sum, i) => sum + (rules.xpSize[i.size] ?? 0), 0)
     capped = Math.min(base, rules.dailyCap)
     if (effType === 'jaga') mult = rules.jagaMult
     else {
