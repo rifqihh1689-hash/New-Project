@@ -10,7 +10,7 @@ export interface SyncInfo {
 }
 
 const LABELS: Record<SyncMode, string> = {
-  lokal: 'Lokal saja · sinkron belum diatur',
+  lokal: 'Lokal · belum sinkron',
   'belum-masuk': 'Belum masuk',
   menyinkron: 'Menyinkron…',
   tersinkron: 'Tersinkron',

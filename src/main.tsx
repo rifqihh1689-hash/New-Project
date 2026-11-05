@@ -8,6 +8,9 @@ import './index.css'
 captureInstallPrompt()
 void requestPersistentStorage()
 
+// Data contoh hanya untuk dev (screenshot/mencoba tampilan), tidak ikut build produksi.
+if (import.meta.env.DEV) void import('./dev/sample').then((m) => Object.assign(window, { __qawwamSample: m.loadSample }))
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
