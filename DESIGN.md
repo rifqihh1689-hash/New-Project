@@ -212,7 +212,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `documents` | berkas PPDS: nama, status, tenggat, catatan | rencana |
 | `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku: transaksi (termasuk pemasukan tentir otomatis), kategori bawaan `#cat:*` di kode + buatan sendiri, anggaran per kategori per bulan (`#bud:<bulan>:<kategori>`), aturan berulang (transaksi `#rtx:<aturan>:<bulan>`, tidak pernah dobel) | dipakai |
 | `savings`, `debts` | dana jembatan/wishlist + setoran & penarikan; utang + pembayaran; setoran/cicilan per bulan dihitung dari tanggal target | dipakai |
-| `notes` | teks, peran, warna, sematkan | disiapkan |
+| `notes` | teks (baris pertama = judul), peran, warna, sematkan | dipakai |
 | `proposals` | usulan dari Claude: judul, item format JSON impor, status (menunggu/disetujui/ditolak), hasil | dipakai |
 
 "Disiapkan" = tabel sudah ada di skema, layarnya belum. "Rencana" = ditambah lewat versi skema berikutnya.
@@ -287,6 +287,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
 | UX v2: animasi (centang, +XP melayang, transisi halaman, kartu bertahap, bar tumbuh, tab aktif), perayaan naik level, gestur geser (kanan selesai, kiri besok) di Beranda & Tugas, Beranda HP fokus "Hari ini" + "Ringkasan lain" | selesai |
 | Kalender & jadwal jaga: bulan dengan warna tipe hari, mode atur jaga (besoknya otomatis pasca bila kosong, batal ikut mengosongkan pasca), hitungan jaga + peringatan berurutan/minggu berat, agenda per hari, agenda hari ini di Beranda, kalender mini di layar lebar, impor/usulan jenis `agenda` | selesai |
+| Catatan: kartu warna (grid), cari semua kata, filter per peran, sematkan, jadikan tugas, cek identitas pasien, Catat cepat menebak peran | selesai |
 | Dibuka bertahap, notifikasi push | belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Uang: transaksi, ringkasan bulanan, anggaran (aman/hampir habis/lewat, salin bulan lalu), berulang (mengejar bulan terlewat), dana jembatan & tabungan, utang, kategori, Catat cepat Uang, impor backup Dompetku | selesai (v1) |

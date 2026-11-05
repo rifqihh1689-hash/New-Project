@@ -1,19 +1,19 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { useToast } from '../../components/toast-context'
-import { addTask, assertNoPatientIdentity, deleteTask, PatientIdentityError } from '../../db/daily'
+import { addTask, deleteTask, PatientIdentityError } from '../../db/daily'
 import { db } from '../../db/db'
+import { saveNote } from '../../db/notes'
 import { DEFAULT_ROLE_ID } from '../../db/defaults'
 import { roleLookup, useRoles } from '../../db/structure'
 import { detectPatientIdentity } from '../../domain/phi'
-import { parseQuickTask } from '../../domain/quickCapture'
+import { guessRole, parseQuickTask } from '../../domain/quickCapture'
 import { DEFAULT_TENTIR_RATE, parseTentir, sessionRange } from '../../domain/tentir'
 import { dayKey, relativeDayLabel } from '../../domain/time'
 import { deleteSession, loadTentirRate, saveSession } from '../../db/tentir'
 import { deleteTransaction, loadCategories, saveTransaction } from '../../db/money'
 import { categoryLookup, parseQuickMoney } from '../../domain/money'
 import { formatNumber, formatRupiah } from '../../lib/format'
-import { createId } from '../../lib/id'
 
 export type CaptureMode = 'tugas' | 'catatan' | 'uang' | 'tentir'
 
@@ -74,11 +74,9 @@ export function useQuickCapture(onSaved?: () => void) {
           action: { label: 'Urungkan', onClick: () => void deleteTask(task.id) },
         })
       } else if (mode === 'catatan') {
-        assertNoPatientIdentity(value)
-        const now = Date.now()
-        const id = createId('nte')
-        await db.notes.add({ id, text: value, roleId: null, color: null, pinned: false, createdAt: now, updatedAt: now })
-        toast({ message: 'Catatan tersimpan.', action: { label: 'Urungkan', onClick: () => void db.notes.delete(id) } })
+        // Peran ditebak dari isi (mis. "fraktur" → Ortopedi), sama seperti Catat cepat tugas.
+        const note = await saveNote({ text: value, roleId: guessRole(value, roles ?? []), color: null, pinned: false })
+        toast({ message: 'Catatan tersimpan.', action: { label: 'Urungkan', onClick: () => void db.notes.delete(note.id) } })
       } else if (mode === 'tentir') {
         const t = parseTentir(value, today)
         if (!t.student) {

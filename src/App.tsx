@@ -9,6 +9,7 @@ import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
 import { HabitPage } from './features/habit/HabitPage'
 import { ImportPage } from './features/import/ImportPage'
+import { CatatanPage } from './features/catatan/CatatanPage'
 import { HadiahPage } from './features/hadiah/HadiahPage'
 import { KalenderPage } from './features/kalender/KalenderPage'
 import { LatihanPage } from './features/latihan/LatihanPage'
@@ -54,6 +55,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <UangPage />
     case 'kalender':
       return <KalenderPage />
+    case 'catatan':
+      return <CatatanPage />
     case 'impor':
       return <ImportPage />
     case 'setelan':
