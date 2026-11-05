@@ -292,6 +292,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | UX v2: animasi (centang, +XP melayang, transisi halaman, kartu bertahap, bar tumbuh, tab aktif), perayaan naik level, gestur geser (kanan selesai, kiri besok) di Beranda & Tugas, Beranda HP fokus "Hari ini" + "Ringkasan lain" | selesai |
 | Kalender & jadwal jaga: bulan dengan warna tipe hari, mode atur jaga (besoknya otomatis pasca bila kosong, batal ikut mengosongkan pasca), hitungan jaga + peringatan berurutan/minggu berat, agenda per hari, agenda hari ini di Beranda, kalender mini di layar lebar, impor/usulan jenis `agenda` | selesai |
 | Catatan: kartu warna (grid), cari semua kata, filter per peran, sematkan, jadikan tugas, cek identitas pasien, Catat cepat menebak peran | selesai |
+| Muhasabah bulanan: XP/lolos/tidur/jaga (dibanding bulan lalu bila bulan selesai), tren per minggu + tidur vs minggu berat jaga, per bidang (peran, habit, mutaba'ah, tentir, uang, dana jembatan, utang, latihan), refleksi + 3 prioritas bulan depan (tampil di Beranda), salin ringkasan untuk Claude, selesai mulai tgl 25 tanpa XP | selesai |
 | Dibuka bertahap, notifikasi push | belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Uang: transaksi, ringkasan bulanan, anggaran (aman/hampir habis/lewat, salin bulan lalu), berulang (mengejar bulan terlewat), dana jembatan & tabungan, utang, kategori, Catat cepat Uang, impor backup Dompetku | selesai (v1) |

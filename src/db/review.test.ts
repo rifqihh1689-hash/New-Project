@@ -35,3 +35,32 @@ describe('Muhasabah', () => {
     expect((await db.reviews.get('#rev:minggu:2026-11-02'))?.xp).toBe(50)
   })
 })
+
+describe('Muhasabah bulanan', () => {
+  it('prioritas & refleksi tersimpan per bulan; selesai mulai tanggal 25, tanpa XP', async () => {
+    const { completeMonthReview, saveMonthReviewText } = await import('./review')
+    const numbers = {
+      tasksDone: 3,
+      tasksOpen: 1,
+      habitDone: 4,
+      habitApplicable: 8,
+      avgSleep: 6,
+      passDays: 2,
+      recordedDays: 3,
+      xp: 120,
+      jaga: 4,
+      overtime: 0,
+      tentirHours: 6,
+      expense: 0,
+      income: 0,
+    }
+    await expect(completeMonthReview('2026-11', '2026-11-26', numbers)).rejects.toThrow('prioritas')
+    await saveMonthReviewText('2026-11', { priorities: ['Bank soal 600', '', ''], focus: 'tidur dulu' })
+    await expect(completeMonthReview('2026-11', '2026-11-05', numbers)).rejects.toThrow('tanggal 25')
+    await completeMonthReview('2026-11', '2026-11-26', numbers)
+    const r = await db.reviews.get('#rev:bulan:2026-11')
+    expect(r).toMatchObject({ period: 'bulan', start: '2026-11-01', xp: 0, focus: 'tidur dulu' })
+    expect(r?.numbers.xp).toBe(120)
+    await expect(saveMonthReviewText('2026-11', { wins: 'visite Tn. Budi lancar' })).rejects.toThrow()
+  })
+})

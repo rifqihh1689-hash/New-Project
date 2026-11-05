@@ -4,7 +4,7 @@ import { computeStreak, consistency, dayStatus, levelFromXp } from '../../domain
 import { tokensLeft } from '../../domain/rewards'
 import { sortEvents } from '../../domain/calendar'
 import { napToNextTier, sleepTotal } from '../../domain/sleep'
-import { addDays, monthOf, weekDates, weekStart } from '../../domain/time'
+import { addDays, addMonths, monthOf, weekDates, weekStart } from '../../domain/time'
 import { effectiveRitme, workEndTime } from '../../domain/ritme'
 import { proteinTarget, resolveNutrition, slotsFor } from '../../domain/menu'
 import { loadMenus } from '../../db/menu'
@@ -37,7 +37,7 @@ export async function loadBeranda(today: ISODate) {
       db.mainQuests.where('status').equals('aktif').toArray(),
       db.chapters.where('end').aboveOrEqual(today).toArray(),
     ])
-  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda] = await Promise.all([
+  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda, lastMonthReview] = await Promise.all([
     db.reviews.where('period').equals('minggu').toArray(),
     db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
     loadMenus(),
@@ -45,6 +45,8 @@ export async function loadBeranda(today: ISODate) {
     db.claims.count(),
     db.proposals.where('status').equals('menunggu').count(),
     db.events.where('date').equals(today).toArray(),
+    // Prioritas bulan ini ditulis di Muhasabah bulanan bulan lalu.
+    db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
   ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
@@ -111,6 +113,7 @@ export async function loadBeranda(today: ISODate) {
     money: { expense, budget, debtLeft, debtInitial, hasDebt: debts.length > 0, bridge, tentirIncome },
     mainQuests: mainQuests.slice(0, 3),
     priorities: (lastReview?.priorities ?? []).filter((p) => p.trim()),
+    monthPriorities: (lastMonthReview?.priorities ?? []).filter((p) => p.trim()),
     meals,
     proteinTarget: proteinTarget(nutrition),
   }

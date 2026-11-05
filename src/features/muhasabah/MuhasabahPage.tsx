@@ -13,6 +13,7 @@ import { addDays, DAY_SHORT, formatHours, MONTH_NAMES, weekday, weekStart } from
 import { formatNumber, formatRupiah } from '../../lib/format'
 import type { Review } from '../../types'
 import { useMuhasabah, type MuhasabahData } from './data'
+import { MonthlyReview } from './MonthlyReview'
 
 const short = (d: string) => `${DAY_SHORT[weekday(d)]}, ${Number(d.slice(8))} ${MONTH_NAMES[Number(d.slice(5, 7)) - 1].slice(0, 3)}`
 
@@ -221,15 +222,43 @@ function Reflection({ data, today }: { data: MuhasabahData; today: string }) {
 }
 
 export function MuhasabahPage({ date }: { date: string | null }) {
+  const [period, setPeriod] = useState<'minggu' | 'bulan'>('minggu')
+  return (
+    <>
+      <PageTop title="Muhasabah" />
+      <h1 className="mt-4 text-[26px] font-semibold tracking-tight md:hidden">Muhasabah</h1>
+      <div role="tablist" aria-label="Periode Muhasabah" className="mt-3 flex w-fit rounded-full bg-surface-2 p-[3px] md:mt-[26px]">
+        {(
+          [
+            ['minggu', 'Mingguan'],
+            ['bulan', 'Bulanan'],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={period === v}
+            onClick={() => setPeriod(v)}
+            className={`rounded-full px-4 py-1.5 text-[13px] ${period === v ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {period === 'minggu' ? <WeeklyReview date={date} /> : <MonthlyReview />}
+    </>
+  )
+}
+
+function WeeklyReview({ date }: { date: string | null }) {
   const today = useToday()
   const [monday, setMonday] = useState(() => weekStart(date ?? today))
   const data = useMuhasabah(monday, today)
   const thisWeek = monday === weekStart(today)
   return (
     <>
-      <PageTop title="Muhasabah" />
-      <h1 className="mt-4 text-[26px] font-semibold tracking-tight md:hidden">Muhasabah</h1>
-      <section className="mt-3 flex flex-wrap items-center gap-3 md:mt-[26px]">
+      <section className="mt-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1">
           <button type="button" className="btn-ghost p-2" onClick={() => setMonday(addDays(monday, -7))} aria-label="Minggu sebelumnya">
             <ChevronLeft size={18} aria-hidden="true" />
