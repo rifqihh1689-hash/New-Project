@@ -1,0 +1,78 @@
+name: Build & Deploy ke GitHub Pages
+
+on:
+  # Deploy otomatis setiap push ke main.
+  push:
+    branches: [main]
+  # Pull request hanya dicek (lint, tes, build) tanpa deploy.
+  pull_request:
+    branches: [main]
+  # Bisa dijalankan manual dari tab Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Hanya satu deploy berjalan; deploy yang sedang berjalan tidak dibatalkan.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Lint, tes & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cek format & lint
+        run: |
+          npm run format:check
+          npm run lint
+
+      - name: Tes
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Path dasar mengikuti nama repo: https://<user>.github.io/<repo>/
+          BASE_PATH: /${{ github.event.repository.name }}/
+          # URL database Dexie Cloud dari Settings → Secrets and variables → Actions → Variables.
+          # Bukan rahasia (ikut terkirim ke browser). Kosong = app jalan lokal saja.
+          VITE_DEXIE_CLOUD_URL: ${{ vars.DEXIE_CLOUD_URL }}
+
+      - name: Upload artefak Pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Konfigurasi Pages
+        uses: actions/configure-pages@v6
+
+      - name: Deploy ke GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
