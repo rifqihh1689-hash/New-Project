@@ -67,11 +67,18 @@ Catatan: aplikasi buatan sendiri tidak boleh memakai login atau kuota langganan 
 
 ## Model data (draf)
 
-Semua kunci primer berupa string yang dibuat otomatis (syarat Dexie Cloud). Tanggal `YYYY-MM-DD`, zona waktu WIB.
+Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Cloud). Tanggal `YYYY-MM-DD`, zona waktu WIB, hari berganti pukul 03.00.
+
+- Baris baru: ID acak berawalan tabel (`tsk_…`, `nte_…`).
+- Baris "satu per kunci alami" (hari per tanggal, log habit/mutaba'ah per tanggal, profil, Muhasabah per minggu): ID privat `#…` (`#day:2026-11-05`). Dexie Cloud menerjemahkannya per pengguna, jadi HP dan laptop yang offline menulis ke baris yang sama, bukan membuat duplikat.
+- Bawaan (peran, fase, mutaba'ah, habit inti) hidup di kode dengan ID `#…`; database hanya menyimpan perubahanmu. Perangkat baru tidak pernah menimpa nama atau warna yang sudah kamu ubah.
+- Peran, fase, dan mutaba'ah tidak dihapus, hanya diarsipkan. Riwayat lama tetap punya nama dan warna yang benar.
 
 | Tabel | Isi utama |
 |---|---|
-| `roles` | nama, warna, urutan |
+| `profile` | nama, aturan XP yang diubah, template ritme per tipe hari, kapasitas tentir |
+| `lifeRoles` | peran: nama, warna, urutan, peran pemulihan, diarsipkan (`roles` dipakai Dexie Cloud sendiri) |
+| `phases` | fase hidup (Koas → UKMPPD → PPDS): nama, mulai, selesai, label tipe hari per fase |
 | `days` | tanggal, tipe hari, tidur malam, qailulah, jam berhenti kerja, catatan, hasil beku |
 | `chapters` | stase: nama, mulai, selesai, bobot (ringan/sedang/berat) |
 | `tasks` | judul, peran, tanggal, tenggat, penting, subtugas, selesai, sumber (manual/claude) |
@@ -112,6 +119,16 @@ Tidak ada tool yang menghapus data.
 1. **Fondasi & harian:** proyek baru, login + sinkron Dexie Cloud, Beranda, Catat cepat, Tugas (per hari + peran), Habit & Mutaba'ah, tipe hari + tidur + XP, Muhasabah mingguan, impor data MBAPPE OS. Di akhir fase: connector + Usulan.
 2. **Terhubung:** Uang (port Dompetku + tabungan, utang, dana jembatan), Tentir (sesi → pemasukan), Kalender & jadwal jaga, Catatan, impor data Dompetku, Muhasabah bulanan.
 3. **Pelengkap:** Belajar UKMPPD (bank soal per sistem organ), Target & PPDS (portofolio, systematic review, IELTS), logbook kasus ortopedi, Buku, tombol Claude di dalam app (opsional).
+
+## Saat fase hidup berganti
+
+Tidak ada yang direset. Fase, peran, habit, dan ritme adalah data, bukan kode:
+
+- **Fase:** tutup fase lama (isi tanggal selesai), tambah fase baru. Jalan ke PPDS di Beranda mengikuti.
+- **Peran:** arsipkan "Koas", tambah "Internsip" atau "PPDS". Tugas lama tetap berlabel Koas.
+- **Tipe hari:** empat tipe tetap (karena aturan pasca-jaga dan streak bergantung padanya), tapi labelnya bisa diganti per fase, mis. "Stase" → "Dinas".
+- **Habit, mutaba'ah, ritme:** nonaktifkan yang lama, tambah yang baru.
+- **XP, level, streak:** berlanjut. Hari yang sudah lewat dibekukan, jadi mengubah aturan tidak mengubah masa lalu.
 
 ## Belum diputuskan
 
