@@ -12,6 +12,7 @@ import type {
   Habit,
   HabitLog,
   MainQuest,
+  Material,
   MealPlanEntry,
   Menu,
   MutabaahItem,
@@ -25,7 +26,9 @@ import type {
   Reward,
   Role,
   Saving,
+  Student,
   Task,
+  TentirPackage,
   TentirSession,
   Transaction,
   Workout,
@@ -60,6 +63,9 @@ export type QawwamDB = Dexie & {
   workouts: EntityTable<Workout, 'id'>
   rewards: EntityTable<Reward, 'id'>
   claims: EntityTable<Claim, 'id'>
+  students: EntityTable<Student, 'id'>
+  tentirPackages: EntityTable<TentirPackage, 'id'>
+  materials: EntityTable<Material, 'id'>
 }
 
 export const DB_NAME = 'qawwam'
@@ -109,6 +115,13 @@ export const SCHEMA_V3_ADDITIONS = {
   claims: 'id, date',
 } as const
 
+/** Tabel baru di skema v4 (Tentir+). */
+export const SCHEMA_V4_ADDITIONS = {
+  students: 'id, initials',
+  tentirPackages: 'id, student',
+  materials: 'id, block',
+} as const
+
 export function createDatabase(name: string = DB_NAME): QawwamDB {
   const db = new Dexie(name, { addons: [dexieCloud] }) as QawwamDB
   db.version(1).stores(SCHEMA_V1)
@@ -116,6 +129,8 @@ export function createDatabase(name: string = DB_NAME): QawwamDB {
   db.version(2).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS })
   // v3: latihan & hadiah.
   db.version(3).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS })
+  // v4: Tentir+ (murid, paket, materi).
+  db.version(4).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS, ...SCHEMA_V4_ADDITIONS })
   return db
 }
 

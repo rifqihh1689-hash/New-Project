@@ -256,6 +256,43 @@ export interface TentirSession extends Stamped {
   fee: number
   paid: boolean
   transactionId: string | null
+  /** Sesi bagian dari paket (fee 0, tidak membuat transaksi sendiri). */
+  packageId?: string | null
+}
+
+/** Murid tentir (inisial saja, tanpa data pribadi lain). */
+export interface Student extends Stamped {
+  initials: string
+  /** Angkatan/semester, mis. "Sem 5" atau "2023". */
+  cohort: string
+  /** Blok yang sedang ditentir, mis. "Blok 12 Muskuloskeletal". */
+  block: string
+  /** Tarif khusus per jam; `null` = tarif umum. */
+  rate: number | null
+  note: string
+  archived: boolean
+}
+
+/** Paket sesi dibayar di muka. Sesi yang memakai paket tidak membuat transaksi sendiri. */
+export interface TentirPackage extends Stamped {
+  /** Inisial murid (sama dengan `TentirSession.student`). */
+  student: string
+  name: string
+  sessions: number
+  price: number
+  paid: boolean
+  paidDate: ISODate | null
+  transactionId: string | null
+  archived: boolean
+}
+
+/** Materi tentir per blok, untuk dipakai ulang. */
+export interface Material extends Stamped {
+  block: string
+  title: string
+  /** Tautan (Drive/Notion) atau kosong. */
+  link: string
+  note: string
 }
 
 export interface Note extends Stamped {

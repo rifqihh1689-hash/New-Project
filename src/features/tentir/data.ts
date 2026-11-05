@@ -8,11 +8,14 @@ import type { ISODate } from '../../types'
 
 export async function loadTentirPage(monday: ISODate, today: ISODate) {
   const dates = weekDates(monday)
-  const [week, all, profile, days] = await Promise.all([
+  const [week, all, profile, days, studentRows, packages, materials] = await Promise.all([
     loadSessions(dates[0], dates[6]),
     loadSessions(),
     loadProfile(),
     db.days.where('date').between(dates[0], dates[6], true, true).toArray(),
+    db.students.toArray(),
+    db.tentirPackages.toArray(),
+    db.materials.toArray(),
   ])
   const cap = profile.tentirCapacity
   const limit = rulesOf(profile).workEndLimit
@@ -34,7 +37,13 @@ export async function loadTentirPage(monday: ISODate, today: ISODate) {
     rate: profile.tentirRate ?? DEFAULT_TENTIR_RATE,
     /** Batas kerja malam dari aturan XP (`null` = dimatikan). */
     limit,
-    students: [...new Set(all.map((s) => s.student).filter(Boolean))].slice(-12),
+    students: [
+      ...new Set([...studentRows.filter((x) => !x.archived).map((x) => x.initials), ...all.map((s) => s.student)].filter(Boolean)),
+    ],
+    allSessions: all,
+    studentRows,
+    packages,
+    materials: materials.sort((a, b) => a.block.localeCompare(b.block) || a.title.localeCompare(b.title)),
   }
 }
 

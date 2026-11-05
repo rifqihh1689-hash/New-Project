@@ -98,11 +98,14 @@ Port Dompetku, disesuaikan untuk koas:
 
 ### Tentir+
 
-Sudah ada (v1): sesi per murid (inisial saja), topik, tanggal, jam mulai, durasi, tarif (jam × tarif per jam, bawaan Rp85.000, bisa diubah manual untuk kelompok/paket), lunas. Jam per hari dan per minggu dibandingkan kuota 9–15 j, pemasukan, Rp per jam (minggu ini & rata-rata 4 minggu), daftar belum dibayar. Sesi lunas otomatis jadi transaksi pemasukan (kategori `#cat:tentir`). Hari non-jaga yang ada sesinya mendapat quest bersyarat **"Sesi tentir selesai ≤ 21.00"** (sedang, otomatis dari jam mulai + durasi, ala MBAPPE OS); sesi yang lewat 21.00 mencatat berhenti kerja lewat 21.00 (penalti −15). Catat cepat mode Tentir: "AB 2j anatomi 19.00 besok lunas".
+Sesi (v1): inisial murid, topik, tanggal, jam mulai, durasi, tarif (jam × tarif per jam, bawaan Rp85.000, atau tarif khusus murid), lunas. Jam per hari dan per minggu dibandingkan kuota 9–15 j, pemasukan, Rp per jam (minggu ini & rata-rata 4 minggu), daftar belum dibayar. Sesi lunas otomatis jadi transaksi pemasukan (kategori `#cat:tentir`). Hari non-jaga yang ada sesinya mendapat quest bersyarat **"Sesi tentir selesai ≤ batas kerja malam"** (sedang, otomatis dari jam mulai + durasi); quest ini hilang bila aturan batas kerja dimatikan, dan sesi tentir tidak pernah otomatis dihitung lembur. Catat cepat mode Tentir: "AB 2j anatomi 19.00 besok lunas".
 
-Rencana berikutnya:
-
-Data per murid (semester, blok), paket dan sisa sesi, status bayar, angka **Rp per jam**, slot kosong bulanan yang dihitung dari jadwal jaga (dikirim ke murid supaya jarang jadwal ulang), template pesan WA, dan perpustakaan materi per blok yang bisa dipakai ulang tahun berikutnya.
+Tentir+ (tab Sesi · Murid · Slot · Materi):
+- **Murid:** inisial (unik, huruf besar, dicek identitas pasien), angkatan, blok, tarif per jam sendiri (mis. kelompok), catatan, arsip. Tarif murid otomatis dipakai saat mencatat sesinya.
+- **Paket dibayar di muka:** nama, jumlah sesi, harga, lunas + tanggal bayar. Paket lunas menjadi **satu** transaksi pemasukan; sesi yang memakai paket bertarif Rp0 dan berlabel "paket", jadi uangnya tidak terhitung dua kali. Sisa sesi tampil di kartu murid ("sisa 3/4") dan di form sesi ("Pakai paket … (sisa n sesi)").
+- **Slot kosong bulanan:** dari jadwal jaga & pasca, sesi yang sudah ada, dan jam mulai–selesai yang dipilih; tanggal lewat tidak ditawarkan. Pesan slot (dikelompokkan per minggu) bisa disalin atau dibuka langsung di WhatsApp, supaya murid memilih dari jadwal yang memang kosong.
+- **Template pesan WA:** konfirmasi sesi, pengingat, tagihan, tawaran paket; isian (inisial, tanggal, jam, topik, nominal, sisa paket) terisi otomatis, bisa diedit sebelum dikirim.
+- **Materi per blok:** judul, blok (bawaan "Umum"), tautan http(s), catatan; topik materi muncul sebagai saran di form sesi. Hapus bisa diurungkan.
 
 - Arah strategi: kelompok kecil satu angkatan (contoh Rp60.000 per orang per jam: 2 orang = Rp120.000/jam, 3 orang = Rp180.000/jam, dibandingkan 1:1 Rp85.000/jam), paket per blok dibayar di muka, materi per blok jadi produk digital.
 
@@ -192,7 +195,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 - Baris "satu per kunci alami" (hari per tanggal, log habit/mutaba'ah per tanggal, profil, Muhasabah per minggu, rencana makan per tanggal & waktu makan): ID privat `#…` (`#day:2026-11-05`). Dexie Cloud menerjemahkannya per pengguna, jadi HP dan laptop yang offline menulis ke baris yang sama, bukan membuat duplikat.
 - Bawaan (peran, fase, mutaba'ah, habit inti, menu awal) hidup di kode dengan ID `#…`; database hanya menyimpan perubahanmu. Perangkat baru tidak pernah menimpa nama atau warna yang sudah kamu ubah.
 - Peran, fase, habit, mutaba'ah, dan menu tidak dihapus, hanya diarsipkan/dinonaktifkan. Riwayat lama tetap utuh.
-- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu, v3 latihan & hadiah).
+- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu, v3 latihan & hadiah, v4 murid, paket & materi tentir).
 
 | Tabel | Isi utama | Status |
 |---|---|---|
@@ -211,7 +214,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `events` | agenda (judul, tanggal, jam mulai/selesai, peran). Jadwal jaga disimpan sebagai tipe hari, stase di `chapters` | dipakai |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
 | `tentirSessions` | inisial murid, topik, tanggal, jam mulai, durasi, tarif, lunas. Sesi lunas otomatis membuat transaksi pemasukan. | dipakai |
-| `students`, `tentirPackages`, `materials` | murid (inisial, semester), paket + sisa sesi, materi per blok | rencana |
+| `students`, `tentirPackages`, `materials` | murid (inisial unik, angkatan, blok, tarif sendiri, arsip); paket (murid, nama, jumlah sesi, harga, lunas → satu transaksi pemasukan); materi (blok, judul, tautan, catatan). Sesi memakai paket lewat `tentirSessions.packageId` | dipakai |
 | `flashcards` | kartu, sistem organ, jadwal ulang berikutnya | rencana |
 | `documents` | berkas PPDS: nama, status, tenggat, catatan | rencana |
 | `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku: transaksi (termasuk pemasukan tentir otomatis), kategori bawaan `#cat:*` di kode + buatan sendiri, anggaran per kategori per bulan (`#bud:<bulan>:<kategori>`), aturan berulang (transaksi `#rtx:<aturan>:<bulan>`, tidak pernah dobel) | dipakai |
@@ -265,7 +268,7 @@ Folder `connector/`: Cloudflare Worker yang berbicara MCP (Streamable HTTP) dan 
 ## Fase
 
 1. **Fondasi & harian:** proyek baru, login + sinkron Dexie Cloud, Beranda, Catat cepat, Tugas (per hari + peran), Habit & Mutaba'ah, tipe hari + tidur + XP, Muhasabah mingguan, impor data MBAPPE OS. Di akhir fase: connector + Usulan.
-2. **Terhubung:** Uang (port Dompetku + tabungan, utang, dana jembatan), Tentir+ (sesi → pemasukan, paket, Rp/jam, slot dari jadwal jaga), Makan & belanja, Kalender & jadwal jaga, Catatan, impor data Dompetku, Muhasabah bulanan.
+2. **Terhubung** (selesai): Uang (port Dompetku + tabungan, utang, dana jembatan), Tentir+ (sesi → pemasukan, paket, Rp/jam, slot dari jadwal jaga), Makan & belanja, Kalender & jadwal jaga, Catatan, impor data Dompetku, Muhasabah bulanan.
 3. **Pelengkap:** Belajar UKMPPD (bank soal per sistem organ + flashcard), Target & PPDS (portofolio, systematic review, IELTS, berkas PPDS), logbook kasus ortopedi, produk digital, Buku, tombol Claude di dalam app (opsional).
 
 Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena diminta.
@@ -284,8 +287,9 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Impor jadwal (Sheets/CSV/Claude) | selesai |
 | Makan & belanja: setelan gizi, menu bawaan ayam & telur, isi otomatis per tipe hari, daftar belanja → tugas, Makan hari ini, impor menu | selesai (v1) |
 | Impor MBAPPE OS (hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan) | selesai |
-| Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K | selesai (v1) |
-| Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ 21.00, Catat cepat Tentir | selesai |
+| Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K, katalog gerakan + ganti variasi, program Full body / Atas-Bawah / Push-Pull-Kaki, grafik progres 1RM & 5K | selesai |
+| Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ batas kerja malam, Catat cepat Tentir | selesai |
+| Tentir+: murid (tarif sendiri), paket dibayar di muka + sisa sesi, slot kosong bulanan dari jadwal jaga (salin/WhatsApp), template pesan WA, materi per blok | selesai |
 | Hadiah: 1 token per naik level, daftar hadiah sendiri, klaim + riwayat, hadiah berbiaya terkunci sampai dana jembatan tercapai, chip token di Beranda | selesai |
 | Usulan: daftar usulan Claude, pilih item, setujui lewat jalur Impor / tolak (Urungkan), pemberitahuan di Beranda | selesai |
 | Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
@@ -296,7 +300,8 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Dibuka bertahap, notifikasi push | belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Uang: transaksi, ringkasan bulanan, anggaran (aman/hampir habis/lewat, salin bulan lalu), berulang (mengejar bulan terlewat), dana jembatan & tabungan, utang, kategori, Catat cepat Uang, impor backup Dompetku | selesai (v1) |
-| Modul Fase 2–3 lainnya | belum |
+| Fase 2 | selesai (semua modul di atas) |
+| Fase 3 (Belajar UKMPPD, Target & PPDS, logbook, produk digital, Buku) | belum |
 
 ## Belum diputuskan
 

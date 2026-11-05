@@ -19,6 +19,9 @@ export function SessionEditor({
   rate,
   limit,
   students,
+  studentRates = new Map(),
+  packageFor = () => null,
+  topics = [],
   onClose,
 }: {
   draft: SessionDraft | null
@@ -26,16 +29,38 @@ export function SessionEditor({
   /** Batas kerja malam (`null` = tanpa batas). */
   limit: string | null
   students: string[]
+  /** Tarif khusus per murid (inisial → Rp/jam). */
+  studentRates?: Map<string, number>
+  /** Paket aktif murid (masih ada sisa sesi). */
+  packageFor?: (initials: string) => PackageInfo | null
+  /** Saran topik (judul materi). */
+  topics?: string[]
   onClose: () => void
 }) {
   const editing = draft && 'id' in draft
   return (
     <Sheet open={!!draft} title={editing ? 'Ubah sesi tentir' : 'Sesi tentir baru'} onClose={onClose}>
       {draft && (
-        <Body key={'id' in draft ? draft.id : draft.date} draft={draft} rate={rate} limit={limit} students={students} onClose={onClose} />
+        <Body
+          key={'id' in draft ? draft.id : draft.date}
+          draft={draft}
+          rate={rate}
+          limit={limit}
+          students={students}
+          studentRates={studentRates}
+          packageFor={packageFor}
+          topics={topics}
+          onClose={onClose}
+        />
       )}
     </Sheet>
   )
+}
+
+export interface PackageInfo {
+  id: string
+  name: string
+  left: number
 }
 
 function Body({
@@ -43,12 +68,18 @@ function Body({
   rate,
   limit,
   students,
+  studentRates,
+  packageFor,
+  topics,
   onClose,
 }: {
   draft: SessionDraft
   rate: number
   limit: string | null
   students: string[]
+  studentRates: Map<string, number>
+  packageFor: (initials: string) => PackageInfo | null
+  topics: string[]
   onClose: () => void
 }) {
   const toast = useToast()
@@ -58,12 +89,18 @@ function Body({
   )
   // Tarif mengikuti durasi sampai diubah manual.
   const [feeTouched, setFeeTouched] = useState(!!existing)
+  const rateOf = (initials: string) => studentRates.get(initials.trim().toUpperCase()) ?? rate
   const set = (change: Partial<SessionInput>) =>
     setS((cur) => {
       const next = { ...cur, ...change }
-      if (!feeTouched && change.hours != null) next.fee = Math.round(rate * change.hours)
+      // Tarif mengikuti durasi & tarif khusus murid sampai diubah manual.
+      if (!feeTouched && (change.hours != null || change.student != null)) next.fee = Math.round(rateOf(next.student) * next.hours)
       return next
     })
+  // Sesi baru untuk murid yang punya paket aktif: pakai paket (Rp0, tanpa transaksi sendiri).
+  const pkg = existing ? null : packageFor(s.student)
+  const [usePkg, setUsePkg] = useState(true)
+  const inPackage = existing ? !!existing.packageId : !!pkg && usePkg
   const phi = detectPatientIdentity(`${s.student} ${s.topic}`)
   const validStart = !s.start || parseClock(s.start) != null
   const range = s.start && validStart ? sessionRange(s) : null
@@ -72,7 +109,11 @@ function Body({
 
   const save = async () => {
     try {
-      await saveSession({ ...s, start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null })
+      await saveSession({
+        ...s,
+        start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null,
+        ...(pkg && usePkg ? { packageId: pkg.id, fee: 0, paid: true } : {}),
+      })
       toast({ message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid ? ' · masuk pemasukan' : ''}.` })
       onClose()
     } catch (e) {
@@ -113,7 +154,13 @@ function Body({
             maxLength={80}
             onChange={(e) => set({ topic: e.target.value })}
             placeholder="mis. Anatomi ekstremitas"
+            list="tentir-topics"
           />
+          <datalist id="tentir-topics">
+            {topics.map((x) => (
+              <option key={x} value={x} />
+            ))}
+          </datalist>
         </label>
       </div>
       {phi && <p className="-mt-2 text-xs text-danger">Mirip identitas pasien ({phi}). Pakai inisial murid saja, tanpa data pasien.</p>}
@@ -156,28 +203,44 @@ function Body({
               : 'Format jam: 19.00'}
         </p>
       </div>
-      <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-        <label className="text-xs text-muted">
-          Tarif sesi (Rp)
-          <input
-            className="field mt-1"
-            inputMode="numeric"
-            value={s.fee ? s.fee.toLocaleString('id-ID') : ''}
-            onChange={(e) => {
-              setFeeTouched(true)
-              setS((cur) => ({ ...cur, fee: Number(e.target.value.replace(/[^\d]/g, '')) || 0 }))
-            }}
-          />
+      {pkg && (
+        <label className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[13.5px]">
+          <input type="checkbox" className="size-4 accent-current" checked={usePkg} onChange={(e) => setUsePkg(e.target.checked)} />
+          Pakai paket {pkg.name} (sisa {pkg.left} sesi)
         </label>
-        <label className="flex items-center gap-2 pb-2.5 text-[13.5px]">
-          <input type="checkbox" className="size-4 accent-current" checked={s.paid} onChange={(e) => set({ paid: e.target.checked })} />
-          Lunas
-        </label>
-      </div>
-      <p className="-mt-2 text-xs text-faint">
-        {formatRupiah(rate)}/jam × {String(s.hours).replace('.', ',')} j = {formatRupiah(rate * s.hours)}. Ubah manual untuk kelompok atau
-        paket. Sesi lunas otomatis jadi pemasukan.
-      </p>
+      )}
+      {inPackage ? (
+        <p className="text-xs text-faint">
+          Bagian dari paket: Rp0 di sesi ini, karena paketnya sudah dicatat sebagai pemasukan saat dibayar.
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+            <label className="text-xs text-muted">
+              Tarif sesi (Rp)
+              <input
+                className="field mt-1"
+                inputMode="numeric"
+                value={s.fee ? s.fee.toLocaleString('id-ID') : ''}
+                onChange={(e) => {
+                  setFeeTouched(true)
+                  setS((cur) => ({ ...cur, fee: Number(e.target.value.replace(/[^\d]/g, '')) || 0 }))
+                }}
+              />
+            </label>
+            <label className="flex items-center gap-2 pb-2.5 text-[13.5px]">
+              <input type="checkbox" className="size-4 accent-current" checked={s.paid} onChange={(e) => set({ paid: e.target.checked })} />
+              Lunas
+            </label>
+          </div>
+          <p className="-mt-2 text-xs text-faint">
+            {formatRupiah(rateOf(s.student))}/jam
+            {studentRates.has(s.student.trim().toUpperCase()) ? ` (tarif khusus ${s.student.toUpperCase()})` : ''} ×{' '}
+            {String(s.hours).replace('.', ',')} j = {formatRupiah(rateOf(s.student) * s.hours)}. Ubah manual untuk kelompok. Sesi lunas
+            otomatis jadi pemasukan.
+          </p>
+        </>
+      )}
       <div className="flex gap-2">
         {existing && (
           <button type="button" className="btn-ghost border border-line" onClick={() => void remove()}>
