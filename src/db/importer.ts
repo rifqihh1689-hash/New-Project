@@ -4,6 +4,7 @@ import { createId } from '../lib/id'
 import type { DayType, RitmeSlot } from '../types'
 import { addTask, setDayType } from './daily'
 import { db } from './db'
+import { loadMenus, newMenu, saveMenu } from './menu'
 import { loadHabits, saveChapter, saveHabit, saveRitme } from './structure'
 
 export interface ImportSummary {
@@ -15,6 +16,7 @@ export interface ImportSummary {
   jaga: number
   staseNew: number
   staseUpdated: number
+  menu: number
 }
 
 /**
@@ -23,7 +25,17 @@ export interface ImportSummary {
  * tugas dengan judul + tanggal sama dilewati.
  */
 export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
-  const sum: ImportSummary = { ritme: 0, habitNew: 0, habitUpdated: 0, tugas: 0, tugasSkipped: 0, jaga: 0, staseNew: 0, staseUpdated: 0 }
+  const sum: ImportSummary = {
+    ritme: 0,
+    habitNew: 0,
+    habitUpdated: 0,
+    tugas: 0,
+    tugasSkipped: 0,
+    jaga: 0,
+    staseNew: 0,
+    staseUpdated: 0,
+    menu: 0,
+  }
   const now = Date.now()
 
   // Ritme: satu template utuh per tipe hari.
@@ -101,6 +113,16 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
       sum.staseNew++
     }
   }
+  // Menu: nama sama = diperbarui (termasuk menu bawaan).
+  const menus = await loadMenus()
+  for (const it of items) {
+    if (it.kind !== 'menu') continue
+    const { kind: _k, ...fields } = it
+    void _k
+    const existing = menus.find((m) => m.name.toLowerCase() === it.name.toLowerCase())
+    await saveMenu(existing ? { ...existing, ...fields, archived: false } : { ...newMenu(), ...fields })
+    sum.menu++
+  }
   return sum
 }
 
@@ -114,6 +136,7 @@ export function summaryText(s: ImportSummary): string {
     s.jaga && `${s.jaga} jadwal jaga`,
     s.staseNew && `${s.staseNew} stase baru`,
     s.staseUpdated && `${s.staseUpdated} stase diperbarui`,
+    s.menu && `${s.menu} menu`,
   ].filter(Boolean)
   return parts.length ? `Diimpor: ${parts.join(', ')}.` : 'Tidak ada yang diimpor.'
 }

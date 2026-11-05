@@ -1,13 +1,14 @@
-import type { Chapter, DayType, ISODate, RitmeSlot, XpSize } from '../types'
+import type { Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSlot, XpSize } from '../types'
+import { parseIngredients } from './menu'
 import { DAY_TYPES } from './dayType'
 import { detectPatientIdentity } from './phi'
 import { guessRole, matchRole, type RoleRef } from './quickCapture'
 import { normalizeClock } from './ritme'
 import { formatDateShort, isValidISODate, MONTH_NAMES } from './time'
 
-export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'stase'
+export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'stase' | 'menu'
 
-export const IMPORT_KINDS: ImportKind[] = ['ritme', 'habit', 'tugas', 'jaga', 'stase']
+export const IMPORT_KINDS: ImportKind[] = ['ritme', 'habit', 'tugas', 'jaga', 'stase', 'menu']
 
 export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   ritme: 'Ritme harian',
@@ -15,6 +16,7 @@ export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   tugas: 'Tugas',
   jaga: 'Jadwal jaga',
   stase: 'Stase',
+  menu: 'Menu makan',
 }
 
 export type ImportItem =
@@ -32,6 +34,19 @@ export type ImportItem =
   | { kind: 'tugas'; title: string; date: ISODate; roleId: string; important: boolean }
   | { kind: 'jaga'; date: ISODate }
   | { kind: 'stase'; name: string; start: ISODate; end: ISODate; masuk?: string; pulang?: string; weight: Chapter['weight'] }
+  | {
+      kind: 'menu'
+      name: string
+      source: 'masak' | 'beli'
+      slots: MealSlot[]
+      proteinG: number
+      costRp: number
+      ingredients: Ingredient[]
+      bekal: boolean
+      heavyCook: boolean
+      place?: string
+      note?: string
+    }
 
 export interface ImportRow {
   /** Nomor baris di teks asli (CSV) atau urutan item (JSON), mulai 1. */
@@ -92,6 +107,18 @@ const COLUMN_ALIASES: Record<string, string> = {
   pulang: 'pulang',
   bobot: 'bobot',
   kerja: 'kerja',
+  sumber: 'sumber',
+  beli_masak: 'sumber',
+  waktu_makan: 'waktu_makan',
+  makan: 'waktu_makan',
+  protein: 'protein',
+  protein_g: 'protein',
+  biaya: 'biaya',
+  harga: 'biaya',
+  bahan: 'bahan',
+  tempat: 'tempat',
+  bekal: 'bekal',
+  masak_lama: 'masak_lama',
 }
 
 const normKey = (k: string) =>
@@ -117,6 +144,9 @@ const KIND_ALIASES: Record<string, ImportKind> = {
   jadwal_jaga: 'jaga',
   stase: 'stase',
   rotasi: 'stase',
+  menu: 'menu',
+  makan: 'menu',
+  makanan: 'menu',
 }
 
 const DAY_TYPE_ALIASES: Record<string, DayType> = {
@@ -353,6 +383,36 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       if (!date) return { error: `Tanggal jaga "${r.tanggal ?? ''}" tidak dikenali.` }
       return { items: [{ kind, date }] }
     }
+    case 'menu': {
+      if (!title) return { error: 'Nama menu kosong.' }
+      // Kolom "waktu" juga dipakai jam ritme; untuk menu, isinya nama waktu makan (bukan jam).
+      const slotText = r.waktu_makan ?? (r.jam && !normalizeClock(r.jam) ? r.jam : '')
+      const slots = parseSlots(slotText)
+      if (!slots?.length) return { error: `Waktu makan "${slotText}" tidak dikenali (sarapan, siang, malam, snack).` }
+      const ingredients = r.bahan ? parseIngredients(r.bahan) : []
+      if (!ingredients) return { error: 'Format bahan: "Telur 2 butir; Dada ayam 150 g".' }
+      const num = (v?: string) => Math.max(0, Math.round(Number((v ?? '').replace(/[^\d.,]/g, '').replace(',', '.')) || 0))
+      let costRp = num(r.biaya)
+      if (/rb|k$/i.test(r.biaya ?? '') && costRp < 1000) costRp *= 1000
+      const source = /beli|warung|kantin|order/i.test(r.sumber ?? '') ? 'beli' : 'masak'
+      return {
+        items: [
+          {
+            kind,
+            name: title,
+            source,
+            slots,
+            proteinG: num(r.protein),
+            costRp,
+            ingredients: source === 'masak' ? ingredients : [],
+            bekal: yes(r.bekal ?? ''),
+            heavyCook: yes(r.masak_lama ?? ''),
+            ...(r.tempat?.trim() ? { place: r.tempat.trim() } : {}),
+            ...(r.catatan?.trim() ? { note: r.catatan.trim() } : {}),
+          },
+        ],
+      }
+    }
     case 'stase': {
       if (!title) return { error: 'Nama stase kosong.' }
       const start = parseDate(r.mulai ?? '', ctx.today)
@@ -366,6 +426,36 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       return { items: [{ kind, name: title, start, end, weight, ...(masuk ? { masuk } : {}), ...(pulang ? { pulang } : {}) }] }
     }
   }
+}
+
+const SLOT_WORDS: Record<string, MealSlot> = {
+  sarapan: 'sarapan',
+  pagi: 'sarapan',
+  breakfast: 'sarapan',
+  snack: 'snack2',
+  snack_pagi: 'snack1',
+  snack_sore: 'snack2',
+  selingan: 'snack2',
+  siang: 'siang',
+  makan_siang: 'siang',
+  lunch: 'siang',
+  malam: 'malam',
+  makan_malam: 'malam',
+  dinner: 'malam',
+}
+
+function parseSlots(value: string): MealSlot[] | null {
+  if (!value.trim()) return ['siang', 'malam']
+  const out: MealSlot[] = []
+  for (const part of value
+    .split(/[,;/&+]|\s+dan\s+/)
+    .map((p) => normKey(p))
+    .filter(Boolean)) {
+    const slot = SLOT_WORDS[part]
+    if (!slot) return null
+    if (!out.includes(slot)) out.push(slot)
+  }
+  return out
 }
 
 /**
@@ -423,6 +513,8 @@ export function describeItem(item: ImportItem, roleName: (id: string | undefined
       return `${formatDateShort(item.date)} · ${item.title} · ${roleName(item.roleId)}${item.important ? ' · penting' : ''}`
     case 'jaga':
       return `Jaga malam ${formatDateShort(item.date)}`
+    case 'menu':
+      return `${item.name} · ${item.source} · ${item.proteinG} g · Rp${item.costRp.toLocaleString('id-ID')}`
     case 'stase':
       return `${item.name} · ${formatDateShort(item.start)} – ${formatDateShort(item.end)}${item.masuk || item.pulang ? ` · ${item.masuk ?? '?'}–${item.pulang ?? '?'}` : ''}`
   }

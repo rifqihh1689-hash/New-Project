@@ -4,6 +4,8 @@ import { computeStreak, consistency, dayStatus, levelFromXp } from '../../domain
 import { napToNextTier, sleepTotal } from '../../domain/sleep'
 import { addDays, monthOf, weekDates, weekStart } from '../../domain/time'
 import { effectiveRitme, workEndTime } from '../../domain/ritme'
+import { proteinTarget, resolveNutrition, slotsFor } from '../../domain/menu'
+import { loadMenus } from '../../db/menu'
 import { previousMonday, reviewXpTotal } from '../../domain/weekly'
 import { privateId } from '../../lib/id'
 import { db } from '../../db/db'
@@ -33,10 +35,18 @@ export async function loadBeranda(today: ISODate) {
       db.mainQuests.where('status').equals('aktif').toArray(),
       db.chapters.where('end').aboveOrEqual(today).toArray(),
     ])
-  const [reviews, lastReview] = await Promise.all([
+  const [reviews, lastReview, menus, todayMeals] = await Promise.all([
     db.reviews.where('period').equals('minggu').toArray(),
     db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
+    loadMenus(),
+    db.mealPlans.where('date').equals(today).toArray(),
   ])
+  const nutrition = resolveNutrition(profile.nutrition)
+  const menuById = new Map(menus.map((m) => [m.id, m]))
+  const meals = slotsFor(nutrition.mealsPerDay).map((slot) => {
+    const id = todayMeals.find((e) => e.slot === slot)?.menuId
+    return { slot, menu: id ? (menuById.get(id) ?? null) : null }
+  })
 
   const { results, firstDate, rules } = all
   const totalXp = [...results.values()].reduce((sum, r) => sum + r.xp, 0) + reviewXpTotal(reviews, rules)
@@ -93,6 +103,8 @@ export async function loadBeranda(today: ISODate) {
     money: { expense, budget, debtLeft, debtInitial, hasDebt: debts.length > 0, bridge, tentirIncome },
     mainQuests: mainQuests.slice(0, 3),
     priorities: (lastReview?.priorities ?? []).filter((p) => p.trim()),
+    meals,
+    proteinTarget: proteinTarget(nutrition),
   }
 }
 

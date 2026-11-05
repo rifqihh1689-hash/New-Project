@@ -23,6 +23,7 @@ PWA offline-first: bisa dipasang di layar utama HP, iPad, dan laptop, jalan tanp
 - **Muhasabah mingguan**: 8 angka minggu itu, selesai vs belum, refleksi dan 3 prioritas minggu depan (tampil di Beranda), +50 XP sekali seminggu (Sabtu–Selasa).
 - **XP dari MBAPPE OS**: `round(min(Σ, 100) × pengali tidur) − 15·[lewat 21.00]`, pengali dari tidur malam + qailulah. Hari lama dibekukan.
 - **Tanpa identitas pasien**: No. RM, angka ≥ 6 digit, Tn./Ny./An. + nama mengunci tombol simpan di semua kolom teks.
+- **Menu & makan**: target protein dari berat badan × 1,6 g/kg, 3–5× makan sesuai fase bulk/maintain/cut, menu bawaan ayam & telur (beli/masak), isi otomatis seminggu mengikuti tipe hari dan anggaran, daftar belanja jadi tugas, kartu "Makan hari ini".
 - **Jadwal fleksibel**: jam masuk/pulang per stase, ritme harian per tipe hari (Setelan), kalimat pembuka ikut jam pulang.
 - **Impor jadwal**: tempel sel Google Sheets/CSV atau balasan Claude (untuk screenshot, PDF, catatan program latihan) → pratinjau → impor. Jenis: ritme, habit/latihan, tugas, jaga, stase. Aman diulang.
 - **Sinkron**: Dexie Cloud dengan layar masuk berbahasa Indonesia (email + kode). **Setelan**: tema, stase, ritme, fase hidup & peran, export JSON.

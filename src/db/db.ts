@@ -10,6 +10,8 @@ import type {
   Habit,
   HabitLog,
   MainQuest,
+  MealPlanEntry,
+  Menu,
   MutabaahItem,
   MutabaahLog,
   Note,
@@ -48,6 +50,8 @@ export type QawwamDB = Dexie & {
   debts: EntityTable<Debt, 'id'>
   reviews: EntityTable<Review, 'id'>
   proposals: EntityTable<Proposal, 'id'>
+  menus: EntityTable<Menu, 'id'>
+  mealPlans: EntityTable<MealPlanEntry, 'id'>
 }
 
 export const DB_NAME = 'qawwam'
@@ -83,9 +87,17 @@ export const SCHEMA_V1 = {
   proposals: 'id, status, createdAt',
 } as const
 
+/** Tabel baru di skema v2 (modul Menu). */
+export const SCHEMA_V2_ADDITIONS = {
+  menus: 'id, source',
+  mealPlans: 'id, date',
+} as const
+
 export function createDatabase(name: string = DB_NAME): QawwamDB {
   const db = new Dexie(name, { addons: [dexieCloud] }) as QawwamDB
   db.version(1).stores(SCHEMA_V1)
+  // v2: modul Menu. Data lama tidak tersentuh.
+  db.version(2).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS })
   return db
 }
 
