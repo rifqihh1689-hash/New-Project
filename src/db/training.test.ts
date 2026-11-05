@@ -4,7 +4,17 @@ import { privateId } from '../lib/id'
 import type { Habit } from '../types'
 import { setDayType } from './daily'
 import { db } from './db'
-import { deleteWorkout, loadExercises, loadTargets, loadWorkouts, restoreWorkout, saveExercise, saveTargets, saveWorkout } from './training'
+import {
+  deleteWorkout,
+  loadExercises,
+  loadTargets,
+  loadWorkouts,
+  restoreWorkout,
+  saveExercise,
+  saveTargets,
+  saveWorkout,
+  undoWorkout,
+} from './training'
 import { PatientIdentityError } from './daily'
 
 beforeEach(resetDatabase)
@@ -57,6 +67,25 @@ describe('log latihan', () => {
     expect(await loadWorkouts()).toHaveLength(0)
     await restoreWorkout(removed!)
     expect(await loadWorkouts()).toHaveLength(1)
+  })
+
+  it('mencatat sesi bisa diurungkan: sesi hilang, centang habit yang ikut dibuat dicabut', async () => {
+    await db.habits.bulkPut([habit('hb_beban', 'Latihan beban'), habit('hb_lari', 'Lari pagi')])
+    await setDayType('2026-11-05', 'stase')
+    const strength = { date: '2026-11-05', kind: 'beban' as const, entries: [], run: null, note: '' }
+    const saved = await saveWorkout(strength)
+    expect(saved.tickedHabitId).toBe('hb_beban')
+    await undoWorkout(saved)
+    expect(await loadWorkouts()).toHaveLength(0)
+    expect((await db.habitLogs.get(privateId.habitLog('hb_beban', '2026-11-05')))?.done).toBe(false)
+
+    // Habit yang sudah dicentang sebelumnya tidak ikut dicabut.
+    const first = await saveWorkout(strength)
+    const second = await saveWorkout(strength)
+    expect(second.tickedHabitId).toBeNull()
+    await undoWorkout(second)
+    expect((await db.habitLogs.get(privateId.habitLog('hb_beban', '2026-11-05')))?.done).toBe(true)
+    expect((await loadWorkouts()).map((w) => w.id)).toEqual([first.id])
   })
 
   it('catatan yang mirip identitas pasien ditolak', async () => {

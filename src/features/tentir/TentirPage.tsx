@@ -127,9 +127,14 @@ function SessionRow({ s, limit, onEdit }: { s: TentirSession; limit: string | nu
         aria-pressed={s.paid}
         onClick={() =>
           void setPaid(s, !s.paid).then(() =>
-            toast({ message: s.paid ? `Sesi ${s.student} belum lunas.` : `Sesi ${s.student} lunas · masuk pemasukan.` }),
+            toast({
+              message: s.paid ? `Sesi ${s.student} ditandai belum lunas.` : `Sesi ${s.student} lunas · masuk pemasukan.`,
+              duration: 6000,
+              action: { label: 'Urungkan', onClick: () => void setPaid(s, s.paid) },
+            }),
           )
         }
+        aria-label={s.paid ? `Sesi ${s.student} lunas; ketuk untuk menandai belum` : `Tandai sesi ${s.student} lunas`}
         className={`chip py-1 text-xs ${s.paid ? 'border-transparent bg-ok text-white' : ''}`}
       >
         {s.paid ? 'Lunas' : 'Belum'}

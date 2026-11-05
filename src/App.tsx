@@ -94,13 +94,18 @@ function Shell() {
       <Sidebar active={route.name} counts={{ tugas: openTasks ? String(openTasks) : undefined }} />
       <div className="min-w-0">
         <MobileTop />
-        <main className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(110px+env(safe-area-inset-bottom))] md:px-8 md:pt-[22px] md:pb-12">
+        <main className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(110px+var(--safe-bottom))] md:px-8 md:pt-[22px] md:pb-12">
           {/* Kunci per rute: setiap pindah halaman, isinya masuk dengan animasi halus. */}
           <div key={route.name} className="animate-page-in">
             <Page name={route.name} date={route.date} />
           </div>
         </main>
       </div>
+      {/* Latar status bar iPhone: isi halaman yang digulir tidak lagi menumpuk di bawah jam & baterai. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[var(--safe-top)] bg-bg/90 backdrop-blur-md md:hidden"
+      />
       <TabBar active={route.name} onCapture={() => setCapture(true)} />
       <CaptureSheet open={capture} onClose={() => setCapture(false)} />
       <PwaUpdater />

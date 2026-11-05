@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Sheet } from '../../components/Sheet'
+import { TimeField } from '../../components/TimeField'
 import { useToast } from '../../components/toast-context'
 import { PatientIdentityError } from '../../db/daily'
 import { deleteSession, restoreSession, saveSession, type SessionInput } from '../../db/tentir'
 import { detectPatientIdentity } from '../../domain/phi'
+import { normalizeClock } from '../../domain/ritme'
 import { isLate, sessionRange } from '../../domain/tentir'
-import { isValidISODate, parseClock } from '../../domain/time'
+import { isValidISODate } from '../../domain/time'
 import { formatRupiah } from '../../lib/format'
 import type { TentirSession } from '../../types'
 
@@ -102,19 +104,29 @@ function Body({
   const [usePkg, setUsePkg] = useState(true)
   const inPackage = existing ? !!existing.packageId : !!pkg && usePkg
   const phi = detectPatientIdentity(`${s.student} ${s.topic}`)
-  const validStart = !s.start || parseClock(s.start) != null
-  const range = s.start && validStart ? sessionRange(s) : null
-  const late = validStart ? isLate(s, limit) : null
+  // "20" atau "9.3" sudah sah: dirapikan jadi HH.MM saat disimpan.
+  const start = s.start ? normalizeClock(s.start) : null
+  const validStart = !s.start || start != null
+  const timed = { ...s, start }
+  const range = start ? sessionRange(timed) : null
+  const late = validStart ? isLate(timed, limit) : null
   const valid = !!s.student.trim() && s.hours > 0 && isValidISODate(s.date) && validStart && !phi
 
   const save = async () => {
     try {
-      await saveSession({
+      const { id } = await saveSession({
         ...s,
-        start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null,
+        start,
         ...(pkg && usePkg ? { packageId: pkg.id, fee: 0, paid: true } : {}),
       })
-      toast({ message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid ? ' · masuk pemasukan' : ''}.` })
+      toast({
+        message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid && !inPackage ? ' · masuk pemasukan' : ''}.`,
+        // Sesi baru dihapus lagi; sesi lama dikembalikan ke isi sebelumnya (transaksinya ikut).
+        action: {
+          label: 'Urungkan',
+          onClick: () => void (existing ? saveSession(existing) : deleteSession(id)),
+        },
+      })
       onClose()
     } catch (e) {
       toast({ message: e instanceof PatientIdentityError ? e.message : (e as Error).message, tone: 'error' })
@@ -171,13 +183,7 @@ function Body({
         </label>
         <label className="text-xs text-muted">
           Mulai
-          <input
-            className="field mt-1"
-            inputMode="numeric"
-            value={s.start ?? ''}
-            onChange={(e) => set({ start: e.target.value || null })}
-            placeholder="19.00"
-          />
+          <TimeField className="field mt-1" value={s.start ?? ''} onChange={(v) => set({ start: v || null })} />
         </label>
       </div>
       <div>
@@ -200,7 +206,7 @@ function Body({
             ? `${range}${late ? ` · melewati batas ${limit} (quest tentir hari itu tidak dapat XP, tanpa penalti)` : limit ? ` · sebelum ${limit}` : ''}`
             : validStart
               ? 'Jam mulai opsional.'
-              : 'Format jam: 19.00'}
+              : 'Jam belum dikenali. Ketik mis. 1900 → 19.00.'}
         </p>
       </div>
       {pkg && (

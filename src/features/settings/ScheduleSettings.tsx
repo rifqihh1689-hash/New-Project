@@ -1,19 +1,18 @@
 import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useToday } from '../../app/useToday'
+import { TimeCommitField } from '../../components/TimeField'
 import { useToast } from '../../components/toast-context'
 import { assertNoPatientIdentity } from '../../db/daily'
 import { DEFAULT_RITME } from '../../db/defaults'
 import { deleteChapter, saveChapter, saveRitme, useChapters, useProfile, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS, DAY_TYPES } from '../../domain/dayType'
-import { normalizeClock, slotOrder } from '../../domain/ritme'
+import { slotOrder } from '../../domain/ritme'
 import { addDays, isValidISODate } from '../../domain/time'
 import { createId } from '../../lib/id'
 import type { Chapter, DayType, RitmeSlot } from '../../types'
 
 /** `HH.MM` ↔ nilai `<input type="time">` (`HH:MM`). */
-const toInput = (v?: string) => (v ? v.replace('.', ':') : '')
-const fromInput = (v: string) => (v ? normalizeClock(v) : null)
 
 function useGuard() {
   const toast = useToast()
@@ -96,20 +95,20 @@ export function StaseSettings() {
                 </label>
                 <label className="text-xs text-muted">
                   Masuk
-                  <input
+                  <TimeCommitField
                     className="field mt-1"
-                    type="time"
-                    defaultValue={toInput(c.masuk)}
-                    onBlur={(e) => void save({ ...c, masuk: fromInput(e.target.value) ?? undefined })}
+                    initial={c.masuk}
+                    placeholder="07.00"
+                    onCommit={(t) => (t ?? undefined) !== c.masuk && void save({ ...c, masuk: t ?? undefined })}
                   />
                 </label>
                 <label className="text-xs text-muted">
                   Pulang
-                  <input
+                  <TimeCommitField
                     className="field mt-1"
-                    type="time"
-                    defaultValue={toInput(c.pulang)}
-                    onBlur={(e) => void save({ ...c, pulang: fromInput(e.target.value) ?? undefined })}
+                    initial={c.pulang}
+                    placeholder="16.00"
+                    onCommit={(t) => (t ?? undefined) !== c.pulang && void save({ ...c, pulang: t ?? undefined })}
                   />
                 </label>
                 <label className="text-xs text-muted">
@@ -185,26 +184,20 @@ export function RitmeSettings() {
         {slots.map((s, i) => (
           <li key={`${i}-${s.time}-${s.title}`} className="rounded-xl border border-line p-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                className="field w-[104px] py-1.5"
-                type="time"
-                defaultValue={toInput(s.time)}
+              <TimeCommitField
+                className="field w-[76px] py-1.5"
+                initial={s.time}
+                placeholder="05.00"
                 aria-label="Jam mulai"
-                onBlur={(e) => {
-                  const t = fromInput(e.target.value)
-                  if (t && t !== s.time) update(i, { time: t })
-                }}
+                onCommit={(t) => t && t !== s.time && update(i, { time: t })}
               />
               <span className="text-faint">–</span>
-              <input
-                className="field w-[104px] py-1.5"
-                type="time"
-                defaultValue={toInput(s.until)}
+              <TimeCommitField
+                className="field w-[76px] py-1.5"
+                initial={s.until}
+                placeholder="–"
                 aria-label="Jam selesai (opsional)"
-                onBlur={(e) => {
-                  const t = fromInput(e.target.value) ?? undefined
-                  if (t !== s.until) update(i, { until: t })
-                }}
+                onCommit={(t) => (t ?? undefined) !== s.until && update(i, { until: t ?? undefined })}
               />
               <input
                 className="field min-w-[140px] flex-1 py-1.5"

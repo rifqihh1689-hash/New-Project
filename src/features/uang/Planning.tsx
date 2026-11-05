@@ -11,6 +11,7 @@ import {
   newDebt,
   newRecurring,
   newSaving,
+  removeBudgets,
   restoreGoal,
   saveDebt,
   saveRecurring,
@@ -45,8 +46,15 @@ export function BudgetCard({ data }: { data: UangData }) {
   const [open, setOpen] = useState(false)
   const t = data.budgetTotal
   const copy = async () => {
-    const n = await copyBudgets(addMonths(data.month, -1), data.month)
-    toast({ message: n ? `${n} anggaran disalin dari bulan lalu.` : 'Semua kategori sudah punya anggaran.' })
+    const ids = await copyBudgets(addMonths(data.month, -1), data.month)
+    toast(
+      ids.length
+        ? {
+            message: `${ids.length} anggaran disalin dari bulan lalu.`,
+            action: { label: 'Urungkan', onClick: () => void removeBudgets(ids) },
+          }
+        : { message: 'Semua kategori sudah punya anggaran.' },
+    )
   }
   return (
     <section className="card">
@@ -319,9 +327,14 @@ function TopupForm({ topup, today, onClose }: { topup: NonNullable<Topup>; today
   const [withdraw, setWithdraw] = useState(false)
   const save = async () => {
     try {
-      if (topup.kind === 'debt') await addPayment(topup.id, amount, date)
-      else await addDeposit(topup.id, withdraw ? -amount : amount, date)
-      toast({ message: `${topup.kind === 'debt' ? 'Pembayaran' : withdraw ? 'Penarikan' : 'Setoran'} ${formatRupiah(amount)} tercatat.` })
+      const undo =
+        topup.kind === 'debt'
+          ? await addPayment(topup.id, amount, date).then((prev) => () => restoreGoal('debts', prev))
+          : await addDeposit(topup.id, withdraw ? -amount : amount, date).then((prev) => () => restoreGoal('savings', prev))
+      toast({
+        message: `${topup.kind === 'debt' ? 'Pembayaran' : withdraw ? 'Penarikan' : 'Setoran'} ${formatRupiah(amount)} tercatat.`,
+        action: { label: 'Urungkan', onClick: () => void undo() },
+      })
       onClose()
     } catch (e) {
       toast({ message: (e as Error).message, tone: 'error' })

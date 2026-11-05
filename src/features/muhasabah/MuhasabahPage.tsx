@@ -6,7 +6,7 @@ import { PageTop } from '../../components/PageTop'
 import { RoleTag } from '../../components/RoleTag'
 import { useToast } from '../../components/toast-context'
 import { moveTasks } from '../../db/daily'
-import { completeReview, saveReviewText } from '../../db/review'
+import { completeReview, restoreReview, saveReviewText } from '../../db/review'
 import { roleLookup } from '../../db/structure'
 import { detectPatientIdentity, PHI_HINT } from '../../domain/phi'
 import { addDays, DAY_SHORT, formatHours, MONTH_NAMES, weekday, weekStart } from '../../domain/time'
@@ -150,8 +150,11 @@ function Reflection({ data, today }: { data: MuhasabahData; today: string }) {
   const priorities = [0, 1, 2].map((i) => r.priorities[i] ?? '')
   const complete = async () => {
     try {
-      await completeReview(data.monday, today, data.numbers, data.rules.reviewXP)
-      toast({ message: `Muhasabah selesai · +${data.rules.reviewXP} XP. Prioritasnya tampil di Beranda minggu depan.` })
+      const before = await completeReview(data.monday, today, data.numbers, data.rules.reviewXP)
+      toast({
+        message: `Muhasabah selesai · +${data.rules.reviewXP} XP. Prioritasnya tampil di Beranda minggu depan.`,
+        action: { label: 'Urungkan', onClick: () => void restoreReview(before) },
+      })
     } catch (e) {
       toast({ message: (e as Error).message, tone: 'error' })
     }

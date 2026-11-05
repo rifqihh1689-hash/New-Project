@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, ClipboardCopy } from 'lucide-react'
 import { useState } from 'react'
 import { useToday } from '../../app/useToday'
 import { useToast } from '../../components/toast-context'
-import { completeMonthReview, saveMonthReviewText } from '../../db/review'
+import { completeMonthReview, restoreReview, saveMonthReviewText } from '../../db/review'
 import { detectPatientIdentity } from '../../domain/phi'
 import { addMonths, formatHours, formatMonth, monthOf } from '../../domain/time'
 import { formatNumber, formatRupiah } from '../../lib/format'
@@ -180,8 +180,11 @@ function Reflection({ data }: { data: MonthlyData }) {
   }
   const complete = async () => {
     try {
-      await completeMonthReview(data.month, today, data.numbers)
-      toast({ message: 'Muhasabah bulan ini selesai. Prioritasnya tampil untuk bulan depan.' })
+      const before = await completeMonthReview(data.month, today, data.numbers)
+      toast({
+        message: 'Muhasabah bulan ini selesai. Prioritasnya tampil untuk bulan depan.',
+        action: { label: 'Urungkan', onClick: () => void restoreReview(before) },
+      })
     } catch (e) {
       toast({ message: (e as Error).message, tone: 'error' })
     }

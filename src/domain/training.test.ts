@@ -7,6 +7,7 @@ import {
   exerciseHistory,
   formatDuration,
   parseDuration,
+  typeDuration,
   planRunWeek,
   prescribe,
   projectTarget,
@@ -133,6 +134,17 @@ describe('lari', () => {
     expect(parseDuration('31:05')).toBe(1865)
     expect(parseDuration('1:02:30')).toBe(3750)
     expect(parseDuration('abc')).toBeNull()
+  })
+
+  it('waktu lari diketik di papan angka tanpa titik dua', () => {
+    const typed = (keys: string) => [...keys].reduce((text, k) => typeDuration(text + k), '')
+    expect(typed('3120')).toBe('31:20')
+    expect(typed('312')).toBe('3:12')
+    expect(typed('13045')).toBe('1:30:45')
+    expect(typed('31')).toBe('31')
+    expect(typeDuration('31.05')).toBe('31:05')
+    expect(parseDuration(typed('3105'))).toBe(1865)
+    expect(parseDuration(typed('31'))).toBe(1860)
   })
 
   it('perkiraan 5K hanya dari lari keras 3–21 km', () => {

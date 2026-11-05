@@ -28,6 +28,28 @@ export function normalizeClock(value: string): string | null {
 }
 
 /**
+ * Format jam saat diketik di papan angka HP (yang tidak punya titik): titik disisipkan otomatis.
+ * "2030" → "20.30", "930" → "9.30", "93" → "9.3"; titik/titik dua yang diketik sendiri dihormati.
+ * Dirapikan jadi `HH.MM` lewat `normalizeClock` saat keluar kolom.
+ */
+export function typeClock(raw: string): string {
+  const sep = raw.search(/[.:,]/)
+  if (sep >= 0) {
+    const h = raw.slice(0, sep).replace(/\D/g, '').slice(0, 2)
+    const m = raw
+      .slice(sep + 1)
+      .replace(/\D/g, '')
+      .slice(0, 2)
+    return h || m ? `${h}.${m}` : ''
+  }
+  const d = raw.replace(/\D/g, '').slice(0, 4)
+  if (d.length < 2) return d
+  if (Number(d.slice(0, 2)) > 23) return `${d[0]}.${d.slice(1, 3)}`
+  if (d.length === 2) return d
+  return `${d.slice(0, 2)}.${d.slice(2)}`
+}
+
+/**
  * Ritme yang berlaku hari ini: template tipe hari, dengan jam masuk/pulang slot kerja diganti
  * oleh stase yang sedang berjalan (mis. Stase Bedah pulang 16.00). Diurutkan menurut jam.
  */

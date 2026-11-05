@@ -5,6 +5,7 @@ import { routeHref } from '../../app/router'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { Sheet } from '../../components/Sheet'
+import { TimeField } from '../../components/TimeField'
 import { useToast } from '../../components/toast-context'
 import { deleteEvent, restoreEvent, saveEvent, setJaga } from '../../db/calendar'
 import { moveTasks } from '../../db/daily'
@@ -154,22 +155,8 @@ function DayBody({ date, onClose }: { date: string; onClose: () => void }) {
             aria-label="Judul agenda"
             maxLength={80}
           />
-          <input
-            className="field py-2"
-            inputMode="numeric"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            placeholder="08.00"
-            aria-label="Jam mulai"
-          />
-          <input
-            className="field py-2"
-            inputMode="numeric"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            placeholder="10.00"
-            aria-label="Jam selesai"
-          />
+          <TimeField className="field px-2 py-2" value={start} onChange={setStart} placeholder="08.00" aria-label="Jam mulai" />
+          <TimeField className="field px-2 py-2" value={end} onChange={setEnd} placeholder="10.00" aria-label="Jam selesai" />
           <button type="submit" className="btn-primary px-3" disabled={!title.trim() || !!phi} aria-label="Tambah agenda">
             <Plus size={16} aria-hidden="true" />
           </button>

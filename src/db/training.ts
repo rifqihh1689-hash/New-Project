@@ -89,9 +89,16 @@ const HABIT_MATCH: Record<Workout['kind'], RegExp> = {
  * Menyimpan sesi latihan. Habit latihan yang cocok di tanggal itu (mis. "Latihan beban") ikut tercentang.
  * Mengembalikan nama habit yang dicentang, bila ada.
  */
-export async function saveWorkout(
-  input: Omit<Workout, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
-): Promise<{ id: string; habit: string | null }> {
+export interface SavedWorkout {
+  id: string
+  date: ISODate
+  /** Nama habit yang dicentang, bila ada. */
+  habit: string | null
+  /** Habit yang baru dicentang oleh sesi ini (dicabut lagi saat diurungkan). */
+  tickedHabitId: string | null
+}
+
+export async function saveWorkout(input: Omit<Workout, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<SavedWorkout> {
   assertNoPatientIdentity(input.note)
   const now = Date.now()
   const id = input.id ?? createId('wko')
@@ -100,8 +107,19 @@ export async function saveWorkout(
   const [habits, day] = await Promise.all([loadHabits(), db.days.get(privateId.day(input.date))])
   const candidates = day?.type ? habitsForDay(habits, input.date, day.type) : habits.filter((h) => h.active)
   const habit = candidates.find((h) => h.kind === 'normal' && HABIT_MATCH[input.kind].test(h.name))
-  if (habit) await setHabitDone(habit.id, input.date, true)
-  return { id, habit: habit?.name ?? null }
+  let tickedHabitId: string | null = null
+  if (habit) {
+    const wasDone = (await db.habitLogs.get(privateId.habitLog(habit.id, input.date)))?.done
+    await setHabitDone(habit.id, input.date, true)
+    if (!wasDone) tickedHabitId = habit.id
+  }
+  return { id, date: input.date, habit: habit?.name ?? null, tickedHabitId }
+}
+
+/** Membatalkan sesi yang baru dicatat: sesi dihapus, centang habit yang ikut dibuat dicabut. */
+export async function undoWorkout(saved: SavedWorkout): Promise<void> {
+  await db.workouts.delete(saved.id)
+  if (saved.tickedHabitId) await setHabitDone(saved.tickedHabitId, saved.date, false)
 }
 
 export async function deleteWorkout(id: string): Promise<Workout | undefined> {

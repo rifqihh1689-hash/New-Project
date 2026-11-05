@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../test/db-utils'
 import { PatientIdentityError } from './daily'
 import { db } from './db'
-import { completeReview, saveReviewText } from './review'
+import { completeReview, restoreReview, saveReviewText } from './review'
 import type { WeekNumbers } from '../domain/weekly'
 
 const MONDAY = '2026-11-02'
@@ -32,6 +32,18 @@ describe('Muhasabah', () => {
     const first = await db.reviews.get('#rev:minggu:2026-11-02')
     expect(first).toMatchObject({ xp: 50, numbers: { tasksDone: 3, xp: 120 } })
     await completeReview(MONDAY, '2026-11-09', numbers, 999)
+    expect((await db.reviews.get('#rev:minggu:2026-11-02'))?.xp).toBe(50)
+  })
+
+  it('selesai bisa diurungkan: XP batal, refleksi tetap', async () => {
+    await saveReviewText(MONDAY, { priorities: ['200 soal kardio', '', ''] })
+    const before = await completeReview(MONDAY, '2026-11-08', numbers, 50)
+    await saveReviewText(MONDAY, { wins: 'tidur cukup' })
+    await restoreReview(before)
+    const r = await db.reviews.get('#rev:minggu:2026-11-02')
+    expect(r).toMatchObject({ completedAt: null, wins: 'tidur cukup', priorities: ['200 soal kardio', '', ''] })
+    expect(r?.xp).toBeUndefined()
+    await completeReview(MONDAY, '2026-11-08', numbers, 50)
     expect((await db.reviews.get('#rev:minggu:2026-11-02'))?.xp).toBe(50)
   })
 })

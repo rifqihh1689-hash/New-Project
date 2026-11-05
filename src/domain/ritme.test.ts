@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_RITME } from '../db/defaults'
 import { headline } from './headline'
-import { effectiveRitme, normalizeClock, slotNote, workEndTime } from './ritme'
+import { effectiveRitme, normalizeClock, slotNote, typeClock, workEndTime } from './ritme'
 
 describe('jam', () => {
   it.each([
@@ -14,6 +14,31 @@ describe('jam', () => {
   ])('%s → %s', (input, out) => expect(normalizeClock(input)).toBe(out))
 
   it.each(['25.00', '12.75', 'jam 2', ''])('menolak %s', (input) => expect(normalizeClock(input)).toBeNull())
+})
+
+describe('jam diketik di papan angka (tanpa titik)', () => {
+  it('menyisipkan titik otomatis', () => {
+    const typed = (keys: string) => [...keys].reduce((text, k) => typeClock(text + k), '')
+    expect(typed('2000')).toBe('20.00')
+    expect(typed('2030')).toBe('20.30')
+    expect(typed('930')).toBe('9.30')
+    expect(typed('0930')).toBe('09.30')
+    expect(typed('20')).toBe('20')
+    expect(typed('2')).toBe('2')
+  })
+  it('menghormati titik/titik dua dan menghapus mundur dengan wajar', () => {
+    expect(typeClock('20:00')).toBe('20.00')
+    expect(typeClock('9.')).toBe('9.')
+    expect(typeClock('20.3')).toBe('20.3')
+    expect(typeClock('20.')).toBe('20.')
+    expect(typeClock('.')).toBe('')
+    expect(typeClock('20.305')).toBe('20.30')
+  })
+  it('dirapikan jadi HH.MM saat keluar kolom', () => {
+    expect(normalizeClock(typeClock('20'))).toBe('20.00')
+    expect(normalizeClock(typeClock('930'))).toBe('09.30')
+    expect(normalizeClock(typeClock('20.3'))).toBe('20.30')
+  })
 })
 
 describe('ritme per stase', () => {
