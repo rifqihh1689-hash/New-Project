@@ -204,7 +204,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `menus` / `mealPlans` | daftar menu (beli/masak, waktu makan, protein, biaya, bahan, bekal); rencana per tanggal & waktu makan. Daftar belanja dihitung dari rencana, tidak disimpan terpisah | dipakai |
 | `exercises` / `workouts` | gerakan (rentang rep, set, kenaikan, arsip; bawaan di kode); sesi beban (set kg × rep, rasa) atau lari (km, waktu, jenis) | dipakai |
 | `rewards` / `claims` | hadiah (nama, biaya, arsip) dan klaimnya (nama & biaya saat klaim, level). Token = level − 1 − jumlah klaim | dipakai |
-| `events` | agenda, jadwal jaga, jadwal stase | disiapkan |
+| `events` | agenda (judul, tanggal, jam mulai/selesai, peran). Jadwal jaga disimpan sebagai tipe hari, stase di `chapters` | dipakai |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
 | `tentirSessions` | inisial murid, topik, tanggal, jam mulai, durasi, tarif, lunas. Sesi lunas otomatis membuat transaksi pemasukan. | dipakai |
 | `students`, `tentirPackages`, `materials` | murid (inisial, semester), paket + sisa sesi, materi per blok | rencana |
@@ -286,6 +286,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Usulan: daftar usulan Claude, pilih item, setujui lewat jalur Impor / tolak (Urungkan), pemberitahuan di Beranda | selesai |
 | Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
 | UX v2: animasi (centang, +XP melayang, transisi halaman, kartu bertahap, bar tumbuh, tab aktif), perayaan naik level, gestur geser (kanan selesai, kiri besok) di Beranda & Tugas, Beranda HP fokus "Hari ini" + "Ringkasan lain" | selesai |
+| Kalender & jadwal jaga: bulan dengan warna tipe hari, mode atur jaga (besoknya otomatis pasca bila kosong, batal ikut mengosongkan pasca), hitungan jaga + peringatan berurutan/minggu berat, agenda per hari, agenda hari ini di Beranda, kalender mini di layar lebar, impor/usulan jenis `agenda` | selesai |
 | Dibuka bertahap, notifikasi push | belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Uang: transaksi, ringkasan bulanan, anggaran (aman/hampir habis/lewat, salin bulan lalu), berulang (mengejar bulan terlewat), dana jembatan & tabungan, utang, kategori, Catat cepat Uang, impor backup Dompetku | selesai (v1) |

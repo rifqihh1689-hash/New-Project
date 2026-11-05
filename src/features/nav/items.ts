@@ -28,12 +28,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { route: 'beranda', label: 'Beranda', Icon: House },
   { route: 'tugas', label: 'Tugas', Icon: SquareCheck },
-  {
-    route: 'kalender',
-    label: 'Kalender & jaga',
-    Icon: CalendarDays,
-    soon: { phase: 2, what: 'Agenda, jadwal jaga, dan jadwal stase. Jadwal jaga otomatis menyetel tipe hari.' },
-  },
+  { route: 'kalender', label: 'Kalender & jaga', Icon: CalendarDays },
   {
     route: 'belajar',
     label: 'Belajar UKMPPD',

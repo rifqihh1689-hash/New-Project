@@ -13,6 +13,7 @@ import { DayTypePicker } from './DayTypePicker'
 import { GameStrip } from './GameStrip'
 import { LevelUp } from './LevelUp'
 import { MealsCard } from './MealsCard'
+import { MiniCalendar } from './MiniCalendar'
 import { MutabaahCard } from './MutabaahCard'
 import { PrioritiesCard } from './PrioritiesCard'
 import { Ritme } from './Ritme'
@@ -82,6 +83,7 @@ export function BerandaPage() {
             <div className="stagger grid content-start gap-3">
               {!isPasca && <PrioritiesCard data={data} />}
               <MutabaahCard data={data} />
+              <MiniCalendar today={today} />
               <MealsCard data={data} />
               <CloseDayCard data={data} />
               {!isPasca && <RoadCard data={data} />}

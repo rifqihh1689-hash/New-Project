@@ -69,6 +69,18 @@ export function TodayList({ data }: { data: BerandaData }) {
           Buka papan →
         </a>
       </h3>
+      {data.agenda.length > 0 && (
+        <ul className="mb-2 grid gap-1 rounded-xl bg-surface-2 px-3 py-2 text-[13px]">
+          {data.agenda.map((ev) => (
+            <li key={ev.id} className="flex gap-2">
+              <span className="w-[86px] shrink-0 text-muted tabular-nums">
+                {ev.start ? `${ev.start}${ev.end ? `–${ev.end}` : ''}` : 'hari ini'}
+              </span>
+              <span className="flex-1">{ev.title}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {tasks.length === 0 && (
         <p className="pb-2 text-[13px] text-muted">
           {effType === 'pasca' ? 'Tidak ada tugas pemulihan tambahan.' : 'Belum ada tugas. Catat cepat dari kolom di atas atau tombol +.'}

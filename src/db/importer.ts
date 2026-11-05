@@ -2,7 +2,8 @@ import type { ImportItem } from '../domain/importer'
 import { slotOrder } from '../domain/ritme'
 import { createId } from '../lib/id'
 import type { DayType, RitmeSlot } from '../types'
-import { addTask, setDayType } from './daily'
+import { setJaga, saveEvent } from './calendar'
+import { addTask } from './daily'
 import { db } from './db'
 import { loadMenus, newMenu, saveMenu } from './menu'
 import { loadHabits, saveChapter, saveHabit, saveRitme } from './structure'
@@ -14,6 +15,7 @@ export interface ImportSummary {
   tugas: number
   tugasSkipped: number
   jaga: number
+  agenda: number
   staseNew: number
   staseUpdated: number
   menu: number
@@ -32,6 +34,7 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     tugas: 0,
     tugasSkipped: 0,
     jaga: 0,
+    agenda: 0,
     staseNew: 0,
     staseUpdated: 0,
     menu: 0,
@@ -92,11 +95,24 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     sum.tugas++
   }
 
-  // Jaga: tanggal itu bertipe Jaga (besoknya otomatis disarankan pasca-jaga).
+  // Jaga: tanggal itu bertipe Jaga; besoknya otomatis pasca-jaga bila belum diisi.
   for (const it of items) {
     if (it.kind !== 'jaga') continue
-    await setDayType(it.date, 'jaga')
+    await setJaga(it.date, true)
     sum.jaga++
+  }
+
+  // Agenda: judul + tanggal sama = sudah ada, dilewati.
+  for (const it of items) {
+    if (it.kind !== 'agenda') continue
+    const dup = await db.events
+      .where('date')
+      .equals(it.date)
+      .filter((e) => e.title.trim().toLowerCase() === it.title.toLowerCase())
+      .count()
+    if (dup) continue
+    await saveEvent({ title: it.title, date: it.date, start: it.start, end: it.end, roleId: it.roleId })
+    sum.agenda++
   }
 
   // Stase: nama + tanggal mulai sama = diperbarui.
@@ -134,6 +150,7 @@ export function summaryText(s: ImportSummary): string {
     s.tugas && `${s.tugas} tugas`,
     s.tugasSkipped && `${s.tugasSkipped} tugas sudah ada`,
     s.jaga && `${s.jaga} jadwal jaga`,
+    s.agenda && `${s.agenda} agenda`,
     s.staseNew && `${s.staseNew} stase baru`,
     s.staseUpdated && `${s.staseUpdated} stase diperbarui`,
     s.menu && `${s.menu} menu`,
