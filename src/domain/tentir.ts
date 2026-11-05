@@ -4,8 +4,8 @@ import { addDays, parseClock } from './time'
 
 /** Tarif 1:1 bawaan (Rp per jam), bisa diubah di halaman Tentir. */
 export const DEFAULT_TENTIR_RATE = 85_000
-/** Sesi tentir dianggap tepat waktu bila selesai paling lambat pukul 21.00. */
-export const TENTIR_LATE_MIN = 21 * 60
+/** Batas bawaan (sama dengan batas kerja malam di aturan XP); bisa diubah atau dimatikan di Setelan. */
+export const DEFAULT_LIMIT = '21.00'
 
 type SessionTime = Pick<TentirSession, 'start' | 'hours'>
 
@@ -26,22 +26,26 @@ export function sessionRange(s: SessionTime): string | null {
   return end == null ? null : `${s.start}–${formatClock(end)}`
 }
 
-/** `true` lewat 21.00, `false` tepat waktu, `null` jam mulai belum diisi. */
-export function isLate(s: SessionTime): boolean | null {
+/**
+ * `true` selesai lewat batas, `false` sebelum batas, `null` jam mulai kosong atau batas dimatikan.
+ * Hanya informasi & syarat quest; sesi tentir tidak pernah otomatis dicatat lembur.
+ */
+export function isLate(s: SessionTime, limit: string | null = DEFAULT_LIMIT): boolean | null {
   const end = sessionEnd(s)
-  return end == null ? null : end > TENTIR_LATE_MIN
+  const max = limit ? parseClock(limit) : null
+  return end == null || max == null ? null : end > max
 }
 
 export interface DayTentir {
   hours: number
   count: number
-  /** Semua sesi selesai ≤ 21.00. `null` bila ada sesi tanpa jam mulai. */
+  /** Semua sesi selesai sebelum batas. `null` bila ada sesi tanpa jam mulai atau batas dimatikan. */
   ok: boolean | null
   late: boolean
 }
 
-export function dayTentir(sessions: SessionTime[]): DayTentir {
-  const states = sessions.map(isLate)
+export function dayTentir(sessions: SessionTime[], limit: string | null = DEFAULT_LIMIT): DayTentir {
+  const states = sessions.map((x) => isLate(x, limit))
   const late = states.some((x) => x === true)
   return {
     hours: round1(sessions.reduce((a, s) => a + s.hours, 0)),
@@ -63,7 +67,10 @@ export interface TentirSummary {
   late: number
 }
 
-export function summarize(sessions: Pick<TentirSession, 'start' | 'hours' | 'fee' | 'paid'>[]): TentirSummary {
+export function summarize(
+  sessions: Pick<TentirSession, 'start' | 'hours' | 'fee' | 'paid'>[],
+  limit: string | null = DEFAULT_LIMIT,
+): TentirSummary {
   const hours = round1(sessions.reduce((a, s) => a + s.hours, 0))
   const fee = sessions.reduce((a, s) => a + s.fee, 0)
   return {
@@ -72,7 +79,7 @@ export function summarize(sessions: Pick<TentirSession, 'start' | 'hours' | 'fee
     fee,
     paid: sessions.filter((s) => s.paid).reduce((a, s) => a + s.fee, 0),
     perHour: hours > 0 ? Math.round(fee / hours) : null,
-    late: sessions.filter((s) => isLate(s) === true).length,
+    late: sessions.filter((s) => isLate(s, limit) === true).length,
   }
 }
 

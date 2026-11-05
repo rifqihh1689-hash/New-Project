@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { loadSessions } from '../../db/tentir'
-import { loadProfile } from '../../db/structure'
+import { loadProfile, rulesOf } from '../../db/structure'
 import { capacityState, DEFAULT_TENTIR_RATE, hoursByDay, summarize } from '../../domain/tentir'
 import { addDays, weekDates } from '../../domain/time'
 import type { ISODate } from '../../types'
@@ -15,8 +15,12 @@ export async function loadTentirPage(monday: ISODate, today: ISODate) {
     db.days.where('date').between(dates[0], dates[6], true, true).toArray(),
   ])
   const cap = profile.tentirCapacity
-  const summary = summarize(week)
-  const last28 = summarize(all.filter((s) => s.date > addDays(today, -28) && s.date <= today))
+  const limit = rulesOf(profile).workEndLimit
+  const summary = summarize(week, limit)
+  const last28 = summarize(
+    all.filter((s) => s.date > addDays(today, -28) && s.date <= today),
+    limit,
+  )
   return {
     dates,
     sessions: week,
@@ -28,6 +32,8 @@ export async function loadTentirPage(monday: ISODate, today: ISODate) {
     dayTypes: new Map(dates.map((d) => [d, days.find((x) => x.date === d)?.type ?? null])),
     unpaid: all.filter((s) => !s.paid && s.date <= today),
     rate: profile.tentirRate ?? DEFAULT_TENTIR_RATE,
+    /** Batas kerja malam dari aturan XP (`null` = dimatikan). */
+    limit,
     students: [...new Set(all.map((s) => s.student).filter(Boolean))].slice(-12),
   }
 }

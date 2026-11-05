@@ -162,6 +162,7 @@ Berbasis bukti: game fiction dan interaksi sosial memperbesar efek pada perilaku
 - **Stase / Libur:** `round(min(Σ XP selesai, 100) × pengali tidur) − 15·[lewat 21.00]`. Pengali dari total tidur: ≥ 6,5 j ×1,2 · 6–6,5 ×1,0 · 5–6 ×0,8 · < 5 atau kosong ×0,6.
 - **Jaga:** `round(min(Σ, 100) × 1,0)`, tanpa penalti malam.
 - **Pasca-jaga:** `round(100 × selesai/total)`, hanya sah bila kemarin jaga; selain itu dihitung stase.
+- **Batas kerja malam** bawaan 21.00 (−15 XP bila lewat, diisi sendiri di Tutup hari). Jam dan penaltinya bisa diubah, atau aturannya dimatikan di Setelan. Sesi tentir tidak pernah otomatis dihitung lembur; quest "Sesi tentir selesai ≤ batas" hanya memberi XP bila tepat waktu.
 - **Lolos** bila ≥ 60% isi hari selesai. **Level** L → L+1 butuh `150 + 50·L`.
 - **Quest mingguan** (habit 1×/minggu): XP-nya masuk Σ hanya di hari pertama selesai minggu itu, tidak masuk penyebut lolos, tidak dihitung di pasca-jaga.
 

@@ -76,18 +76,18 @@ function Days({ data, today, onAdd }: { data: TentirPageData; today: string; onA
         {data.dates.map((d, i) => {
           const h = data.perDay[i]
           const type = data.dayTypes.get(d)
-          const late = data.sessions.some((s) => s.date === d && isLate(s) === true)
+          const late = data.sessions.some((s) => s.date === d && isLate(s, data.limit) === true)
           return (
             <button
               key={d}
               type="button"
               onClick={() => onAdd(d)}
-              aria-label={`${DAY_SHORT[weekday(d)]} ${shortDate(d)}: ${hrs(h)}${late ? ', lewat 21.00' : ''}. Tambah sesi.`}
+              aria-label={`${DAY_SHORT[weekday(d)]} ${shortDate(d)}: ${hrs(h)}${late ? `, melewati ${data.limit}` : ''}. Tambah sesi.`}
               className={`flex flex-col items-center gap-1 rounded-xl py-2 transition hover:bg-surface-2 ${d === today ? 'bg-surface-2' : ''}`}
             >
               <span className="text-[11px] text-muted tabular-nums">{h ? formatNumber(h, 1) : ''}</span>
               <span className="flex h-16 w-5 items-end overflow-hidden rounded-md bg-track">
-                <span className={`w-full rounded-md ${late ? 'bg-danger' : 'bg-tentir'}`} style={{ height: `${(h / top) * 100}%` }} />
+                <span className={`w-full rounded-md ${late ? 'bg-uang' : 'bg-tentir'}`} style={{ height: `${(h / top) * 100}%` }} />
               </span>
               <span className="text-[11px] font-medium">{DAY_SHORT[weekday(d)]}</span>
               <span className="text-[10px] text-faint">{type === 'jaga' ? 'jaga' : type === 'pasca' ? 'pasca' : Number(d.slice(8))}</span>
@@ -96,16 +96,18 @@ function Days({ data, today, onAdd }: { data: TentirPageData; today: string; onA
         })}
       </div>
       <p className="mt-2 text-xs text-faint">
-        Ketuk hari untuk menambah sesi. Merah = selesai lewat 21.00 (dihitung lembur). Hari bertentir mendapat quest “Sesi tentir selesai ≤
-        21.00”.
+        Ketuk hari untuk menambah sesi.
+        {data.limit
+          ? ` Kuning = selesai melewati ${data.limit} (tanpa penalti; quest tentir hari itu saja yang tidak dapat XP). Batas bisa diubah atau dimatikan di Setelan.`
+          : ''}
       </p>
     </section>
   )
 }
 
-function SessionRow({ s, onEdit }: { s: TentirSession; onEdit: () => void }) {
+function SessionRow({ s, limit, onEdit }: { s: TentirSession; limit: string | null; onEdit: () => void }) {
   const toast = useToast()
-  const late = isLate(s)
+  const late = isLate(s, limit)
   return (
     <li className="flex items-start gap-2 border-t border-line py-2 first:border-t-0">
       <button type="button" onClick={onEdit} className="flex flex-1 items-start gap-2.5 text-left">
@@ -114,7 +116,7 @@ function SessionRow({ s, onEdit }: { s: TentirSession; onEdit: () => void }) {
           {s.topic || 'Tanpa topik'}
           <span className="block text-xs text-muted tabular-nums">
             {sessionRange(s) ?? 'jam mulai kosong'} · {hrs(s.hours)} · {formatRupiah(s.fee)}
-            {late && <span className="text-danger"> · lewat 21.00</span>}
+            {late && <span className="text-uang"> · melewati {limit}</span>}
           </span>
         </span>
       </button>
@@ -150,7 +152,7 @@ function Sessions({ data, onEdit, onAdd }: { data: TentirPageData; onEdit: (s: T
           <div className="text-xs font-medium tracking-wide text-faint uppercase">{formatDateShort(g.d)}</div>
           <ul>
             {g.list.map((s) => (
-              <SessionRow key={s.id} s={s} onEdit={() => onEdit(s)} />
+              <SessionRow key={s.id} s={s} limit={data.limit} onEdit={() => onEdit(s)} />
             ))}
           </ul>
         </div>
@@ -169,7 +171,7 @@ function Unpaid({ data, onEdit }: { data: TentirPageData; onEdit: (s: TentirSess
       </h2>
       <ul>
         {data.unpaid.map((s) => (
-          <SessionRow key={s.id} s={s} onEdit={() => onEdit(s)} />
+          <SessionRow key={s.id} s={s} limit={data.limit} onEdit={() => onEdit(s)} />
         ))}
       </ul>
     </section>
@@ -264,7 +266,7 @@ export function TentirPage() {
             <Unpaid data={data} onEdit={setEditing} />
             <Settings data={data} />
           </div>
-          <SessionEditor draft={editing} rate={data.rate} students={data.students} onClose={() => setEditing(null)} />
+          <SessionEditor draft={editing} rate={data.rate} limit={data.limit} students={data.students} onClose={() => setEditing(null)} />
         </>
       )}
     </>

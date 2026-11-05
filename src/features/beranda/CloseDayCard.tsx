@@ -6,6 +6,8 @@ import type { BerandaData } from './data'
 export function CloseDayCard({ data }: { data: BerandaData }) {
   const toast = useToast()
   const workEnd = data.snap.day?.workEnd ?? null
+  // Batas kerja malam bisa diubah/dimatikan di Setelan.
+  const limit = data.rules.workEndLimit
   const left = data.snap.rows.filter((r) => r.kind === 'task' && !r.done).length
   const moveLeft = async () => {
     const ids = await moveUndoneToTomorrow(data.today)
@@ -30,13 +32,15 @@ export function CloseDayCard({ data }: { data: BerandaData }) {
       <h3 className="card-title">
         Tutup hari <span className="text-[13px] font-medium text-faint">malam, ±1 menit</span>
       </h3>
-      <div className="mb-3 flex items-center gap-3">
-        <span className="text-[13px] text-muted">Berhenti kerja</span>
-        <div role="radiogroup" aria-label="Jam berhenti kerja" className="flex flex-1 rounded-full bg-surface-2 p-[3px]">
-          {opt('ok', '≤ 21.00')}
-          {opt('late', 'Lewat')}
+      {limit && (
+        <div className="mb-3 flex items-center gap-3">
+          <span className="text-[13px] text-muted">Berhenti kerja</span>
+          <div role="radiogroup" aria-label="Jam berhenti kerja" className="flex flex-1 rounded-full bg-surface-2 p-[3px]">
+            {opt('ok', `≤ ${limit}`)}
+            {opt('late', 'Lewat')}
+          </div>
         </div>
-      </div>
+      )}
       <button
         type="button"
         disabled={left === 0}
@@ -46,7 +50,9 @@ export function CloseDayCard({ data }: { data: BerandaData }) {
         Pindahkan sisa tugas ke besok <span className="text-faint">{left}</span>
       </button>
       {data.snap.result.penalty > 0 && (
-        <p className="mt-2 text-xs text-faint">Lewat 21.00: −{data.snap.result.penalty} XP. Tidur lebih penting dari satu tugas lagi.</p>
+        <p className="mt-2 text-xs text-faint">
+          Lewat {limit}: −{data.snap.result.penalty} XP. Tidur lebih penting dari satu tugas lagi.
+        </p>
       )}
     </div>
   )

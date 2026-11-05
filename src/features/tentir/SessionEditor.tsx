@@ -17,23 +17,40 @@ const HOURS = [1, 1.5, 2, 2.5, 3]
 export function SessionEditor({
   draft,
   rate,
+  limit,
   students,
   onClose,
 }: {
   draft: SessionDraft | null
   rate: number
+  /** Batas kerja malam (`null` = tanpa batas). */
+  limit: string | null
   students: string[]
   onClose: () => void
 }) {
   const editing = draft && 'id' in draft
   return (
     <Sheet open={!!draft} title={editing ? 'Ubah sesi tentir' : 'Sesi tentir baru'} onClose={onClose}>
-      {draft && <Body key={'id' in draft ? draft.id : draft.date} draft={draft} rate={rate} students={students} onClose={onClose} />}
+      {draft && (
+        <Body key={'id' in draft ? draft.id : draft.date} draft={draft} rate={rate} limit={limit} students={students} onClose={onClose} />
+      )}
     </Sheet>
   )
 }
 
-function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: number; students: string[]; onClose: () => void }) {
+function Body({
+  draft,
+  rate,
+  limit,
+  students,
+  onClose,
+}: {
+  draft: SessionDraft
+  rate: number
+  limit: string | null
+  students: string[]
+  onClose: () => void
+}) {
   const toast = useToast()
   const existing = 'id' in draft ? draft : null
   const [s, setS] = useState<SessionInput>(
@@ -50,17 +67,13 @@ function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: n
   const phi = detectPatientIdentity(`${s.student} ${s.topic}`)
   const validStart = !s.start || parseClock(s.start) != null
   const range = s.start && validStart ? sessionRange(s) : null
-  const late = validStart ? isLate(s) : null
+  const late = validStart ? isLate(s, limit) : null
   const valid = !!s.student.trim() && s.hours > 0 && isValidISODate(s.date) && validStart && !phi
 
   const save = async () => {
     try {
-      const { overtime } = await saveSession({ ...s, start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null })
-      toast({
-        message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid ? ' · masuk pemasukan' : ''}${overtime ? ' · lewat 21.00, berhenti kerja dicatat lewat 21.00' : ''}.`,
-        tone: overtime ? 'warning' : 'success',
-        duration: overtime ? 6000 : undefined,
-      })
+      await saveSession({ ...s, start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null })
+      toast({ message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid ? ' · masuk pemasukan' : ''}.` })
       onClose()
     } catch (e) {
       toast({ message: e instanceof PatientIdentityError ? e.message : (e as Error).message, tone: 'error' })
@@ -135,11 +148,11 @@ function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: n
             </button>
           ))}
         </div>
-        <p className={`mt-1.5 text-xs ${late ? 'text-danger' : 'text-muted'}`}>
+        <p className={`mt-1.5 text-xs ${late ? 'text-uang' : 'text-muted'}`}>
           {range
-            ? `${range}${late ? ' · lewat 21.00 (dihitung lembur)' : ' · selesai ≤ 21.00'}`
+            ? `${range}${late ? ` · melewati batas ${limit} (quest tentir hari itu tidak dapat XP, tanpa penalti)` : limit ? ` · sebelum ${limit}` : ''}`
             : validStart
-              ? 'Isi jam mulai untuk menilai selesai ≤ 21.00.'
+              ? 'Jam mulai opsional.'
               : 'Format jam: 19.00'}
         </p>
       </div>

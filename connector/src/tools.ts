@@ -251,6 +251,7 @@ const getSummary: ToolDef = {
         d.logs.filter((l) => weekStart(l.date) === weekStart(date)),
         base.roles,
         d.sessions,
+        base.rules.workEndLimit,
       )
       const sleep = day ? sleepTotal(day.sleepNight, day.nap, base.rules) : null
       if (sleep != null && day?.type !== 'jaga') sleeps.push(sleep)
@@ -267,14 +268,14 @@ const getSummary: ToolDef = {
         tasks: `${tasks.filter((t) => t.done).length}/${tasks.length}`,
         habits: `${habitRows.filter((h) => h.done).length}/${habitRows.filter((h) => !h.weekly).length}`,
         mutabaah: mutLogs.filter((m) => m.date === date && m.done).length,
-        tentirHours: sessions.length ? dayTentir(sessions).hours : 0,
+        tentirHours: sessions.length ? dayTentir(sessions, base.rules.workEndLimit).hours : 0,
         workouts: w.map((x) => (x.kind === 'lari' && x.run ? `lari ${x.run.km} km (${x.run.type})` : `beban ${x.entries.length} gerakan`)),
         overtime: day?.workEnd === 'late',
         note: day?.note || undefined,
       })
     }
     const inRange = <T extends { date: string }>(list: T[]) => list.filter((x) => x.date >= from && x.date <= to)
-    const tentir = summarizeTentir(inRange(d.sessions))
+    const tentir = summarizeTentir(inRange(d.sessions), base.rules.workEndLimit)
     const runs = runsOf(inRange(workouts))
     const typed = rows.filter((x) => x.type)
     return {

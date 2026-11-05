@@ -27,9 +27,10 @@ export function TodayList({ data }: { data: BerandaData }) {
 
   const toggle = async (r: DailyRow) => {
     if (r.habitKind === 'sleep') return toast({ message: 'Habit tidur terisi otomatis dari jam tidur.', tone: 'info' })
-    if (r.habitKind === 'workend') return toast({ message: 'Isi lewat "Tutup hari": berhenti kerja ≤ 21.00.', tone: 'info' })
+    if (r.habitKind === 'workend')
+      return toast({ message: `Isi lewat "Tutup hari": berhenti kerja ≤ ${rules.workEndLimit}.`, tone: 'info' })
     if (r.habitKind === 'tentir')
-      return toast({ message: 'Terisi otomatis dari sesi tentir hari ini (semua selesai ≤ 21.00).', tone: 'info' })
+      return toast({ message: `Terisi otomatis dari sesi tentir hari ini (semua selesai ≤ ${rules.workEndLimit}).`, tone: 'info' })
     if (r.task) await toggleTask(r.task)
     else await setHabitDone(r.id, data.today, !r.done)
   }

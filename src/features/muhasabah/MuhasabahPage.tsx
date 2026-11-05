@@ -37,7 +37,7 @@ function Numbers({ data }: { data: MuhasabahData }) {
       <Tile label="Rata-rata tidur" value={n.avgSleep == null ? '–' : formatHours(n.avgSleep)} sub="malam + qailulah, tanpa pasca-jaga" />
       <Tile label="Hari lolos" value={`${n.passDays}/${n.recordedDays}`} sub="≥ 60% isi hari selesai" />
       <Tile label="XP minggu ini" value={formatNumber(n.xp)} sub={`+${data.rules.reviewXP} bila Muhasabah selesai`} />
-      <Tile label="Jaga" value={`${n.jaga} malam`} sub={n.overtime ? `lewat 21.00: ${n.overtime}×` : 'tidak pernah lewat 21.00'} />
+      <Tile label="Jaga" value={`${n.jaga} malam`} sub={n.overtime ? `lewat batas malam: ${n.overtime}×` : 'tanpa lembur malam'} />
       <Tile label="Tentir" value={`${formatNumber(n.tentirHours, 1)} j`} sub={`kapasitas ${min}–${max} j`} />
       <Tile label="Keluar" value={formatRupiah(n.expense)} sub={`masuk ${formatRupiah(n.income)}`} />
     </section>

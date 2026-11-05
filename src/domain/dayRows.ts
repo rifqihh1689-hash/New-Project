@@ -22,7 +22,7 @@ export interface DailyRow {
   size: XpSize
   done: boolean
   recovery: boolean
-  /** `tentir` = quest bersyarat "Sesi tentir selesai ≤ 21.00", dinilai dari sesi hari itu. */
+  /** `tentir` = quest bersyarat "Sesi tentir selesai ≤ batas", dinilai dari sesi hari itu. */
   habitKind?: Habit['kind'] | 'tentir'
   important?: boolean
   task?: Task
@@ -53,6 +53,7 @@ export function dailyRows(
   logs: HabitLog[],
   roles: Role[],
   sessions: Pick<TentirSession, 'date' | 'start' | 'hours'>[] = [],
+  workEndLimit: string | null = '21.00',
 ): DailyRow[] {
   const recovery = new Set(roles.filter((r) => r.recovery).map((r) => r.id))
   const logMap = new Map(logs.filter((l) => l.date === date).map((l) => [l.habitId, l.done]))
@@ -67,7 +68,7 @@ export function dailyRows(
     important: t.important,
     task: t,
   }))
-  const habitRows: DailyRow[] = habitsForDay(habits, date, type).map((h) => {
+  const habitRows: DailyRow[] = habitsForDay(withWorkEndRule(habits, workEndLimit), date, type).map((h) => {
     const row: DailyRow = {
       kind: 'habit',
       id: h.id,
@@ -84,14 +85,14 @@ export function dailyRows(
   })
   // Quest bersyarat ala MBAPPE OS: hanya muncul di hari non-jaga yang ada sesi tentirnya.
   const today = sessions.filter((x) => x.date === date)
-  if (type && type !== 'jaga' && today.length) {
+  if (type && type !== 'jaga' && today.length && workEndLimit) {
     habitRows.push({
       kind: 'habit',
       id: `#tentir:${date}`,
-      title: 'Sesi tentir selesai ≤ 21.00',
+      title: `Sesi tentir selesai ≤ ${workEndLimit}`,
       roleId: TENTIR_ROLE_ID,
       size: 'sedang',
-      done: dayTentir(today).ok === true,
+      done: dayTentir(today, workEndLimit).ok === true,
       recovery: recovery.has(TENTIR_ROLE_ID),
       habitKind: 'tentir',
     })
@@ -118,6 +119,15 @@ export function toDayInput(day: Day | null, prevType: DayType | null, rows: Dail
     workEnd: day?.workEnd ?? null,
     items,
   }
+}
+
+/**
+ * Habit "berhenti kerja" mengikuti aturan: hilang bila batas dimatikan, dan jam di namanya
+ * (mis. "≤ 21.00") ikut batas yang dipilih.
+ */
+export function withWorkEndRule<T extends Pick<Habit, 'kind' | 'name'>>(habits: T[], limit: string | null): T[] {
+  if (!limit) return habits.filter((h) => h.kind !== 'workend')
+  return habits.map((h) => (h.kind === 'workend' ? { ...h, name: h.name.replace(/\d{1,2}[.:]\d{2}/, limit) } : h))
 }
 
 export interface DayData {
@@ -157,6 +167,7 @@ export function computeResults(
       logsByWeek.get(weekStart(day.date)) ?? [],
       roles,
       sessionsByDate.get(day.date) ?? [],
+      rules.workEndLimit,
     )
     results.set(day.date, computeDay(toDayInput(day, prevType, rows), rules, { final: isLocked(day.date, today, rules) }))
   }

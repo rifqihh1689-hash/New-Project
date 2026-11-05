@@ -83,10 +83,9 @@ export function useQuickCapture(onSaved?: () => void) {
           toast({ message: 'Tulis inisial murid dengan huruf kapital, mis. “AB 2j anatomi”.', tone: 'warning' })
           return
         }
-        const { id, overtime } = await saveSession({ ...t, fee: Math.round(rate * t.hours) })
+        const { id } = await saveSession({ ...t, fee: Math.round(rate * t.hours) })
         toast({
-          message: `Sesi ${t.student} · ${relativeDayLabel(t.date, today)}${overtime ? ' · lewat 21.00, dicatat lembur' : ''}`,
-          tone: overtime ? 'warning' : 'success',
+          message: `Sesi ${t.student} · ${relativeDayLabel(t.date, today)}`,
           action: {
             label: 'Urungkan',
             onClick: () => void deleteSession(id),

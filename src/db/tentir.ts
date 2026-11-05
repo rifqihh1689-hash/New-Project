@@ -1,8 +1,8 @@
 import { TENTIR_CATEGORY_ID } from '../domain/money'
-import { DEFAULT_TENTIR_RATE, isLate } from '../domain/tentir'
-import { createId, privateId } from '../lib/id'
+import { DEFAULT_TENTIR_RATE } from '../domain/tentir'
+import { createId } from '../lib/id'
 import type { ISODate, TentirSession, Transaction } from '../types'
-import { assertNoPatientIdentity, setWorkEnd } from './daily'
+import { assertNoPatientIdentity } from './daily'
 import { db } from './db'
 import { loadProfile, updateProfile } from './structure'
 
@@ -10,10 +10,9 @@ export { TENTIR_CATEGORY_ID }
 
 export type SessionInput = Omit<TentirSession, 'id' | 'createdAt' | 'updatedAt' | 'transactionId'> & { id?: string }
 
+/** Sesi tentir tidak pernah mengubah jam berhenti kerja: lembur hanya diisi sendiri di "Tutup hari". */
 export interface SaveResult {
   id: string
-  /** Sesi lewat 21.00 di hari non-jaga → jam berhenti kerja hari itu dicatat lewat 21.00. */
-  overtime: boolean
 }
 
 /**
@@ -62,15 +61,7 @@ export async function saveSession(input: SessionInput): Promise<SaveResult> {
       updatedAt: now,
     })
   })
-  let overtime = false
-  if (isLate(input)) {
-    const day = await db.days.get(privateId.day(input.date))
-    if (day?.type !== 'jaga' && day?.workEnd !== 'late') {
-      await setWorkEnd(input.date, 'late')
-      overtime = true
-    }
-  }
-  return { id, overtime }
+  return { id }
 }
 
 export async function setPaid(session: TentirSession, paid: boolean): Promise<void> {

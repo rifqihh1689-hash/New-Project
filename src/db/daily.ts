@@ -176,7 +176,7 @@ export async function setMutabaahDone(itemId: string, date: ISODate, done: boole
 
 // ---------- Hitung hari ----------
 
-export { computeResults, dailyRows, sortTasks, toDayInput, weeklyFirstDone, type DailyRow } from '../domain/dayRows'
+export { computeResults, dailyRows, sortTasks, toDayInput, weeklyFirstDone, withWorkEndRule, type DailyRow } from '../domain/dayRows'
 
 export interface DaySnapshot {
   date: ISODate
@@ -203,7 +203,7 @@ export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<Da
     db.tentirSessions.where('date').equals(date).toArray(),
   ])
   const rules = rulesOf(profile)
-  const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles, sessions)
+  const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles, sessions, rules.workEndLimit)
   const prevType = prev?.type ?? null
   const result = day?.frozen ?? computeDay(toDayInput(day ?? null, prevType, rows), rules, { final: isLocked(date, today, rules) })
   return { date, day: day ?? null, prevType, rows, result, frozen: !!day?.frozen, rules }

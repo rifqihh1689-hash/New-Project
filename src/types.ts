@@ -103,6 +103,8 @@ export interface XpRules {
   jagaMult: number
   pascaXP: number
   overtimePenalty: number
+  /** Batas berhenti kerja malam (`HH.MM`). `null` = aturan dimatikan: tanpa penalti, habit, dan quest batas tentir. */
+  workEndLimit: string | null
   levelBase: number
   levelStep: number
   backfillDays: number

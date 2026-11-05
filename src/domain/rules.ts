@@ -17,6 +17,7 @@ export const DEFAULT_RULES: XpRules = {
   jagaMult: 1.0,
   pascaXP: 100,
   overtimePenalty: 15,
+  workEndLimit: '21.00',
   levelBase: 150,
   levelStep: 50,
   backfillDays: 1,
@@ -28,6 +29,7 @@ export function resolveRules(stored: Partial<XpRules> | undefined): XpRules {
   const rules: XpRules = { ...DEFAULT_RULES, ...stored }
   if (!isValidSleepTiers(rules.sleepTiers)) rules.sleepTiers = DEFAULT_RULES.sleepTiers
   if (!(rules.pascaXP <= rules.dailyCap)) rules.pascaXP = Math.min(DEFAULT_RULES.pascaXP, rules.dailyCap)
+  if (rules.workEndLimit !== null && !/^\d{2}\.\d{2}$/.test(String(rules.workEndLimit))) rules.workEndLimit = DEFAULT_RULES.workEndLimit
   return rules
 }
 
@@ -44,3 +46,6 @@ export function isValidSleepTiers(tiers: { min: number; mult: number }[]): boole
   }
   return true
 }
+
+/** Teks batas kerja malam untuk label, mis. "21.00"; `null` bila aturan dimatikan. */
+export const workEndLabel = (rules: Pick<XpRules, 'workEndLimit'>) => rules.workEndLimit

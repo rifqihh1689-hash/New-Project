@@ -63,12 +63,13 @@ export function itemsForDay<T extends { recovery: boolean }>(items: T[], effType
 
 /**
  * Rumus XP MBAPPE OS:
- * - STASE / LIBUR: `round(min(Σ XP selesai, 100) × pengali tidur) − 15·[lewat 21.00]`
+ * - STASE / LIBUR: `round(min(Σ XP selesai, 100) × pengali tidur) − 15·[lewat batas kerja malam, bawaan 21.00]`
  * - JAGA: `round(min(Σ, 100) × 1,0)`, tanpa penalti malam.
  * - PASCA-JAGA: `round(100 × selesai/total) − penalti`, hanya sah bila kemarin jaga.
  * - Lolos bila selesai/total ≥ 60%.
  * - Quest mingguan: XP di hari pertama selesai saja, di luar syarat lolos.
- * `final` = hari sudah terkunci: jam berhenti kerja yang kosong dianggap lewat 21.00.
+ * `final` = hari sudah terkunci: jam berhenti kerja yang kosong dianggap lewat batas.
+ * Batas kerja malam bisa diubah atau dimatikan (`workEndLimit`).
  */
 export function computeDay(input: DayInput, rules: XpRules, opts: { final?: boolean } = {}): DayResult {
   if (!input.type) return { ...EMPTY_RESULT }
@@ -84,7 +85,8 @@ export function computeDay(input: DayInput, rules: XpRules, opts: { final?: bool
   const ratio = total ? doneCount / total : 0
   const pass = total > 0 && ratio >= rules.passPct / 100 - EPS
 
-  const nightNonJaga = input.type !== 'jaga'
+  // Batas kerja malam bisa dimatikan (workEndLimit = null): tanpa penalti dan tanpa "kosong = lewat".
+  const nightNonJaga = input.type !== 'jaga' && rules.workEndLimit != null
   const autoLate = !!opts.final && rules.worstCaseEmpty && nightNonJaga && input.workEnd == null
   const overtime = nightNonJaga && (input.workEnd === 'late' || autoLate)
   const penalty = overtime ? rules.overtimePenalty : 0
