@@ -102,6 +102,35 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 - **Minggu malam — Muhasabah mingguan (15–30 menit):** di app atau lewat Claude. Hasil: 3 prioritas minggu depan.
 - **Awal bulan — Muhasabah bulanan:** lewat Claude. Tren tidur vs jaga, progres UKMPPD, proyeksi utang dan tabungan.
 
+## Impor jadwal
+
+Sumber jadwal beragam: Google Sheets, screenshot, PDF dari RS, catatan program latihan. Dua jalur, hasil akhirnya sama (pratinjau → setujui):
+
+1. **Teks terstruktur di app** (Setelan › Impor): tempel sel dari Google Sheets (TSV), CSV, atau JSON Qawwam. Pratinjau per baris, baris bermasalah dan pola identitas pasien ditandai, lalu impor.
+2. **Lewat Claude** untuk screenshot, PDF, dan catatan bebas. Sebelum connector ada: tombol "Salin perintah untuk Claude" berisi format JSON Qawwam; Claude membalas JSON, hasilnya ditempel di Impor. Setelah connector ada: Claude memanggil `propose`, hasilnya masuk Usulan.
+
+Jenis yang bisa diimpor:
+
+| Jenis | Masuk ke | Kolom |
+|---|---|---|
+| `ritme` | Ritme harian per tipe hari (menggantikan template tipe itu) | tipe_hari, jam, sampai, judul, peran, catatan |
+| `habit` | Habit (jadwal latihan dsb.); nama sama = diperbarui | judul, hari, tipe_hari, menit, ukuran, peran, catatan |
+| `tugas` | Tugas bertanggal; judul + tanggal sama = dilewati | judul, tanggal, peran, penting |
+| `jaga` | Tipe hari Jaga di tanggal itu | tanggal |
+| `stase` | Stase + jam masuk/pulang; nama + mulai sama = diperbarui | judul, mulai, selesai, masuk, pulang, bobot |
+| `menu` | Modul Menu (menyusul) | |
+
+## Menu & makan (draf)
+
+Tujuan: tidak perlu memikirkan menu setiap hari. Makan campuran: beli dan masak.
+
+- **Daftar menu**: nama, beli atau masak, waktu makan (sarapan, siang, malam, bekal jaga), perkiraan biaya, lama masak, bahan, tempat beli.
+- **Rencana mingguan**: grid 7 hari × waktu makan, disusun otomatis dari daftar menu dan tipe hari. Jaga → bekal. Pasca-jaga → praktis/beli. Libur → masak dan siapkan untuk beberapa hari.
+- **Daftar belanja** dari menu masak minggu itu, sekali ketuk jadi tugas "Belanja mingguan" (Uang & rumah).
+- **Beranda**: kartu "Makan hari ini".
+- Perkiraan biaya mingguan terhubung ke anggaran di modul Uang.
+- Daftar menu dan rencana bisa diimpor atau disusun Claude (lewat Usulan).
+
 ## Connector: tool yang direncanakan
 
 | Tool | Fungsi |
@@ -136,3 +165,4 @@ Tidak ada yang direset. Fase, peran, habit, dan ritme adalah data, bukan kode:
 - Daftar mutaba'ah final.
 - Nama dan warna peran final.
 - Data MBAPPE OS mana yang diimpor (riwayat XP, hari terkunci, latihan).
+- Modul Menu: waktu makan yang direncanakan, fasilitas masak di kos, anggaran makan, preferensi/target gizi.
