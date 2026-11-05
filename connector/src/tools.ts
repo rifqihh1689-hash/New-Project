@@ -14,6 +14,7 @@ import {
   mergeWithDefaults,
 } from '../../src/db/defaults'
 import { computeResults, dailyRows } from '../../src/domain/dayRows'
+import { inDay, muscleOf, nextDay, SPLITS } from '../../src/domain/exerciseCatalog'
 import { IMPORT_ITEM_GUIDE } from '../../src/domain/importGuide'
 import { describeItem, parseImport } from '../../src/domain/importer'
 import { categoryLookup, mergeCategories, summarize as summarizeMoney } from '../../src/domain/money'
@@ -383,7 +384,7 @@ const getTrainingPlan: ToolDef = {
   name: 'get_training_plan',
   title: 'Rencana latihan',
   description:
-    'Resep sesi beban berikutnya per gerakan (double progression, turun 10% setelah 2× gagal, deload saat e1RM stagnan, ringan saat pasca-jaga/kurang tidur), proyeksi bench ke target, rencana lari minggu ini (volume, pace santai/tempo dari perkiraan 5K, minggu pemulihan, 80/20), dan km minggu ini.',
+    'Program beban (full body / atas-bawah / push-pull-kaki) dan hari berikutnya; resep sesi beban berikutnya per gerakan (double progression, turun 10% setelah 2× gagal, deload saat e1RM stagnan, ringan saat pasca-jaga/kurang tidur), proyeksi bench ke target, rencana lari minggu ini (volume, pace santai/tempo dari perkiraan 5K, minggu pemulihan, 80/20), dan km minggu ini.',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   readOnly: true,
   async run(_args, { store, now }) {
@@ -403,14 +404,19 @@ const getTrainingPlan: ToolDef = {
     const jaga = days.filter((x) => x.type === 'jaga' && x.date >= monday && x.date <= addDays(monday, 6)).length
     const runs = runsOf(sorted)
     const bench = exerciseHistory('#ex:bench', sorted)
+    const split = base.profile.trainingSplit ?? 'fullbody'
+    const programDay = nextDay(split, sorted)
     return {
       today,
       readiness: ready,
+      program: { split, nextDay: programDay, days: SPLITS[split].days },
       strength: active.map((ex) => {
         const history = exerciseHistory(ex.id, sorted)
         const last = history[history.length - 1]
         return {
           exercise: ex.name,
+          muscle: muscleOf(ex),
+          inNextSession: inDay(ex, split, programDay),
           last: last ? { date: last.date, sets: last.entry.sets, e1rm: round1(last.e1rm) } : null,
           next: prescribe(ex, history, ready),
         }

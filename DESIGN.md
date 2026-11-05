@@ -79,6 +79,9 @@ Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: 
 - **Kesiapan hari ini** dari tipe hari & tidur: pasca-jaga atau tidur < 5 jam → ringan 80% (teknik), hari jaga → lewati. Jaga tidak memutus apa pun.
 - **Proyeksi target:** tren 1RM 8 minggu terakhir (regresi linear, kg/minggu) → perkiraan bulan tercapai; muncul setelah 3 sesi.
 - **Lari.** Volume mingguan naik ≤ 10% (maks +5 km); setelah 3 minggu naik, satu minggu pemulihan −25%; minggu dengan ≥ 2 jaga volume ditahan dan tanpa sesi kualitas. Perkiraan 5K dari lari tes/kualitas 3–21 km (Riegel ^1,06), pace santai = pace 5K + 60–90 dtk/km, tempo = +15–30 dtk/km. Peringatan bila lari keras > 30% dalam 2 minggu (pola 80/20, dinilai setelah ≥ 3 lari) atau perkiraan 5K tidak membaik ≥ 1% dibanding 4–8 minggu sebelumnya.
+- **Variasi:** katalog ±30 gerakan berbeban per otot (dada, bahu, punggung, kaki, bisep, trisep, inti) bisa ditambah sekali ketuk; gerakan sendiri juga bisa. "Ganti variasi" mengarsipkan gerakan lama (riwayat tetap) dan memasang variasi otot yang sama, disarankan tiap 4–8 minggu atau saat stagnan berulang.
+- **Program:** Full body, Atas/Bawah, atau Push/Pull/Kaki. Gerakan masuk hari sesuai ototnya (inti di semua hari); hari berikutnya bergiliran dari sesi beban terakhir, bisa dipilih manual.
+- **Progres:** grafik perkiraan 1RM per gerakan (garis target untuk bench) dan perkiraan 5K, rekor tiap gerakan + laju kg/minggu, "Stagnan: ganti variasi?". Sebelum ada data, tampil contoh berlabel.
 - Mencatat sesi mencentang habit latihan yang cocok di hari itu (nama memuat "beban/bench/gym…" atau "lari/run…"). Catatan sesi dicek identitas pasien.
 
 ### Uang
@@ -275,7 +278,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Sinkron Dexie Cloud + layar masuk Indonesia | selesai |
 | Beranda (prototipe), Catat cepat, pemilih tipe hari, XP/level/streak/pengali tidur, hari beku | selesai |
 | Tugas: tampilan Hari & papan Minggu, subtugas | selesai |
-| Habit & Mutaba'ah: kotak 7 hari, target menit, catatan program, quest mingguan (1×/minggu, XP di hari pertama selesai, di luar syarat lolos) | selesai |
+| Habit & Mutaba'ah: kotak 7 hari, target menit, catatan program, quest mingguan (1×/minggu, XP di hari pertama selesai, di luar syarat lolos); hari lama tetap bisa dicentang dengan pemberitahuan (XP beku tidak berubah), jendela isi mundur bisa diatur 1–7 hari | selesai |
 | Muhasabah mingguan (+50 XP, prioritas di Beranda) | selesai |
 | Setelan: stase & jamnya, ritme harian, fase hidup, peran, export JSON | selesai |
 | Impor jadwal (Sheets/CSV/Claude) | selesai |

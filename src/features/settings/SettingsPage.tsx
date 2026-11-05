@@ -9,7 +9,7 @@ import { SyncDot } from '../nav/SyncBadge'
 import { useInstallPrompt } from '../pwa/install'
 import { LifeStructure } from './LifeStructure'
 import { RitmeSettings, StaseSettings } from './ScheduleSettings'
-import { WorkEndSettings } from './WorkEndSettings'
+import { BackfillSettings, WorkEndSettings } from './WorkEndSettings'
 import { useThemeContext } from './theme-context'
 
 const THEMES: { value: ThemePreference; label: string }[] = [
@@ -117,6 +117,7 @@ export function SettingsPage() {
         <StaseSettings />
         <RitmeSettings />
         <WorkEndSettings />
+        <BackfillSettings />
         <LifeStructure />
 
         <section className="card">

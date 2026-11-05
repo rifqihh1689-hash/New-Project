@@ -88,3 +88,33 @@ function Body({ limit, penalty }: { limit: string | null; penalty: number }) {
     </section>
   )
 }
+
+/** Berapa hari ke belakang yang centangnya masih mengubah XP. Hari yang lebih lama tetap bisa dicentang (catatan). */
+export function BackfillSettings() {
+  const rules = useLiveQuery(async () => rulesOf(await loadProfile()), [])
+  if (!rules) return null
+  return (
+    <section className="card">
+      <h2 className="card-title">Isi mundur</h2>
+      <div role="radiogroup" aria-label="Isi mundur" className="flex rounded-full bg-surface-2 p-[3px]">
+        {[1, 2, 3, 7].map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={rules.backfillDays === n}
+            onClick={() => void updateRules({ backfillDays: n })}
+            className={`flex-1 rounded-full px-3 py-1.5 text-[13px] ${rules.backfillDays === n ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+          >
+            {n} hari
+          </button>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-faint">
+        Centang habit & tugas sampai {rules.backfillDays} hari ke belakang masih mengubah XP. Hari yang lebih lama tetap bisa dicentang
+        untuk catatan, tapi XP-nya sudah dibekukan (diberi tahu saat dicentang). Hari yang sudah beku tidak ikut berubah bila angka ini
+        dinaikkan.
+      </p>
+    </section>
+  )
+}

@@ -88,6 +88,8 @@ export interface Profile extends CloudFields {
   tentirRate?: number
   /** Target latihan: e1RM bench (kg), 5K & 10K (detik). */
   trainingTargets?: Partial<TrainingTargets>
+  /** Program latihan beban; bawaan full body (semua gerakan tiap sesi). */
+  trainingSplit?: TrainingSplit
   updatedAt: number
 }
 
@@ -428,9 +430,17 @@ export interface TrainingTargets {
 }
 
 /** Gerakan beban di daftar latihan. */
+/** Kelompok otot utama; menentukan hari di program Atas/Bawah dan Push/Pull/Kaki. */
+export type Muscle = 'dada' | 'bahu' | 'punggung' | 'kaki' | 'bisep' | 'trisep' | 'inti'
+
+/** Program pembagian hari latihan beban. */
+export type TrainingSplit = 'fullbody' | 'atas-bawah' | 'ppl'
+
 export interface Exercise extends Stamped {
   name: string
   group: 'upper' | 'lower'
+  /** Kosong untuk data lama: dianggap dada (atas) / kaki (bawah). */
+  muscle?: Muscle
   repMin: number
   repMax: number
   sets: number
@@ -466,6 +476,8 @@ export interface RunLog {
 export interface Workout extends Stamped {
   date: ISODate
   kind: 'beban' | 'lari'
+  /** Hari program saat sesi dicatat (mis. "Atas", "Push"); untuk menentukan hari berikutnya. */
+  day?: string
   entries: StrengthEntry[]
   run: RunLog | null
   note: string

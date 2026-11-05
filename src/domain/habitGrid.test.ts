@@ -25,10 +25,10 @@ describe('grid habit 7 hari', () => {
     expect(habitCell(study, TODAY, undefined, undefined, TODAY, R)).toMatchObject({ applies: null, editable: true })
   })
 
-  it('isi mundur 1 hari, lebih lama terkunci', () => {
+  it('lewat jendela isi mundur: terkunci (XP beku) tapi tetap bisa dicentang', () => {
     expect(habitCell(study, '2026-11-04', day('stase'), undefined, TODAY, R)).toMatchObject({ editable: true, locked: false })
     expect(habitCell(study, '2026-11-03', day('stase'), { done: true }, TODAY, R)).toMatchObject({
-      editable: false,
+      editable: true,
       locked: true,
       done: true,
     })
