@@ -105,7 +105,7 @@ function Breakdown({ data }: { data: UangData }) {
               </span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-track" aria-hidden="true">
-              <div className="h-full rounded-full" style={{ width: `${s.ratio * 100}%`, background: s.category.color }} />
+              <div className="h-full rounded-full bar-anim" style={{ width: `${s.ratio * 100}%`, background: s.category.color }} />
             </div>
           </li>
         ))}
@@ -238,7 +238,7 @@ export function UangPage() {
       {data && (
         <>
           <Tiles data={data} />
-          <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
+          <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
             <div className="grid gap-3">
               <Transactions data={data} onEdit={setEditing} onAdd={() => setEditing({ date: thisMonth ? today : `${month}-01` })} />
               <Breakdown data={data} />

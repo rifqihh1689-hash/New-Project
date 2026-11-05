@@ -94,7 +94,7 @@ export function StatCards({ data, isPasca }: { data: BerandaData; isPasca: boole
               style={{ left: `${(min / max) * 100}%`, background: 'color-mix(in srgb, var(--color-tentir) 22%, transparent)' }}
             />
             <div
-              className="absolute inset-y-0 left-0 rounded-full bg-tentir"
+              className="absolute inset-y-0 left-0 rounded-full bg-tentir bar-anim"
               style={{ width: `${Math.min(100, (tentir.hours / max) * 100)}%` }}
             />
           </div>

@@ -84,7 +84,7 @@ export function MoneyCard({ data }: { data: BerandaData }) {
   )
   const bar = (pct: number, color: string) => (
     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-track">
-      <i className="block h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }} />
+      <i className="block h-full rounded-full bar-anim" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }} />
     </div>
   )
   const bridgeTarget = money.bridge.reduce((s, b) => s + b.target, 0)

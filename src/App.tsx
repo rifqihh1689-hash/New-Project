@@ -89,7 +89,10 @@ function Shell() {
       <div className="min-w-0">
         <MobileTop />
         <main className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(110px+env(safe-area-inset-bottom))] md:px-8 md:pt-[22px] md:pb-12">
-          <Page name={route.name} date={route.date} />
+          {/* Kunci per rute: setiap pindah halaman, isinya masuk dengan animasi halus. */}
+          <div key={route.name} className="animate-page-in">
+            <Page name={route.name} date={route.date} />
+          </div>
         </main>
       </div>
       <TabBar active={route.name} onCapture={() => setCapture(true)} />

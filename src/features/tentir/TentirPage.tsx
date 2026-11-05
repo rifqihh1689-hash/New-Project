@@ -258,7 +258,7 @@ export function TentirPage() {
       {data && (
         <>
           <Tiles data={data} />
-          <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
+          <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
             <Days data={data} today={today} onAdd={newOn} />
             <Sessions data={data} onEdit={setEditing} onAdd={() => newOn(thisWeek ? today : monday)} />
             <Unpaid data={data} onEdit={setEditing} />

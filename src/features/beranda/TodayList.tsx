@@ -1,10 +1,13 @@
+import { useEffect, useRef, useState } from 'react'
 import { Check } from '../../components/Check'
+import { SwipeRow } from '../../components/SwipeRow'
 import { RoleTag } from '../../components/RoleTag'
 import { useToast } from '../../components/toast-context'
-import { setHabitDone, toggleTask, type DailyRow } from '../../db/daily'
+import { moveTasks, setHabitDone, toggleTask, type DailyRow } from '../../db/daily'
 import { roleLookup } from '../../db/structure'
-import { formatDateShort } from '../../domain/time'
+import { addDays, formatDateShort } from '../../domain/time'
 import { isItemDone, itemsForDay, itemXp } from '../../domain/xp'
+import type { Role } from '../../types'
 import type { BerandaData } from './data'
 
 /** Tugas + rutin hari ini. Pasca-jaga: hanya pemulihan. */
@@ -31,31 +34,30 @@ export function TodayList({ data }: { data: BerandaData }) {
     else await setHabitDone(r.id, data.today, !r.done)
   }
 
+  const moveTomorrow = async (r: DailyRow) => {
+    if (!r.task) return
+    const tomorrow = addDays(data.today, 1)
+    await moveTasks([r.id], tomorrow)
+    toast({ message: `"${r.title}" dipindah ke besok.`, action: { label: 'Urungkan', onClick: () => void moveTasks([r.id], data.today) } })
+  }
+
   const row = (r: DailyRow) => {
-    const other = r.weekly && r.doneOn
-    const done = doneOf(r) || !!other
+    const other = !!(r.weekly && r.doneOn)
+    const done = doneOf(r) || other
     const xp = data.snap.day?.type && !other ? itemXp(r.size, effType, rows.length, rules) : 0
+    const auto = !!r.habitKind && r.habitKind !== 'normal'
     return (
-      <li key={r.id} className="flex items-start gap-3 border-t border-line px-1 py-[9px] first:border-t-0">
-        <Check checked={done} disabled={!!other} onChange={() => void toggle(r)} label={`Centang ${r.title}`} />
-        <div className={`flex-1 ${done ? 'text-faint line-through' : ''}`}>
-          {r.title}
-          {other && <span className="ml-1.5 text-[11px] text-faint no-underline">selesai {formatDateShort(r.doneOn!)}</span>}
-          {r.important && !done && (
-            <span
-              className="ml-1.5 rounded-md px-[7px] py-0.5 text-[11px] text-danger"
-              style={{ background: 'color-mix(in srgb, var(--danger) 14%, transparent)' }}
-            >
-              Penting
-            </span>
-          )}
-          {r.habitKind && r.habitKind !== 'normal' && <span className="ml-1.5 text-[11px] text-faint no-underline">otomatis</span>}
-        </div>
-        <span className="flex items-center gap-2 pt-0.5">
-          <RoleTag role={role(r.roleId)} compact />
-          {xp > 0 && <span className="text-[11.5px] text-faint tabular-nums">+{xp}</span>}
-        </span>
-      </li>
+      <TodayRow
+        key={r.id}
+        row={r}
+        done={done}
+        other={other}
+        xp={xp}
+        role={role(r.roleId)}
+        onToggle={() => void toggle(r)}
+        onRight={auto || other ? undefined : () => void toggle(r)}
+        onLeft={r.task && !done ? () => void moveTomorrow(r) : undefined}
+      />
     )
   }
 
@@ -98,5 +100,66 @@ export function TodayList({ data }: { data: BerandaData }) {
         <p className="mt-2.5 text-xs text-faint">Pasca-jaga hanya berisi tugas pemulihan. Tugas lain sudah dipindah ke besok.</p>
       )}
     </div>
+  )
+}
+
+/** Satu baris Hari ini: geser kanan = selesai/batal, geser kiri = besok; "+XP" melayang saat selesai. */
+function TodayRow({
+  row: r,
+  done,
+  other,
+  xp,
+  role,
+  onToggle,
+  onRight,
+  onLeft,
+}: {
+  row: DailyRow
+  done: boolean
+  other: boolean
+  xp: number
+  role: Role
+  onToggle: () => void
+  onRight?: () => void
+  onLeft?: () => void
+}) {
+  const [burst, setBurst] = useState(0)
+  const prev = useRef(done)
+  useEffect(() => {
+    if (done && !prev.current && xp > 0) setBurst((n) => n + 1)
+    prev.current = done
+  }, [done, xp])
+  return (
+    <SwipeRow onRight={onRight} onLeft={onLeft} rightLabel={done ? 'Batal' : 'Selesai'} className="border-t border-line first:border-t-0">
+      <div className="flex items-start gap-3 px-1 py-[9px]">
+        <Check checked={done} disabled={other} onChange={onToggle} label={`Centang ${r.title}`} />
+        <div className={`flex-1 transition-colors duration-300 ${done ? 'text-faint line-through' : ''}`}>
+          {r.title}
+          {other && <span className="ml-1.5 text-[11px] text-faint no-underline">selesai {formatDateShort(r.doneOn!)}</span>}
+          {r.important && !done && (
+            <span
+              className="ml-1.5 rounded-md px-[7px] py-0.5 text-[11px] text-danger"
+              style={{ background: 'color-mix(in srgb, var(--danger) 14%, transparent)' }}
+            >
+              Penting
+            </span>
+          )}
+          {r.habitKind && r.habitKind !== 'normal' && <span className="ml-1.5 text-[11px] text-faint no-underline">otomatis</span>}
+        </div>
+        <span className="relative flex items-center gap-2 pt-0.5">
+          <RoleTag role={role} compact />
+          {xp > 0 && <span className="text-[11.5px] text-faint tabular-nums">+{xp}</span>}
+          {burst > 0 && (
+            <span
+              key={burst}
+              aria-hidden="true"
+              className="animate-xp-float pointer-events-none absolute -top-3 right-0 text-xs font-bold text-ok"
+            >
+              +{xp} XP
+            </span>
+          )}
+        </span>
+      </div>
+    </SwipeRow>
   )
 }

@@ -133,6 +133,7 @@ Tanggal gaya Indonesia (`12/11`, `3 Des`), hari (`Sen, Rab, Jum`, `Senin-Jumat`,
 - **Peran perangkat.** HP = **Hari ini** (mengerjakan: centang, catat, cek jadwal). iPad/laptop = **Rencana & Muhasabah** (merencanakan minggu, statistik, review). Beranda penuh kartu hanya di layar lebar; di HP layar utamanya fokus ke hari ini.
 - **Satu jempol.** 4 tab di bawah + tombol Catat besar di tengah. Aksi utama di jangkauan jempol.
 - **Gestur.** Geser kanan = selesai, geser kiri = pindah ke besok, tahan = detail. Selalu ada Urungkan, bukan dialog konfirmasi.
+- **Gerak.** Animasi pendek yang memberi rasa selesai: centang "pop" + garis tergambar + riak, "+XP" melayang, kartu masuk bertahap, bar progres tumbuh, perayaan naik level sekali per level per perangkat. Semua mati otomatis bila iPhone memakai *Kurangi Gerakan*. Animasi masuk memakai fill-mode `backwards` supaya Sheet/dialog di dalam kartu tidak ikut terkurung.
 - **Catat cepat bahasa alami.** "besok 19.00 tentir A 2 jam" langsung jadi agenda + sesi tentir.
 - **Dibuka bertahap.** Hari pertama cukup Hari ini, Tugas, Habit. Modul lain terbuka seiring level, supaya tidak kewalahan.
 - **Ritual.** Check-in pagi (≤ 30 detik) → Tutup hari (1–2 menit, ringkasan XP hari itu) → Muhasabah mingguan (15–30 menit, terasa seperti Weekly Raid) → rekap musim tiap ganti stase.
@@ -284,7 +285,8 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Hadiah: 1 token per naik level, daftar hadiah sendiri, klaim + riwayat, hadiah berbiaya terkunci sampai dana jembatan tercapai, chip token di Beranda | selesai |
 | Usulan: daftar usulan Claude, pilih item, setujui lewat jalur Impor / tolak (Urungkan), pemberitahuan di Beranda | selesai |
 | Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
-| Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
+| UX v2: animasi (centang, +XP melayang, transisi halaman, kartu bertahap, bar tumbuh, tab aktif), perayaan naik level, gestur geser (kanan selesai, kiri besok) di Beranda & Tugas, Beranda HP fokus "Hari ini" + "Ringkasan lain" | selesai |
+| Dibuka bertahap, notifikasi push | belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Uang: transaksi, ringkasan bulanan, anggaran (aman/hampir habis/lewat, salin bulan lalu), berulang (mengejar bulan terlewat), dana jembatan & tabungan, utang, kategori, Catat cepat Uang, impor backup Dompetku | selesai (v1) |
 | Modul Fase 2–3 lainnya | belum |

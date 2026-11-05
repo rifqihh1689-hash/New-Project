@@ -41,7 +41,7 @@ function Bar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
   return (
     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-track">
-      <div className="h-full rounded-full bg-text" style={{ width: `${pct}%` }} />
+      <div className="h-full rounded-full bg-text bar-anim" style={{ width: `${pct}%` }} />
     </div>
   )
 }
@@ -371,7 +371,7 @@ export function LatihanPage() {
             {data.dayType == null && <span className="text-faint"> (tipe hari belum dipilih)</span>}
           </p>
           <Targets data={data} />
-          <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
+          <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
             <StrengthCard data={data} onLog={() => setForm('beban')} />
             <RunCard data={data} onLog={() => setForm('lari')} />
             <Progress data={data} />
