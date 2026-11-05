@@ -64,9 +64,13 @@ export interface Phase extends Stamped {
 export interface RitmeSlot {
   /** `HH.MM` WIB. */
   time: string
+  /** Jam selesai (opsional), mis. pulang stase. */
+  until?: string
   title: string
   note?: string
   roleId?: string
+  /** Slot kerja utama (stase/dinas): jam masuk & pulangnya mengikuti stase yang sedang berjalan. */
+  work?: boolean
 }
 
 export interface Profile extends CloudFields {
@@ -106,6 +110,9 @@ export interface Chapter extends Stamped {
   start: ISODate
   end: ISODate
   weight: 'ringan' | 'sedang' | 'berat'
+  /** Jam masuk & pulang khusus stase ini (`HH.MM`). Kosong = ikut ritme umum. */
+  masuk?: string
+  pulang?: string
 }
 
 // ---------- Harian ----------

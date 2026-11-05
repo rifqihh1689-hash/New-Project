@@ -56,12 +56,12 @@ describe('Catat cepat', () => {
 
 describe('kalimat pembuka', () => {
   it('menyesuaikan tipe hari & fase', () => {
-    expect(headline({ type: 'stase', suggested: 'stase', invalidPasca: false, hasTentir: true })).toBe(
+    expect(headline({ type: 'stase', suggested: 'stase', invalidPasca: false, hasTentir: true, pulang: '14.00' })).toBe(
       'Hari stase. Pulang ±14.00, qailulah dulu sebelum tentir.',
     )
-    expect(headline({ type: 'stase', suggested: 'stase', invalidPasca: false, hasTentir: false, workLabel: 'Dinas' })).toBe(
-      'Hari dinas. Pulang ±14.00, qailulah dulu.',
-    )
+    expect(
+      headline({ type: 'stase', suggested: 'stase', invalidPasca: false, hasTentir: false, workLabel: 'Dinas', pulang: '14.00' }),
+    ).toBe('Hari dinas. Pulang ±14.00, qailulah dulu.')
     expect(headline({ type: 'pasca', suggested: 'pasca', invalidPasca: false, hasTentir: false })).toMatch(/pulih/)
     expect(headline({ type: null, suggested: 'pasca', invalidPasca: false, hasTentir: false })).toMatch(/Kemarin jaga/)
   })

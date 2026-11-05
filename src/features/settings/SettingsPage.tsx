@@ -8,6 +8,7 @@ import type { ThemePreference } from '../../types'
 import { SyncDot } from '../nav/SyncBadge'
 import { useInstallPrompt } from '../pwa/install'
 import { LifeStructure } from './LifeStructure'
+import { RitmeSettings, StaseSettings } from './ScheduleSettings'
 import { useThemeContext } from './theme-context'
 
 const THEMES: { value: ThemePreference; label: string }[] = [
@@ -102,6 +103,8 @@ export function SettingsPage() {
           </div>
         </section>
 
+        <StaseSettings />
+        <RitmeSettings />
         <LifeStructure />
 
         <section className="card">

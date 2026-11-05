@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { resolveRules } from '../domain/rules'
-import type { Habit, MutabaahItem, Phase, Profile, Role, XpRules } from '../types'
+import type { Chapter, DayType, Habit, MutabaahItem, Phase, Profile, RitmeSlot, Role, XpRules } from '../types'
 import { db } from './db'
 import {
   DEFAULT_HABITS,
@@ -93,5 +93,30 @@ export async function updateProfile(changes: Partial<Omit<Profile, 'id'>>): Prom
   await db.transaction('rw', db.profile, async () => {
     const current = (await db.profile.get(DEFAULT_PROFILE.id)) ?? DEFAULT_PROFILE
     await db.profile.put({ ...current, ...changes, id: DEFAULT_PROFILE.id, updatedAt: Date.now() })
+  })
+}
+
+// ---------- Jadwal: stase & ritme ----------
+
+export async function saveChapter(chapter: Chapter): Promise<void> {
+  await db.chapters.put({ ...chapter, updatedAt: Date.now() })
+}
+
+export async function deleteChapter(id: string): Promise<Chapter | undefined> {
+  const chapter = await db.chapters.get(id)
+  await db.chapters.delete(id)
+  return chapter
+}
+
+export const useChapters = () => useLiveQuery(() => db.chapters.orderBy('start').toArray(), [])
+
+/** Menyimpan ritme satu tipe hari; `null` = kembali ke bawaan. Hanya tipe yang diubah yang disimpan. */
+export async function saveRitme(type: DayType, slots: RitmeSlot[] | null): Promise<void> {
+  await db.transaction('rw', db.profile, async () => {
+    const current = (await db.profile.get(DEFAULT_PROFILE.id)) ?? DEFAULT_PROFILE
+    const ritme = { ...current.ritme }
+    if (slots) ritme[type] = slots
+    else delete ritme[type]
+    await db.profile.put({ ...current, ritme, id: DEFAULT_PROFILE.id, updatedAt: Date.now() })
   })
 }
