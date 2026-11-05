@@ -19,7 +19,10 @@ export interface MbappeSummary {
 }
 
 /** Tambah baris yang ID-nya belum ada; yang sudah ada (data Qawwam atau impor sebelumnya) tidak disentuh. */
-async function addMissing<T extends { id: string }>(table: EntityTable<T, 'id'>, rows: T[]): Promise<{ added: number; skipped: number }> {
+export async function addMissing<T extends { id: string }>(
+  table: EntityTable<T, 'id'>,
+  rows: T[],
+): Promise<{ added: number; skipped: number }> {
   if (!rows.length) return { added: 0, skipped: 0 }
   const existing = await table.bulkGet(rows.map((r) => r.id) as Parameters<typeof table.bulkGet>[0])
   const fresh = rows.filter((_, i) => !existing[i])

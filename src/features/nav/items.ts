@@ -41,12 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
     soon: { phase: 3, what: 'Bank soal per sistem organ, blok belajar, dan tryout.' },
   },
   { route: 'tentir', label: 'Tentir', Icon: Users },
-  {
-    route: 'uang',
-    label: 'Uang',
-    Icon: Wallet,
-    soon: { phase: 2, what: 'Port Dompetku: transaksi, anggaran, berulang, ditambah tabungan, utang, dan dana jembatan.' },
-  },
+  { route: 'uang', label: 'Uang', Icon: Wallet },
   { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
   { route: 'menu', label: 'Menu', Icon: UtensilsCrossed },
   { route: 'latihan', label: 'Latihan', Icon: Dumbbell },

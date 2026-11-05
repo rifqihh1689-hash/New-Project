@@ -103,6 +103,11 @@ function CaptureSheetBody({ onSaved }: { onSaved: () => void }) {
       {c.mode === 'tugas' && (
         <p className="text-xs text-faint">Tanggal: “besok”, “lusa”, “senin”. Peran: #ukmppd, #orto, #tentir. Penting: “!”.</p>
       )}
+      {c.mode === 'uang' && (
+        <p className="text-xs text-faint">
+          Nominal “25rb”, “1,5jt”; “+” atau “kiriman/gaji” = pemasukan; “kemarin”, “senin”; kategori ditebak atau pakai #makan.
+        </p>
+      )}
       {c.mode === 'tentir' && (
         <p className="text-xs text-faint">
           Inisial kapital (AB), durasi “2j”/“90m”, jam “19.00”, tanggal “besok”, “lunas”. Tarif dari Setelan tentir.
