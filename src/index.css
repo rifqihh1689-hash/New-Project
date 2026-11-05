@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Token warna dari prototipe Beranda: tenang, minimalis. Terang di :root, gelap di .dark. */
+:root {
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+  --bg: #f5f4f0;
+  --side: #efede8;
+  --surface: #ffffff;
+  --surface-2: #f3f2ee;
+  --line: rgba(0, 0, 0, 0.07);
+  --text: #1b1c1e;
+  --muted: #6b6f76;
+  --faint: #a3a6ab;
+  --btn: #1b1c1e;
+  --btn-text: #ffffff;
+  --ok: #2f9e6a;
+  --track: rgba(0, 0, 0, 0.07);
+  --danger: #d4545c;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --bg: #0d0e10;
+  --side: #111214;
+  --surface: #16181b;
+  --surface-2: #1d2024;
+  --line: rgba(255, 255, 255, 0.06);
+  --text: #ecedee;
+  --muted: #8b9096;
+  --faint: #5d6268;
+  --btn: #f2f2f0;
+  --btn-text: #111111;
+  --ok: #4cb782;
+  --track: rgba(255, 255, 255, 0.07);
+  --danger: #e5737a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-side: var(--side);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-btn: var(--btn);
+  --color-btn-text: var(--btn-text);
+  --color-ok: var(--ok);
+  --color-track: var(--track);
+  --color-danger: var(--danger);
+}
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Charter', 'Iowan Old Style', 'Bitstream Charter', Georgia, serif;
+
+  /* Warna peran bawaan (warna tersimpan per peran, ini untuk elemen tetap). */
+  --color-koas: #5b8def;
+  --color-ukmppd: #9b7bea;
+  --color-orto: #e8925b;
+  --color-tentir: #4cb782;
+  --color-pulih: #3bb5c4;
+  --color-uang: #d4ad45;
+
+  --animate-slide-up: slide-up 0.22s ease-out;
+  --animate-fade-in: fade-in 0.18s ease-out;
+  --animate-toast-in: toast-in 0.2s ease-out;
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(32px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes toast-in {
+    from {
+      transform: translateY(-12px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+}
+
+body {
+  @apply bg-bg font-sans text-[14px] leading-[1.45] text-text antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@utility card {
+  @apply rounded-[18px] border border-line bg-surface p-4 md:p-[18px];
+}
+
+@utility card-title {
+  @apply mb-3.5 flex items-center gap-2 text-[15px] font-semibold;
+}
+
+@utility chip {
+  @apply inline-flex shrink-0 items-center gap-[7px] rounded-full border border-line bg-surface px-[13px] py-[7px] text-[13px] text-muted transition;
+}
+
+@utility btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-btn px-[18px] py-[9px] text-[13px] font-semibold text-btn-text transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-[13px] text-muted transition hover:bg-surface-2 hover:text-text;
+}
+
+@utility field {
+  @apply w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-base text-text outline-none placeholder:text-faint focus:border-muted md:text-sm;
+}
+
+@utility label {
+  @apply mb-1.5 block text-[13px] font-medium text-muted;
+}
+
+@utility dot {
+  @apply inline-block size-2 shrink-0 rounded-full;
+}
