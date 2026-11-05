@@ -1,20 +1,16 @@
 import { useClockMinutes } from '../../app/useToday'
 import { roleLookup } from '../../db/structure'
-import { parseClock } from '../../domain/time'
+import { slotNote, slotOrder } from '../../domain/ritme'
 import type { BerandaData } from './data'
 
 /** Linimasa hari ini dari template ritme per tipe hari (bisa diubah per fase hidup). */
 export function Ritme({ data }: { data: BerandaData }) {
   const minutes = useClockMinutes()
-  const type = data.snap.day?.type ?? data.suggested
-  const slots = data.profile.ritme[type] ?? []
+  const slots = data.ritme
   const role = roleLookup(data.roles)
   // Sebelum 03.00 jam dinding masih "kemarin" bagi Qawwam, jadi geser agar urutan tetap benar.
   const now = minutes < 180 ? minutes + 1440 : minutes
-  const times = slots.map((s) => {
-    const t = parseClock(s.time) ?? 0
-    return t < 180 ? t + 1440 : t
-  })
+  const times = slots.map((s) => slotOrder(s.time))
   const nowIndex = times.reduce((idx, t, i) => (t <= now ? i : idx), -1)
   return (
     <div className="card">
@@ -42,7 +38,7 @@ export function Ritme({ data }: { data: BerandaData }) {
               />
               <span className={`font-medium ${state === 'past' ? 'text-muted' : ''}`}>
                 {s.title}
-                {s.note && <small className="block text-[12.5px] font-normal text-muted">{s.note}</small>}
+                {slotNote(s) && <small className="block text-[12.5px] font-normal text-muted">{slotNote(s)}</small>}
               </span>
               <span className="hidden items-center gap-1.5 text-xs text-muted md:flex">
                 {state === 'now' ? (

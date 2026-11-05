@@ -3,6 +3,7 @@ import { suggestDayType } from '../../domain/dayType'
 import { computeStreak, consistency, dayStatus, levelFromXp } from '../../domain/progress'
 import { napToNextTier, sleepTotal } from '../../domain/sleep'
 import { addDays, monthOf, weekDates, weekStart } from '../../domain/time'
+import { effectiveRitme, workEndTime } from '../../domain/ritme'
 import { previousMonday, reviewXpTotal } from '../../domain/weekly'
 import { privateId } from '../../lib/id'
 import { db } from '../../db/db'
@@ -53,6 +54,8 @@ export async function loadBeranda(today: ISODate) {
     })
 
   const phase = currentPhase(phases, today)
+  const suggested = suggestDayType(today, snap.prevType) as DayType
+  const ritmeType = snap.day?.type ?? suggested
   const chapter = chapters.filter((c) => c.start <= today).sort((a, b) => b.start.localeCompare(a.start))[0] ?? null
   const weekTypes = new Map(weekDays.map((d) => [d.date, d.type]))
   const expense = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
@@ -72,7 +75,9 @@ export async function loadBeranda(today: ISODate) {
     chapter,
     chapterWeek: chapter ? Math.floor((Date.parse(today) - Date.parse(weekStart(chapter.start))) / (7 * 86_400_000)) + 1 : null,
     profile,
-    suggested: suggestDayType(today, snap.prevType) as DayType,
+    suggested,
+    ritme: effectiveRitme(ritmeType, profile.ritme, chapter),
+    pulang: workEndTime(effectiveRitme('stase', profile.ritme, chapter)),
     sleep: { total, next: napToNextTier(total, rules) },
     totalXp,
     level,

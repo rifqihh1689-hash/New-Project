@@ -142,6 +142,7 @@ function HabitCard({ data }: { data: HabitPageData }) {
                 )}
                 {h.kind !== 'normal' && <span className="text-faint">· otomatis</span>}
               </div>
+              {h.note && <div className="mt-0.5 text-xs text-faint">{h.note}</div>}
             </div>
             {h.minutes ? (
               <button type="button" className="chip py-1" onClick={() => setTiming(h.id)} aria-label={`Catat menit ${h.name}`}>
@@ -158,7 +159,12 @@ function HabitCard({ data }: { data: HabitPageData }) {
       </ul>
       {templates.length > 0 && (
         <div className="mt-3 border-t border-line pt-3">
-          <div className="mb-2 text-xs text-faint">Tambah cepat</div>
+          <div className="mb-2 flex items-center text-xs text-faint">
+            Tambah cepat
+            <a href="#/impor" className="ml-auto hover:text-text">
+              Impor program latihan →
+            </a>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {templates.map((t) => (
               <button key={t.name} type="button" className="chip py-1" onClick={() => void addTemplate(t)}>

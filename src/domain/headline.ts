@@ -8,6 +8,8 @@ export interface HeadlineContext {
   hasTentir: boolean
   /** Label tipe "stase" pada fase ini (mis. "Dinas" saat PPDS). */
   workLabel?: string
+  /** Jam pulang dari ritme/stase yang berlaku. */
+  pulang?: string | null
 }
 
 /** Kalimat pembuka Beranda. Pendek, tenang, satu arahan. */
@@ -19,7 +21,7 @@ export function headline(ctx: HeadlineContext): string {
         ? 'Kemarin jaga. Pilih tipe hari dulu, mungkin hari ini pasca-jaga.'
         : `Hari ini tipe apa? Pilih dulu, isinya menyesuaikan.`
     case 'stase':
-      return `Hari ${work}. Pulang ±14.00, qailulah dulu${ctx.hasTentir ? ' sebelum tentir' : ''}.`
+      return `Hari ${work}. ${ctx.pulang ? `Pulang ±${ctx.pulang}, q` : 'Setelah pulang, q'}ailulah dulu${ctx.hasTentir ? ' sebelum tentir' : ''}.`
     case 'jaga':
       return 'Malam ini jaga. Simpan tenaga, tidur sore dulu 2 jam.'
     case 'pasca':

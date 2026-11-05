@@ -62,15 +62,15 @@ function HabitForm({ draft, roles, nextOrder, onClose }: { draft: HabitDraft; ro
   )
   const set = (changes: Partial<Habit>) => setH((prev) => ({ ...prev, ...changes }))
   const auto = h.kind !== 'normal'
-  const phi = detectPatientIdentity(h.name)
+  const phi = detectPatientIdentity(`${h.name} ${h.note ?? ''}`)
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
   const save = async (changes: Partial<Habit> = {}) => {
     try {
-      const next = { ...h, ...changes, name: h.name.trim() }
+      const next = { ...h, ...changes, name: h.name.trim(), note: h.note?.trim() || undefined }
       if (!next.name) throw new Error('Nama habit kosong.')
       if (!next.dayTypes.length) throw new Error('Pilih minimal satu tipe hari.')
-      assertNoPatientIdentity(next.name)
+      assertNoPatientIdentity(next.name, next.note ?? '')
       await saveHabit(next)
       onClose()
     } catch (e) {
@@ -105,6 +105,16 @@ function HabitForm({ draft, roles, nextOrder, onClose }: { draft: HabitDraft; ro
             Habit otomatis: dinilai dari {h.kind === 'sleep' ? 'jam tidur' : 'jam berhenti kerja'}.
           </span>
         )}
+      </label>
+      <label>
+        <span className="label">Catatan / detail program</span>
+        <textarea
+          className="field min-h-[64px]"
+          value={h.note ?? ''}
+          onChange={(e) => set({ note: e.target.value || undefined })}
+          placeholder="mis. Bench 3×5, row 3×8, squat 3×5"
+          maxLength={500}
+        />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label>

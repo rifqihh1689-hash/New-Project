@@ -38,6 +38,7 @@ export function BerandaPage() {
               invalidPasca: data.snap.result.invalidPasca,
               hasTentir: data.tentir.today,
               workLabel: dayTypeLabel('stase', data.phase),
+              pulang: data.pulang,
             })}
           </h2>
         </div>

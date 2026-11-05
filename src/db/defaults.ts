@@ -105,18 +105,22 @@ export const DEFAULT_HABITS: Habit[] = [
   habit('pasca-walk', 'Jalan 20 menit', RECOVERY_ROLE_ID, 'kecil', ['pasca'], 6),
 ]
 
-const slot = (time: string, title: string, note?: string, roleKey?: string): RitmeSlot => ({
+const slot = (time: string, title: string, note?: string, roleKey?: string, extra: Partial<RitmeSlot> = {}): RitmeSlot => ({
   time,
   title,
   ...(note ? { note } : {}),
   ...(roleKey ? { roleId: `#role:${roleKey}` } : {}),
+  ...extra,
 })
+
+/** Slot kerja: jam masuk & pulang bisa diganti per stase di Setelan. */
+const work = (time: string, until: string) => slot(time, 'Stase', undefined, 'koas', { until, work: true })
 
 /** Template "Ritme hari ini" per tipe hari. Bisa diubah tiap kali fase hidup berganti. */
 export const DEFAULT_RITME: Record<DayType, RitmeSlot[]> = {
   stase: [
     slot('03.45', 'Qiyamul lail'),
-    slot('06.00', 'Stase', 'sampai ±14.00', 'koas'),
+    work('06.00', '14.00'),
     slot('14.30', 'Qailulah', '60 mnt, naikkan pengali', 'pulih'),
     slot('16.00', 'Blok belajar', 'bank soal UKMPPD', 'ukmppd'),
     slot('19.00', 'Tentir', 'bila ada sesi', 'tentir'),
@@ -125,7 +129,7 @@ export const DEFAULT_RITME: Record<DayType, RitmeSlot[]> = {
   ],
   jaga: [
     slot('03.45', 'Qiyamul lail'),
-    slot('06.00', 'Stase', 'sampai ±14.00', 'koas'),
+    work('06.00', '14.00'),
     slot('14.30', 'Tidur sore', '2 jam sebelum jaga', 'pulih'),
     slot('17.00', 'Makan & siapkan bekal', undefined, 'pulih'),
     slot('18.00', 'Jaga malam', 'sampai pagi', 'koas'),

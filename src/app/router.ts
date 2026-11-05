@@ -2,7 +2,19 @@ import { useEffect, useState } from 'react'
 import { isValidISODate } from '../domain/time'
 
 export type RouteName =
-  'beranda' | 'tugas' | 'kalender' | 'belajar' | 'tentir' | 'uang' | 'habit' | 'target' | 'catatan' | 'muhasabah' | 'setelan' | 'lainnya'
+  | 'beranda'
+  | 'tugas'
+  | 'kalender'
+  | 'belajar'
+  | 'tentir'
+  | 'uang'
+  | 'habit'
+  | 'target'
+  | 'catatan'
+  | 'muhasabah'
+  | 'setelan'
+  | 'impor'
+  | 'lainnya'
 
 export const ROUTES: readonly RouteName[] = [
   'beranda',
@@ -16,6 +28,7 @@ export const ROUTES: readonly RouteName[] = [
   'catatan',
   'muhasabah',
   'setelan',
+  'impor',
   'lainnya',
 ]
 
