@@ -3,6 +3,8 @@ import { suggestDayType } from '../../domain/dayType'
 import { computeStreak, consistency, dayStatus, levelFromXp } from '../../domain/progress'
 import { napToNextTier, sleepTotal } from '../../domain/sleep'
 import { addDays, monthOf, weekDates, weekStart } from '../../domain/time'
+import { previousMonday, reviewXpTotal } from '../../domain/weekly'
+import { privateId } from '../../lib/id'
 import { db } from '../../db/db'
 import { loadAllResults, loadDaySnapshot } from '../../db/daily'
 import { currentPhase, loadMutabaah, loadPhases, loadProfile, loadRoles } from '../../db/structure'
@@ -30,9 +32,13 @@ export async function loadBeranda(today: ISODate) {
       db.mainQuests.where('status').equals('aktif').toArray(),
       db.chapters.where('end').aboveOrEqual(today).toArray(),
     ])
+  const [reviews, lastReview] = await Promise.all([
+    db.reviews.where('period').equals('minggu').toArray(),
+    db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
+  ])
 
   const { results, firstDate, rules } = all
-  const totalXp = [...results.values()].reduce((sum, r) => sum + r.xp, 0)
+  const totalXp = [...results.values()].reduce((sum, r) => sum + r.xp, 0) + reviewXpTotal(reviews, rules)
   const level = levelFromXp(totalXp, rules)
   const streak = computeStreak(today, firstDate, (d) => dayStatus(results.get(d)))
   const total = sleepTotal(snap.day?.sleepNight ?? null, snap.day?.nap ?? 0, rules)
@@ -81,6 +87,7 @@ export async function loadBeranda(today: ISODate) {
     },
     money: { expense, budget, debtLeft, debtInitial, hasDebt: debts.length > 0, bridge, tentirIncome },
     mainQuests: mainQuests.slice(0, 3),
+    priorities: (lastReview?.priorities ?? []).filter((p) => p.trim()),
   }
 }
 

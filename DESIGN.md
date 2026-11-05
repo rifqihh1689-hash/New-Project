@@ -90,7 +90,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku |
 | `savings`, `debts` | wishlist/tabungan per pos + setoran; utang + pembayaran |
 | `notes` | teks, peran, warna, sematkan |
-| `reviews` | Muhasabah mingguan/bulanan: 3 prioritas, refleksi (berhasil, macet, fokus), angka ringkasan |
+| `reviews` | Muhasabah mingguan/bulanan: 3 prioritas, refleksi (berhasil, macet, fokus), angka ringkasan. Selesai sekali seminggu (Sabtu–Selasa) memberi +50 XP, seperti Raid di MBAPPE OS |
 | `proposals` | usulan dari Claude: daftar operasi, status (menunggu/disetujui/ditolak) |
 
 ## Alur

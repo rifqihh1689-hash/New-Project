@@ -102,6 +102,21 @@ export async function loadSample(): Promise<void> {
       await db.days.put({ id: `#day:${d}`, date: d, type: plan[i], sleepNight: null, nap: 0, workEnd: null, note: '', updatedAt: now })
   }
 
+  // Muhasabah minggu lalu (selesai) → prioritas minggu ini di Beranda.
+  const lastMonday = addDays(ws, -7)
+  await db.reviews.put({
+    id: `#rev:minggu:${lastMonday}`,
+    period: 'minggu',
+    start: lastMonday,
+    priorities: ['200 soal kardio + review yang salah', 'Seleksi 60 abstrak systematic review', 'Tentir maksimal 12 jam'],
+    wins: 'Qailulah hampir setiap hari setelah stase.',
+    stuck: 'Bank soal tertinggal di minggu jaga.',
+    focus: 'Blok belajar pendek tapi rutin.',
+    numbers: {},
+    completedAt: now,
+    xp: 50,
+    updatedAt: now,
+  })
   await db.chapters.add({
     id: createId('chp'),
     name: 'Stase Bedah',

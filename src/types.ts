@@ -96,6 +96,8 @@ export interface XpRules {
   levelBase: number
   levelStep: number
   backfillDays: number
+  /** XP sekali seminggu untuk Muhasabah mingguan (Raid di MBAPPE OS). */
+  reviewXP: number
 }
 
 /** Stase/chapter: rentang waktu dengan bobot. */
@@ -311,6 +313,10 @@ export interface Review extends CloudFields {
   stuck: string
   focus: string
   numbers: Record<string, number | null>
+  /** Kapan Muhasabah diselesaikan (memberi XP sekali). `null`/kosong = belum. */
+  completedAt?: number | null
+  /** XP yang diberikan saat selesai (dibekukan, tidak berubah walau aturan diubah). */
+  xp?: number
   updatedAt: number
 }
 

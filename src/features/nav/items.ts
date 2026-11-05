@@ -56,10 +56,5 @@ export const NAV_ITEMS: NavItem[] = [
     soon: { phase: 3, what: 'Main Quest (maks. 3 aktif), portofolio PPDS, systematic review, IELTS.' },
   },
   { route: 'catatan', label: 'Catatan', Icon: FileText, soon: { phase: 2, what: 'Catatan per peran, warna, dan sematan.' } },
-  {
-    route: 'muhasabah',
-    label: 'Muhasabah',
-    Icon: BookOpenText,
-    soon: { phase: 1, what: 'Review mingguan 15–30 menit: berhasil, macet, fokus, dan 3 prioritas minggu depan.' },
-  },
+  { route: 'muhasabah', label: 'Muhasabah', Icon: BookOpenText },
 ]
