@@ -1,0 +1,1461 @@
+{
+  "schemaVersion": 2,
+  "settings": {
+    "xpSize": {
+      "kecil": 5,
+      "sedang": 10,
+      "besar": 20
+    },
+    "dailyCap": 100,
+    "sleepTiers": [
+      {
+        "min": 6.5,
+        "mult": 1.2
+      },
+      {
+        "min": 6,
+        "mult": 1
+      },
+      {
+        "min": 5,
+        "mult": 0.8
+      },
+      {
+        "min": 0,
+        "mult": 0.6
+      }
+    ],
+    "sleepDebtBelow": 5,
+    "sleepQuestMin": 6,
+    "overtimePenalty": 15,
+    "overtimeTokensPerWeek": 1,
+    "worstCaseEmpty": true,
+    "passPct": 60,
+    "shieldsPerWeek": 1,
+    "levelBase": 150,
+    "levelStep": 50,
+    "statDivisor": 3,
+    "jagaMult": 1,
+    "pascaXP": 100,
+    "raidXP": 50,
+    "wipLimit": 3,
+    "mqSize": "sedang",
+    "backfillDays": 1,
+    "heavyTargetPct": 60,
+    "napCounts": true,
+    "tentirMin": 9,
+    "tentirMax": 15,
+    "careerMinHours": 2
+  },
+  "finance": {
+    "debtInitial": 25000000,
+    "debtTargetDate": "2027-09-30",
+    "bridgeTarget": 10000000,
+    "bridgeTargetDate": "2026-12-31"
+  },
+  "targets": {
+    "benchKg": 100,
+    "run5kBaselineSec": 1860,
+    "ieltsBand": null,
+    "koasEnd": "2027-12-31",
+    "ukmppd": "2028-02-01"
+  },
+  "milestones": {
+    "srSubmittedAt": null,
+    "ielts": []
+  },
+  "quests": [
+    {
+      "id": "q_sleep",
+      "name": "Total tidur ≥6 jam",
+      "stat": "VIT",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "daily",
+      "tag": "sleep",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": true
+    },
+    {
+      "id": "q_workend",
+      "name": "Berhenti kerja ≤21.00",
+      "stat": "VIT",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "daily",
+      "tag": "workend",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": true
+    },
+    {
+      "id": "q_run_easy",
+      "name": "Lari pagi easy 30 mnt",
+      "stat": "STR",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [2, 4],
+      "freq": "daily",
+      "tag": "",
+      "core": false,
+      "metric": "latihan",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_run_q",
+      "name": "Lari kualitas (interval/tempo)",
+      "stat": "STR",
+      "size": "besar",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [6],
+      "freq": "daily",
+      "tag": "interval",
+      "core": false,
+      "metric": "latihan",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_lift",
+      "name": "Beban sore (bench + compound)",
+      "stat": "STR",
+      "size": "besar",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [1, 3, 5],
+      "freq": "daily",
+      "tag": "heavy",
+      "core": true,
+      "metric": "latihan",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_study",
+      "name": "Belajar materi stase 45 mnt",
+      "stat": "INT",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_drill",
+      "name": "Drill 10 kasus/soal UKMPPD",
+      "stat": "INT",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_referat",
+      "name": "Referat / laporan kasus 30 mnt",
+      "stat": "INT",
+      "size": "kecil",
+      "types": ["NORMAL"],
+      "days": [1, 2, 3, 4, 5],
+      "freq": "daily",
+      "tag": "",
+      "core": false,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_career",
+      "name": "Blok riset/karier 30 mnt",
+      "stat": "RSC",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [0, 2, 4, 6],
+      "freq": "daily",
+      "tag": "",
+      "core": false,
+      "metric": "karier",
+      "hours": 0.5,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_tentir",
+      "name": "Sesi tentir selesai ≤21.00",
+      "stat": "GLD",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "daily",
+      "tag": "tentir",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": true
+    },
+    {
+      "id": "q_english",
+      "name": "Percakapan bahasa Inggris 15 mnt",
+      "stat": "CHA",
+      "size": "kecil",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": false,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_deposit",
+      "name": "Setor Dana Jembatan",
+      "stat": "GLD",
+      "size": "kecil",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "weekly",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "q_post",
+      "name": "1 post edukasi",
+      "stat": "CHA",
+      "size": "sedang",
+      "types": ["NORMAL", "LIBUR"],
+      "days": [],
+      "freq": "weekly",
+      "tag": "",
+      "core": false,
+      "metric": "konten",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "j_nap",
+      "name": "Tidur siang pra-jaga",
+      "stat": "VIT",
+      "size": "besar",
+      "types": ["JAGA"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "j_finish",
+      "name": "Selesaikan jaga",
+      "stat": "INT",
+      "size": "sedang",
+      "types": ["JAGA"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "p_rest",
+      "name": "Istirahat / tidur 2–3 jam",
+      "stat": "VIT",
+      "size": "besar",
+      "types": ["PASCA"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "p_eat",
+      "name": "Makan bergizi",
+      "stat": "VIT",
+      "size": "sedang",
+      "types": ["PASCA"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "p_walk",
+      "name": "Jalan ringan 15 mnt",
+      "stat": "VIT",
+      "size": "kecil",
+      "types": ["PASCA"],
+      "days": [],
+      "freq": "daily",
+      "tag": "",
+      "core": true,
+      "metric": "",
+      "hours": 0,
+      "active": true,
+      "sys": false
+    },
+    {
+      "id": "sd_walk",
+      "name": "Jalan / mobilitas 20 mnt",
+      "stat": "STR",
+      "size": "sedang",
+      "types": [],
+      "days": [],
+      "freq": "daily",
+      "tag": "sdwalk",
+      "core": true,
+      "metric": "latihan",
+      "hours": 0,
+      "active": true,
+      "sys": true
+    }
+  ],
+  "mutabaah": [
+    {
+      "id": "m_qiyam",
+      "name": "Tahajjud sebelum Subuh"
+    },
+    {
+      "id": "m_subuh",
+      "name": "Subuh berjamaah"
+    },
+    {
+      "id": "m_tadabbur",
+      "name": "Tadabbur 10 ayat"
+    }
+  ],
+  "chapters": [
+    {
+      "id": "ch_s1",
+      "name": "Contoh: Stase Neurologi",
+      "start": "2026-10-11",
+      "end": "2026-11-01",
+      "weight": "ringan",
+      "summarySeen": true
+    },
+    {
+      "id": "ch_s2",
+      "name": "Contoh: Stase IPD",
+      "start": "2026-11-02",
+      "end": "2026-12-13",
+      "weight": "sedang",
+      "summarySeen": false
+    }
+  ],
+  "mainQuests": [
+    {
+      "id": "mq_s1",
+      "name": "Systematic review ortopedi",
+      "stat": "RSC",
+      "status": "aktif",
+      "next": "Screening 20 abstrak",
+      "createdAt": "2026-10-16",
+      "doneAt": null
+    },
+    {
+      "id": "mq_s2",
+      "name": "Bank soal UKMPPD bedah",
+      "stat": "INT",
+      "status": "aktif",
+      "next": "1 blok 25 soal",
+      "createdAt": "2026-10-24",
+      "doneAt": null
+    },
+    {
+      "id": "mq_s3",
+      "name": "Seri konten edukasi fraktur",
+      "stat": "CHA",
+      "status": "beku",
+      "next": "",
+      "createdAt": "2026-10-06",
+      "doneAt": null
+    }
+  ],
+  "days": {
+    "2026-10-29": {
+      "type": "NORMAL",
+      "sleep": 5.5,
+      "nap": 1,
+      "done": {
+        "q_run_easy": true,
+        "q_study": true,
+        "q_drill": true,
+        "q_referat": true,
+        "q_career": true,
+        "q_english": true,
+        "MQ:mq_s1": true,
+        "q_deposit": true
+      },
+      "workEnd": "ok",
+      "token": false,
+      "shield": false,
+      "tentir": {
+        "jam": 2,
+        "sesi": 1,
+        "ok": true
+      },
+      "mut": {
+        "m_qiyam": true,
+        "m_subuh": true,
+        "m_tadabbur": true
+      },
+      "note": "FU Tn. Budi bed 3",
+      "frozen": {
+        "type": "NORMAL",
+        "effType": "NORMAL",
+        "invalidPasca": false,
+        "xp": 114,
+        "gross": 114,
+        "base": 95,
+        "capped": 95,
+        "mult": 1.2,
+        "multMissing": false,
+        "penalty": 0,
+        "overtime": false,
+        "autoLate": false,
+        "token": false,
+        "pass": true,
+        "total": 11,
+        "doneCount": 10,
+        "ratio": 0.9090909090909091,
+        "stat": {
+          "VIT": 24,
+          "STR": 12,
+          "INT": 30,
+          "RSC": 24,
+          "GLD": 18,
+          "CHA": 6
+        },
+        "sleepDebt": false,
+        "heavy": false,
+        "chapterId": "ch_s1",
+        "metrics": {
+          "sleepNJ": 6.5,
+          "nightNJ": 5.5,
+          "nap": 1,
+          "tJam": 2,
+          "tSesi": 1,
+          "tOk": 1,
+          "karier": 1,
+          "latPlan": 1,
+          "latDone": 1,
+          "konten": 0,
+          "ot": 0
+        },
+        "items": [
+          {
+            "id": "q_sleep",
+            "n": "Total tidur ≥6 jam",
+            "s": "VIT",
+            "d": true,
+            "tag": "sleep",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_workend",
+            "n": "Berhenti kerja ≤21.00",
+            "s": "VIT",
+            "d": true,
+            "tag": "workend",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_run_easy",
+            "n": "Lari pagi easy 30 mnt",
+            "s": "STR",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": "latihan"
+          },
+          {
+            "id": "q_study",
+            "n": "Belajar materi stase 45 mnt",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_drill",
+            "n": "Drill 10 kasus/soal UKMPPD",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_referat",
+            "n": "Referat / laporan kasus 30 mnt",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "q_career",
+            "n": "Blok riset/karier 30 mnt",
+            "s": "RSC",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": "karier"
+          },
+          {
+            "id": "q_tentir",
+            "n": "Sesi tentir selesai ≤21.00",
+            "s": "GLD",
+            "d": true,
+            "tag": "tentir",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_english",
+            "n": "Percakapan bahasa Inggris 15 mnt",
+            "s": "CHA",
+            "d": true,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s1",
+            "n": "Systematic review ortopedi — Screening 20 abstrak",
+            "s": "RSC",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s2",
+            "n": "Bank soal UKMPPD bedah — 1 blok 25 soal",
+            "s": "INT",
+            "d": false,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          }
+        ],
+        "weekly": [
+          {
+            "id": "q_deposit",
+            "n": "Setor Dana Jembatan",
+            "s": "GLD",
+            "d": true,
+            "other": null,
+            "x": 5
+          },
+          {
+            "id": "q_post",
+            "n": "1 post edukasi",
+            "s": "CHA",
+            "d": false,
+            "other": null,
+            "x": 10
+          }
+        ],
+        "locked": []
+      }
+    },
+    "2026-10-30": {
+      "type": "NORMAL",
+      "sleep": 5.5,
+      "nap": 0,
+      "done": {
+        "q_lift": true,
+        "q_study": true,
+        "q_drill": true
+      },
+      "workEnd": "late",
+      "token": true,
+      "shield": false,
+      "tentir": {
+        "jam": 2.5,
+        "sesi": 2,
+        "ok": false
+      },
+      "mut": {
+        "m_qiyam": true,
+        "m_subuh": true
+      },
+      "note": "",
+      "frozen": {
+        "type": "NORMAL",
+        "effType": "NORMAL",
+        "invalidPasca": false,
+        "xp": 32,
+        "gross": 32,
+        "base": 40,
+        "capped": 40,
+        "mult": 0.8,
+        "multMissing": false,
+        "penalty": 0,
+        "overtime": true,
+        "autoLate": false,
+        "token": true,
+        "pass": false,
+        "total": 10,
+        "doneCount": 3,
+        "ratio": 0.3,
+        "stat": {
+          "VIT": 0,
+          "STR": 16,
+          "INT": 16,
+          "RSC": 0,
+          "GLD": 0,
+          "CHA": 0
+        },
+        "sleepDebt": false,
+        "heavy": false,
+        "chapterId": "ch_s1",
+        "metrics": {
+          "sleepNJ": 5.5,
+          "nightNJ": 5.5,
+          "nap": 0,
+          "tJam": 2.5,
+          "tSesi": 2,
+          "tOk": 0,
+          "karier": 0,
+          "latPlan": 1,
+          "latDone": 1,
+          "konten": 0,
+          "ot": 1
+        },
+        "items": [
+          {
+            "id": "q_sleep",
+            "n": "Total tidur ≥6 jam",
+            "s": "VIT",
+            "d": false,
+            "tag": "sleep",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_workend",
+            "n": "Berhenti kerja ≤21.00",
+            "s": "VIT",
+            "d": false,
+            "tag": "workend",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_lift",
+            "n": "Beban sore (bench + compound)",
+            "s": "STR",
+            "d": true,
+            "tag": "heavy",
+            "x": 20,
+            "m": "latihan"
+          },
+          {
+            "id": "q_study",
+            "n": "Belajar materi stase 45 mnt",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_drill",
+            "n": "Drill 10 kasus/soal UKMPPD",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_referat",
+            "n": "Referat / laporan kasus 30 mnt",
+            "s": "INT",
+            "d": false,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "q_tentir",
+            "n": "Sesi tentir selesai ≤21.00",
+            "s": "GLD",
+            "d": false,
+            "tag": "tentir",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_english",
+            "n": "Percakapan bahasa Inggris 15 mnt",
+            "s": "CHA",
+            "d": false,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s1",
+            "n": "Systematic review ortopedi — Screening 20 abstrak",
+            "s": "RSC",
+            "d": false,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s2",
+            "n": "Bank soal UKMPPD bedah — 1 blok 25 soal",
+            "s": "INT",
+            "d": false,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          }
+        ],
+        "weekly": [
+          {
+            "id": "q_deposit",
+            "n": "Setor Dana Jembatan",
+            "s": "GLD",
+            "d": false,
+            "other": "2026-10-29",
+            "x": 5
+          },
+          {
+            "id": "q_post",
+            "n": "1 post edukasi",
+            "s": "CHA",
+            "d": false,
+            "other": null,
+            "x": 10
+          }
+        ],
+        "locked": []
+      }
+    },
+    "2026-10-31": {
+      "type": "JAGA",
+      "sleep": 6,
+      "nap": 0,
+      "done": {
+        "j_nap": true,
+        "j_finish": true
+      },
+      "workEnd": null,
+      "token": false,
+      "shield": false,
+      "tentir": {
+        "jam": 0,
+        "sesi": 1,
+        "ok": null
+      },
+      "mut": {
+        "m_qiyam": true
+      },
+      "note": "",
+      "frozen": {
+        "type": "JAGA",
+        "effType": "JAGA",
+        "invalidPasca": false,
+        "xp": 30,
+        "gross": 30,
+        "base": 30,
+        "capped": 30,
+        "mult": 1,
+        "multMissing": false,
+        "penalty": 0,
+        "overtime": false,
+        "autoLate": false,
+        "token": false,
+        "pass": true,
+        "total": 2,
+        "doneCount": 2,
+        "ratio": 1,
+        "stat": {
+          "VIT": 20,
+          "STR": 0,
+          "INT": 10,
+          "RSC": 0,
+          "GLD": 0,
+          "CHA": 0
+        },
+        "sleepDebt": false,
+        "heavy": false,
+        "chapterId": "ch_s1",
+        "metrics": {
+          "sleepNJ": 6,
+          "nightNJ": 6,
+          "nap": 0,
+          "tJam": 0,
+          "tSesi": 0,
+          "tOk": 0,
+          "karier": 0,
+          "latPlan": 0,
+          "latDone": 0,
+          "konten": 0,
+          "ot": 0
+        },
+        "items": [
+          {
+            "id": "j_nap",
+            "n": "Tidur siang pra-jaga",
+            "s": "VIT",
+            "d": true,
+            "tag": "",
+            "x": 20,
+            "m": ""
+          },
+          {
+            "id": "j_finish",
+            "n": "Selesaikan jaga",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          }
+        ],
+        "weekly": [],
+        "locked": []
+      }
+    },
+    "2026-11-01": {
+      "type": "PASCA",
+      "sleep": null,
+      "nap": 0,
+      "done": {
+        "p_rest": true,
+        "p_eat": true,
+        "p_walk": true
+      },
+      "workEnd": "ok",
+      "token": false,
+      "shield": false,
+      "tentir": {
+        "jam": 0,
+        "sesi": 1,
+        "ok": null
+      },
+      "mut": {
+        "m_qiyam": true,
+        "m_subuh": true
+      },
+      "note": "Tidur 2,5 jam setelah jaga, badan jauh lebih enak.",
+      "frozen": {
+        "type": "PASCA",
+        "effType": "PASCA",
+        "invalidPasca": false,
+        "xp": 100,
+        "gross": 100,
+        "base": 100,
+        "capped": 100,
+        "mult": 1,
+        "multMissing": false,
+        "penalty": 0,
+        "overtime": false,
+        "autoLate": false,
+        "token": false,
+        "pass": true,
+        "total": 3,
+        "doneCount": 3,
+        "ratio": 1,
+        "stat": {
+          "VIT": 100,
+          "STR": 0,
+          "INT": 0,
+          "RSC": 0,
+          "GLD": 0,
+          "CHA": 0
+        },
+        "sleepDebt": false,
+        "heavy": false,
+        "chapterId": "ch_s1",
+        "metrics": {
+          "sleepNJ": null,
+          "nightNJ": null,
+          "nap": 0,
+          "tJam": 0,
+          "tSesi": 0,
+          "tOk": 0,
+          "karier": 0,
+          "latPlan": 0,
+          "latDone": 0,
+          "konten": 0,
+          "ot": 0
+        },
+        "items": [
+          {
+            "id": "p_rest",
+            "n": "Istirahat / tidur 2–3 jam",
+            "s": "VIT",
+            "d": true,
+            "tag": "",
+            "x": 33,
+            "m": ""
+          },
+          {
+            "id": "p_eat",
+            "n": "Makan bergizi",
+            "s": "VIT",
+            "d": true,
+            "tag": "",
+            "x": 33,
+            "m": ""
+          },
+          {
+            "id": "p_walk",
+            "n": "Jalan ringan 15 mnt",
+            "s": "VIT",
+            "d": true,
+            "tag": "",
+            "x": 33,
+            "m": ""
+          }
+        ],
+        "weekly": [],
+        "locked": []
+      }
+    },
+    "2026-11-02": {
+      "type": "NORMAL",
+      "sleep": 4.5,
+      "nap": 0,
+      "done": {
+        "sd_walk": true,
+        "q_study": true,
+        "q_drill": true,
+        "q_referat": true,
+        "q_english": true,
+        "MQ:mq_s1": true
+      },
+      "workEnd": "ok",
+      "token": false,
+      "shield": false,
+      "tentir": {
+        "jam": 0,
+        "sesi": 1,
+        "ok": null
+      },
+      "mut": {
+        "m_qiyam": true,
+        "m_subuh": true,
+        "m_tadabbur": true
+      },
+      "note": "",
+      "frozen": {
+        "type": "NORMAL",
+        "effType": "NORMAL",
+        "invalidPasca": false,
+        "xp": 36,
+        "gross": 36,
+        "base": 60,
+        "capped": 60,
+        "mult": 0.6,
+        "multMissing": false,
+        "penalty": 0,
+        "overtime": false,
+        "autoLate": false,
+        "token": false,
+        "pass": true,
+        "total": 9,
+        "doneCount": 7,
+        "ratio": 0.7777777777777778,
+        "stat": {
+          "VIT": 6,
+          "STR": 6,
+          "INT": 15,
+          "RSC": 6,
+          "GLD": 0,
+          "CHA": 3
+        },
+        "sleepDebt": true,
+        "heavy": false,
+        "chapterId": "ch_s2",
+        "metrics": {
+          "sleepNJ": 4.5,
+          "nightNJ": 4.5,
+          "nap": 0,
+          "tJam": 0,
+          "tSesi": 0,
+          "tOk": 0,
+          "karier": 0.5,
+          "latPlan": 1,
+          "latDone": 1,
+          "konten": 0,
+          "ot": 0
+        },
+        "items": [
+          {
+            "id": "q_sleep",
+            "n": "Total tidur ≥6 jam",
+            "s": "VIT",
+            "d": false,
+            "tag": "sleep",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_workend",
+            "n": "Berhenti kerja ≤21.00",
+            "s": "VIT",
+            "d": true,
+            "tag": "workend",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "sd_walk",
+            "n": "Jalan / mobilitas 20 mnt",
+            "s": "STR",
+            "d": true,
+            "tag": "sdwalk",
+            "x": 10,
+            "m": "latihan"
+          },
+          {
+            "id": "q_study",
+            "n": "Belajar materi stase 45 mnt",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_drill",
+            "n": "Drill 10 kasus/soal UKMPPD",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_referat",
+            "n": "Referat / laporan kasus 30 mnt",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "q_english",
+            "n": "Percakapan bahasa Inggris 15 mnt",
+            "s": "CHA",
+            "d": true,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s1",
+            "n": "Systematic review ortopedi — Screening 20 abstrak",
+            "s": "RSC",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s2",
+            "n": "Bank soal UKMPPD bedah — 1 blok 25 soal",
+            "s": "INT",
+            "d": false,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          }
+        ],
+        "weekly": [
+          {
+            "id": "q_deposit",
+            "n": "Setor Dana Jembatan",
+            "s": "GLD",
+            "d": false,
+            "other": null,
+            "x": 5
+          },
+          {
+            "id": "q_post",
+            "n": "1 post edukasi",
+            "s": "CHA",
+            "d": false,
+            "other": "2026-11-03",
+            "x": 10
+          }
+        ],
+        "locked": [
+          {
+            "id": "q_lift",
+            "n": "Beban sore (bench + compound)",
+            "s": "STR"
+          }
+        ]
+      }
+    },
+    "2026-11-03": {
+      "type": "LIBUR",
+      "sleep": 7,
+      "nap": 0,
+      "done": {
+        "q_run_easy": true,
+        "q_study": true,
+        "q_drill": true,
+        "q_career": true,
+        "q_english": true,
+        "MQ:mq_s1": true,
+        "MQ:mq_s2": true,
+        "q_post": true
+      },
+      "workEnd": "ok",
+      "token": false,
+      "shield": false,
+      "tentir": {
+        "jam": 3,
+        "sesi": 2,
+        "ok": true
+      },
+      "mut": {
+        "m_qiyam": true,
+        "m_subuh": true,
+        "m_tadabbur": true
+      },
+      "note": "Long run santai, lalu belajar fraktur ekstremitas atas.",
+      "frozen": {
+        "type": "LIBUR",
+        "effType": "LIBUR",
+        "invalidPasca": false,
+        "xp": 120,
+        "gross": 120,
+        "base": 105,
+        "capped": 100,
+        "mult": 1.2,
+        "multMissing": false,
+        "penalty": 0,
+        "overtime": false,
+        "autoLate": false,
+        "token": false,
+        "pass": true,
+        "total": 10,
+        "doneCount": 10,
+        "ratio": 1,
+        "stat": {
+          "VIT": 22.86,
+          "STR": 11.43,
+          "INT": 34.29,
+          "RSC": 22.86,
+          "GLD": 11.43,
+          "CHA": 17.14
+        },
+        "sleepDebt": false,
+        "heavy": false,
+        "chapterId": "ch_s2",
+        "metrics": {
+          "sleepNJ": 7,
+          "nightNJ": 7,
+          "nap": 0,
+          "tJam": 3,
+          "tSesi": 2,
+          "tOk": 2,
+          "karier": 1,
+          "latPlan": 1,
+          "latDone": 1,
+          "konten": 1,
+          "ot": 0
+        },
+        "items": [
+          {
+            "id": "q_sleep",
+            "n": "Total tidur ≥6 jam",
+            "s": "VIT",
+            "d": true,
+            "tag": "sleep",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_workend",
+            "n": "Berhenti kerja ≤21.00",
+            "s": "VIT",
+            "d": true,
+            "tag": "workend",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_run_easy",
+            "n": "Lari pagi easy 30 mnt",
+            "s": "STR",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": "latihan"
+          },
+          {
+            "id": "q_study",
+            "n": "Belajar materi stase 45 mnt",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_drill",
+            "n": "Drill 10 kasus/soal UKMPPD",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_career",
+            "n": "Blok riset/karier 30 mnt",
+            "s": "RSC",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": "karier"
+          },
+          {
+            "id": "q_tentir",
+            "n": "Sesi tentir selesai ≤21.00",
+            "s": "GLD",
+            "d": true,
+            "tag": "tentir",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "q_english",
+            "n": "Percakapan bahasa Inggris 15 mnt",
+            "s": "CHA",
+            "d": true,
+            "tag": "",
+            "x": 5,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s1",
+            "n": "Systematic review ortopedi — Screening 20 abstrak",
+            "s": "RSC",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          },
+          {
+            "id": "MQ:mq_s2",
+            "n": "Bank soal UKMPPD bedah — 1 blok 25 soal",
+            "s": "INT",
+            "d": true,
+            "tag": "",
+            "x": 10,
+            "m": ""
+          }
+        ],
+        "weekly": [
+          {
+            "id": "q_deposit",
+            "n": "Setor Dana Jembatan",
+            "s": "GLD",
+            "d": false,
+            "other": null,
+            "x": 5
+          },
+          {
+            "id": "q_post",
+            "n": "1 post edukasi",
+            "s": "CHA",
+            "d": true,
+            "other": null,
+            "x": 10
+          }
+        ],
+        "locked": []
+      }
+    },
+    "2026-11-04": {
+      "type": "NORMAL",
+      "sleep": 5.25,
+      "nap": 1,
+      "done": {
+        "q_lift": true,
+        "q_study": true,
+        "q_drill": true,
+        "q_referat": true,
+        "q_english": true,
+        "MQ:mq_s1": true
+      },
+      "workEnd": null,
+      "token": false,
+      "shield": false,
+      "tentir": {
+        "jam": 1.5,
+        "sesi": 1,
+        "ok": true
+      },
+      "mut": {
+        "m_qiyam": true,
+        "m_subuh": true
+      },
+      "note": ""
+    }
+  },
+  "weekly": {
+    "2026-10-12": {
+      "debt": 25000000,
+      "bridge": 1500000,
+      "leads": 1,
+      "priorities": ["", "", ""],
+      "raidDone": false
+    },
+    "2026-10-19": {
+      "debt": 24400000,
+      "bridge": 2000000,
+      "leads": 2,
+      "priorities": ["", "", ""],
+      "raidDone": false
+    },
+    "2026-10-26": {
+      "debt": 23800000,
+      "bridge": 2600000,
+      "leads": 3,
+      "priorities": ["Kirim draf protokol SR", "Tidur ≥6 jam di 5 malam non-jaga", "3 sesi tentir selesai ≤21.00"],
+      "raidDone": true,
+      "snapshot": {
+        "avgSleep": 6,
+        "sleepN": 3,
+        "avgNight": 5.666666666666667,
+        "avgNap": 0.3333333333333333,
+        "bridge": 2600000,
+        "bridgePrev": 2000000,
+        "debt": 23800000,
+        "debtPrev": 24400000,
+        "leads": 3,
+        "tJam": 4.5,
+        "tSesi": 3,
+        "tOk": 1,
+        "karier": 1,
+        "latPlan": 2,
+        "latDone": 2,
+        "konten": 0,
+        "lolos": 3,
+        "rec": 4,
+        "ot": 1,
+        "xp": 276,
+        "proyek": 2
+      },
+      "raidXP": 50,
+      "raidAt": "2026-11-01"
+    }
+  },
+  "workouts": [
+    {
+      "id": "wo_s1",
+      "date": "2026-10-29",
+      "kind": "bench",
+      "kg": 60,
+      "reps": 5,
+      "sets": 3,
+      "note": ""
+    },
+    {
+      "id": "wo_s2",
+      "date": "2026-10-30",
+      "kind": "run",
+      "km": 4,
+      "sec": 1680,
+      "runType": "easy",
+      "note": ""
+    },
+    {
+      "id": "wo_s3",
+      "date": "2026-11-03",
+      "kind": "run",
+      "km": 5,
+      "sec": 1830,
+      "runType": "tes",
+      "note": "Tes 5K"
+    },
+    {
+      "id": "wo_s4",
+      "date": "2026-11-03",
+      "kind": "bench",
+      "kg": 62.5,
+      "reps": 6,
+      "sets": 3,
+      "note": ""
+    }
+  ],
+  "rewards": [
+    {
+      "id": "rw_s1",
+      "name": "Tidur siang 2 jam tanpa rasa bersalah",
+      "cost": 0
+    },
+    {
+      "id": "rw_s2",
+      "name": "Kopi susu favorit",
+      "cost": 30000
+    },
+    {
+      "id": "rw_s3",
+      "name": "Sepatu lari baru",
+      "cost": 1200000
+    }
+  ],
+  "claims": [],
+  "sampleLoaded": false
+}

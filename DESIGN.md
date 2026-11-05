@@ -242,7 +242,8 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Setelan: stase & jamnya, ritme harian, fase hidup, peran, export JSON | selesai |
 | Impor jadwal (Sheets/CSV/Claude) | selesai |
 | Makan & belanja: setelan gizi, menu bawaan ayam & telur, isi otomatis per tipe hari, daftar belanja → tugas, Makan hari ini, impor menu | selesai (v1) |
-| Impor MBAPPE OS, connector + Usulan | Fase 1, belum |
+| Impor MBAPPE OS (hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan) | selesai |
+| Connector + Usulan | Fase 1, belum |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Modul Fase 2–3 lainnya | belum |
@@ -252,6 +253,6 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 - Rumus XP: dipakai apa adanya dari MBAPPE OS (saat ini) atau disederhanakan.
 - Daftar mutaba'ah final.
 - Nama dan warna peran final.
-- Data MBAPPE OS mana yang diimpor (riwayat XP, hari terkunci, latihan).
+- Log latihan (bench/lari), hadiah & klaim, quest mingguan, dan jam tentir harian dari MBAPPE OS belum punya tempat di Qawwam (XP-nya tetap terbawa lewat hari beku).
 - Tarif kelompok dan harga paket tentir.
 - Berat badan untuk target protein (diisi di halaman Menu).
