@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Dumbbell,
   FileText,
+  Gift,
   House,
   RefreshCw,
   SquareCheck,
@@ -48,6 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
   { route: 'menu', label: 'Menu', Icon: UtensilsCrossed },
   { route: 'latihan', label: 'Latihan', Icon: Dumbbell },
+  { route: 'hadiah', label: 'Hadiah', Icon: Gift },
   {
     route: 'target',
     label: 'Target & PPDS',

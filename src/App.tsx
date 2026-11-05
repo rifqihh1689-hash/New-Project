@@ -8,6 +8,7 @@ import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
 import { HabitPage } from './features/habit/HabitPage'
 import { ImportPage } from './features/import/ImportPage'
+import { HadiahPage } from './features/hadiah/HadiahPage'
 import { LatihanPage } from './features/latihan/LatihanPage'
 import { MenuPage } from './features/menu/MenuPage'
 import { TentirPage } from './features/tentir/TentirPage'
@@ -41,6 +42,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <LatihanPage />
     case 'tentir':
       return <TentirPage />
+    case 'hadiah':
+      return <HadiahPage />
     case 'impor':
       return <ImportPage />
     case 'setelan':

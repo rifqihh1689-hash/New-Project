@@ -138,7 +138,7 @@ Berbasis bukti: game fiction dan interaksi sosial memperbesar efek pada perilaku
 - **Boss.** Utang (HP turun tiap bayar), tryout bulanan (mini-boss), UKMPPD Feb 2028 (final boss dengan hitung mundur).
 - **Streak + shield.** Jaga dan pasca-jaga netral, tidak memutus streak.
 - **Muhasabah = Weekly Raid.** Selesai sekali seminggu (Sabtu–Selasa, minimal satu prioritas) memberi +50 XP.
-- **Koin → hadiah nyata** yang kamu tentukan sendiri (dari MBAPPE OS: rewards & claims).
+- **Koin → hadiah nyata** yang kamu tentukan sendiri (dari MBAPPE OS: rewards & claims). Saat ini: 1 token per naik level; koin per hari menyusul di sistem game v2.
 - **Pencapaian** yang bermakna dan jarang (mis. "4 minggu tidur rata-rata ≥ 5,5 jam", "100 soal muskuloskeletal benar").
 - **Party (opsional).** Satu atau dua teman koas: quest bersama, saling lihat ringkasan mingguan. Kolaborasi dulu, kompetisi ringan belakangan.
 - **Umpan balik.** Animasi saat centang dan naik level, rekap musim bergaya ringkasan tahunan.
@@ -190,7 +190,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `reviews` | Muhasabah mingguan/bulanan: 3 prioritas, refleksi (berhasil, macet, fokus), angka ringkasan, selesai + XP | dipakai |
 | `menus` / `mealPlans` | daftar menu (beli/masak, waktu makan, protein, biaya, bahan, bekal); rencana per tanggal & waktu makan. Daftar belanja dihitung dari rencana, tidak disimpan terpisah | dipakai |
 | `exercises` / `workouts` | gerakan (rentang rep, set, kenaikan, arsip; bawaan di kode); sesi beban (set kg × rep, rasa) atau lari (km, waktu, jenis) | dipakai |
-| `rewards` / `claims` | hadiah (nama, biaya) dan klaimnya (token per naik level) | disiapkan |
+| `rewards` / `claims` | hadiah (nama, biaya, arsip) dan klaimnya (nama & biaya saat klaim, level). Token = level − 1 − jumlah klaim | dipakai |
 | `events` | agenda, jadwal jaga, jadwal stase | disiapkan |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
 | `tentirSessions` | inisial murid, topik, tanggal, jam mulai, durasi, tarif, lunas. Sesi lunas otomatis membuat transaksi pemasukan. | dipakai |
@@ -263,6 +263,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Impor MBAPPE OS (hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan) | selesai |
 | Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K | selesai (v1) |
 | Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ 21.00, Catat cepat Tentir | selesai |
+| Hadiah: 1 token per naik level, daftar hadiah sendiri, klaim + riwayat, hadiah berbiaya terkunci sampai dana jembatan tercapai, chip token di Beranda | selesai |
 | Connector + Usulan | Fase 1, belum |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
