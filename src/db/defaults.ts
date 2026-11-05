@@ -1,5 +1,5 @@
 import { DEFAULT_RULES } from '../domain/rules'
-import type { DayType, Habit, MealSlot, Menu, MutabaahItem, Phase, Profile, Role, RitmeSlot } from '../types'
+import type { DayType, Exercise, Habit, MealSlot, Menu, MutabaahItem, Phase, Profile, Role, RitmeSlot } from '../types'
 
 /**
  * Bawaan aplikasi hidup di kode, bukan "diisi" ke database. Yang disimpan hanya perubahan pengguna
@@ -251,4 +251,38 @@ export const DEFAULT_MENUS: Menu[] = [
   menu('soto-ayam', 'Soto ayam + nasi', 'beli', ['siang', 'malam'], 18, 14_000),
   menu('nasi-campur', 'Nasi campur ayam + telur', 'beli', ['siang'], 28, 17_000),
   menu('roti-susu', 'Roti gandum + susu (minimarket)', 'beli', ['sarapan', 'snack1', 'snack2'], 14, 12_000, { bekal: true }),
+]
+
+// ---------- Gerakan latihan bawaan ----------
+
+const ex = (
+  key: string,
+  name: string,
+  group: Exercise['group'],
+  repMin: number,
+  repMax: number,
+  sets: number,
+  increment: number,
+  order: number,
+): Exercise => ({
+  id: `#ex:${key}`,
+  name,
+  group,
+  repMin,
+  repMax,
+  sets,
+  increment,
+  archived: false,
+  order,
+  createdAt: T0,
+  updatedAt: T0,
+})
+
+export const DEFAULT_EXERCISES: Exercise[] = [
+  ex('bench', 'Bench press', 'upper', 5, 8, 3, 2.5, 1),
+  ex('squat', 'Squat', 'lower', 5, 8, 3, 5, 2),
+  ex('deadlift', 'Deadlift', 'lower', 3, 6, 2, 5, 3),
+  ex('ohp', 'Overhead press', 'upper', 6, 10, 3, 2.5, 4),
+  ex('row', 'Barbell row', 'upper', 6, 10, 3, 2.5, 5),
+  ex('pulldown', 'Pull-up / lat pulldown', 'upper', 6, 10, 3, 2.5, 6),
 ]

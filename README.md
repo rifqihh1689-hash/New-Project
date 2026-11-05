@@ -24,6 +24,7 @@ PWA offline-first: bisa dipasang di layar utama HP, iPad, dan laptop, jalan tanp
 - **XP dari MBAPPE OS**: `round(min(Σ, 100) × pengali tidur) − 15·[lewat 21.00]`, pengali dari tidur malam + qailulah. Hari lama dibekukan.
 - **Tanpa identitas pasien**: No. RM, angka ≥ 6 digit, Tn./Ny./An. + nama mengunci tombol simpan di semua kolom teks.
 - **Menu & makan**: target protein dari berat badan × 1,6 g/kg, 3–5× makan sesuai fase bulk/maintain/cut, menu bawaan ayam & telur (beli/masak), isi otomatis seminggu mengikuti tipe hari dan anggaran, daftar belanja jadi tugas, kartu "Makan hari ini".
+- **Latihan**: log bench/beban (set kg × rep + rasa) dan lari; resep sesi berikutnya dengan double progression, turun 10% setelah 2× gagal, deload otomatis saat stagnan, latihan ringan saat pasca-jaga/kurang tidur; rencana lari mingguan (naik ≤ 10%, minggu pemulihan, 80/20) dan perkiraan 5K; proyeksi kapan bench 100 kg tercapai.
 - **Jadwal fleksibel**: jam masuk/pulang per stase, ritme harian per tipe hari (Setelan), kalimat pembuka ikut jam pulang.
 - **Impor MBAPPE OS**: pilih file export (atau tempel JSON) di halaman Impor; hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan ikut. Data Qawwam tidak ditimpa, aman diulang.
 - **Impor jadwal**: tempel sel Google Sheets/CSV atau balasan Claude (untuk screenshot, PDF, catatan program latihan) → pratinjau → impor. Jenis: ritme, habit/latihan, tugas, jaga, stase. Aman diulang.

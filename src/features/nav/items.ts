@@ -2,6 +2,7 @@ import {
   BookOpen,
   BookOpenText,
   CalendarDays,
+  Dumbbell,
   FileText,
   House,
   RefreshCw,
@@ -51,6 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
   { route: 'menu', label: 'Menu', Icon: UtensilsCrossed },
+  { route: 'latihan', label: 'Latihan', Icon: Dumbbell },
   {
     route: 'target',
     label: 'Target & PPDS',

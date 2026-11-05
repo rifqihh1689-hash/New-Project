@@ -84,6 +84,10 @@ export interface Profile extends CloudFields {
   tentirCapacity: { min: number; max: number }
   /** Pengaturan modul Menu (berat badan, fase, target protein, anggaran). */
   nutrition?: Partial<NutritionSettings>
+  /** Tarif tentir per jam (Rupiah). */
+  tentirRate?: number
+  /** Target latihan: e1RM bench (kg), 5K & 10K (detik). */
+  trainingTargets?: Partial<TrainingTargets>
   updatedAt: number
 }
 
@@ -188,6 +192,8 @@ export interface Habit extends Stamped {
   order: number
   /** Detail, mis. program latihan "Bench 3×5, row 3×8". */
   note?: string
+  /** `weekly` = cukup sekali seminggu (quest mingguan): XP sekali, tidak masuk penyebut lolos. */
+  freq?: 'daily' | 'weekly'
 }
 
 export interface HabitLog extends CloudFields {
@@ -409,6 +415,75 @@ export interface MealPlanEntry extends CloudFields {
   slot: MealSlot
   menuId: string | null
   updatedAt: number
+}
+
+// ---------- Latihan ----------
+
+export interface TrainingTargets {
+  benchKg: number
+  fiveKSec: number
+  tenKSec: number
+}
+
+/** Gerakan beban di daftar latihan. */
+export interface Exercise extends Stamped {
+  name: string
+  group: 'upper' | 'lower'
+  repMin: number
+  repMax: number
+  sets: number
+  /** Kenaikan beban saat progres (kg). */
+  increment: number
+  archived: boolean
+  order: number
+}
+
+export interface StrengthSet {
+  kg: number
+  reps: number
+}
+
+export type Feel = 'ringan' | 'pas' | 'berat'
+
+export interface StrengthEntry {
+  exerciseId: string
+  sets: StrengthSet[]
+  /** Rasa set terakhir: ringan (sisa ≥ 3 rep), pas (sisa ±2), berat (sisa 0–1). */
+  feel?: Feel
+}
+
+export type RunType = 'easy' | 'long' | 'kualitas' | 'tes'
+
+export interface RunLog {
+  km: number
+  sec: number
+  type: RunType
+  feel?: Feel
+}
+
+export interface Workout extends Stamped {
+  date: ISODate
+  kind: 'beban' | 'lari'
+  entries: StrengthEntry[]
+  run: RunLog | null
+  note: string
+}
+
+// ---------- Hadiah ----------
+
+export interface Reward extends Stamped {
+  name: string
+  /** Biaya (Rupiah); 0 = gratis. Hadiah berbiaya terkunci sampai dana jembatan tercapai. */
+  cost: number
+  archived: boolean
+}
+
+export interface Claim extends Stamped {
+  rewardId: string
+  name: string
+  cost: number
+  date: ISODate
+  level: number
 }
 
 export type ThemePreference = 'light' | 'dark' | 'system'

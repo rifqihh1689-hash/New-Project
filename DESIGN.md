@@ -70,6 +70,17 @@ Tujuan: tidak perlu memikirkan menu setiap hari.
 - **Anggaran:** perkiraan biaya mingguan dibandingkan anggaran (bawaan Rp350 rb); daftar belanja menampilkan perkiraan harga per bahan. Nanti masuk anggaran Makan di modul Uang.
 - Daftar menu bisa diimpor; Claude menyusun menu dari jadwal jaga dan anggaran, hasilnya masuk Usulan.
 
+### Latihan
+
+Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: bench 100 kg (perkiraan 1RM), 5K sub-30, 10K sub-60 (bisa diubah).
+
+- **Beban, double progression.** Tiap gerakan punya rentang rep (bench 3×5–8), jumlah set, dan kenaikan (atas 2,5 kg, bawah 5 kg). Beban tetap sampai semua set mencapai rep maks tanpa terasa berat, lalu naik dan mulai lagi dari rep min. "Rasa" set terakhir (ringan/pas/berat ≈ sisa 3+/2/0–1 rep) menahan kenaikan kalau sudah mentok.
+- **Anti-stagnan.** Gagal mencapai rep min 2× berturut di beban yang sama → turun 10%. Perkiraan 1RM (Epley, maks 12 rep) tidak melewati rekor sebelumnya ≥ 1% dalam 4 sesi (rentang ≥ 14 hari) → satu sesi deload 85% dengan satu set lebih sedikit, plus pengingat cek tidur & protein. Beban dibulatkan ke 1,25 kg.
+- **Kesiapan hari ini** dari tipe hari & tidur: pasca-jaga atau tidur < 5 jam → ringan 80% (teknik), hari jaga → lewati. Jaga tidak memutus apa pun.
+- **Proyeksi target:** tren 1RM 8 minggu terakhir (regresi linear, kg/minggu) → perkiraan bulan tercapai; muncul setelah 3 sesi.
+- **Lari.** Volume mingguan naik ≤ 10% (maks +5 km); setelah 3 minggu naik, satu minggu pemulihan −25%; minggu dengan ≥ 2 jaga volume ditahan dan tanpa sesi kualitas. Perkiraan 5K dari lari tes/kualitas 3–21 km (Riegel ^1,06), pace santai = pace 5K + 60–90 dtk/km, tempo = +15–30 dtk/km. Peringatan bila lari keras > 30% dalam 2 minggu (pola 80/20, dinilai setelah ≥ 3 lari) atau perkiraan 5K tidak membaik ≥ 1% dibanding 4–8 minggu sebelumnya.
+- Mencatat sesi mencentang habit latihan yang cocok di hari itu (nama memuat "beban/bench/gym…" atau "lari/run…"). Catatan sesi dicek identitas pasien.
+
 ### Tentir+
 
 Data per murid (semester, blok), paket dan sisa sesi, status bayar, angka **Rp per jam**, slot kosong bulanan yang dihitung dari jadwal jaga (dikirim ke murid supaya jarang jadwal ulang), template pesan WA, dan perpustakaan materi per blok yang bisa dipakai ulang tahun berikutnya.
@@ -159,7 +170,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 - Baris "satu per kunci alami" (hari per tanggal, log habit/mutaba'ah per tanggal, profil, Muhasabah per minggu, rencana makan per tanggal & waktu makan): ID privat `#…` (`#day:2026-11-05`). Dexie Cloud menerjemahkannya per pengguna, jadi HP dan laptop yang offline menulis ke baris yang sama, bukan membuat duplikat.
 - Bawaan (peran, fase, mutaba'ah, habit inti, menu awal) hidup di kode dengan ID `#…`; database hanya menyimpan perubahanmu. Perangkat baru tidak pernah menimpa nama atau warna yang sudah kamu ubah.
 - Peran, fase, habit, mutaba'ah, dan menu tidak dihapus, hanya diarsipkan/dinonaktifkan. Riwayat lama tetap utuh.
-- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu).
+- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu, v3 latihan & hadiah).
 
 | Tabel | Isi utama | Status |
 |---|---|---|
@@ -173,6 +184,8 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `mutabaah` / `mutabaahLogs` | daftar amalan; log per tanggal (tanpa skor) | dipakai |
 | `reviews` | Muhasabah mingguan/bulanan: 3 prioritas, refleksi (berhasil, macet, fokus), angka ringkasan, selesai + XP | dipakai |
 | `menus` / `mealPlans` | daftar menu (beli/masak, waktu makan, protein, biaya, bahan, bekal); rencana per tanggal & waktu makan. Daftar belanja dihitung dari rencana, tidak disimpan terpisah | dipakai |
+| `exercises` / `workouts` | gerakan (rentang rep, set, kenaikan, arsip; bawaan di kode); sesi beban (set kg × rep, rasa) atau lari (km, waktu, jenis) | dipakai |
+| `rewards` / `claims` | hadiah (nama, biaya) dan klaimnya (token per naik level) | disiapkan |
 | `events` | agenda, jadwal jaga, jadwal stase | disiapkan |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
 | `tentirSessions` | inisial murid, topik, tanggal, jam, durasi, tarif, lunas. Otomatis membuat transaksi pemasukan. | disiapkan |
@@ -243,6 +256,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Impor jadwal (Sheets/CSV/Claude) | selesai |
 | Makan & belanja: setelan gizi, menu bawaan ayam & telur, isi otomatis per tipe hari, daftar belanja → tugas, Makan hari ini, impor menu | selesai (v1) |
 | Impor MBAPPE OS (hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan) | selesai |
+| Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K | selesai (v1) |
 | Connector + Usulan | Fase 1, belum |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
@@ -253,6 +267,6 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 - Rumus XP: dipakai apa adanya dari MBAPPE OS (saat ini) atau disederhanakan.
 - Daftar mutaba'ah final.
 - Nama dan warna peran final.
-- Log latihan (bench/lari), hadiah & klaim, quest mingguan, dan jam tentir harian dari MBAPPE OS belum punya tempat di Qawwam (XP-nya tetap terbawa lewat hari beku).
+- Log latihan, hadiah & klaim, dan jam tentir harian dari MBAPPE OS belum ikut diimpor (XP-nya tetap terbawa lewat hari beku).
 - Tarif kelompok dan harga paket tentir.
 - Berat badan untuk target protein (diisi di halaman Menu).
