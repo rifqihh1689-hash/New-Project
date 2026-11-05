@@ -67,7 +67,12 @@ export function TodayList({ data }: { data: BerandaData }) {
       <ul>{tasks.map(row)}</ul>
       {habits.length > 0 && (
         <>
-          <div className="mt-3 mb-1 text-xs font-medium tracking-wide text-faint uppercase">Rutin</div>
+          <div className="mt-3 mb-1 flex items-center text-xs font-medium tracking-wide text-faint uppercase">
+            Rutin
+            <a href="#/habit" className="ml-auto font-normal tracking-normal normal-case hover:text-text">
+              Atur habit →
+            </a>
+          </div>
           <ul>{habits.map(row)}</ul>
         </>
       )}

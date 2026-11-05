@@ -1,4 +1,5 @@
 import { isAllowedOnDayType } from '../domain/dayType'
+import { applyMinutes } from '../domain/habitGrid'
 import { detectPatientIdentity } from '../domain/phi'
 import { addDays } from '../domain/time'
 import { computeDay, habitsForDay, isLocked, type DayInput, type DayItem } from '../domain/xp'
@@ -147,7 +148,21 @@ export function sortTasks(tasks: Task[]): Task[] {
 // ---------- Habit & mutaba'ah ----------
 
 export async function setHabitDone(habitId: string, date: ISODate, done: boolean): Promise<void> {
-  await db.habitLogs.put({ id: privateId.habitLog(habitId, date), habitId, date, done, updatedAt: Date.now() })
+  const id = privateId.habitLog(habitId, date)
+  await db.transaction('rw', db.habitLogs, async () => {
+    const prev = await db.habitLogs.get(id)
+    await db.habitLogs.put({ ...prev, id, habitId, date, done, updatedAt: Date.now() })
+  })
+}
+
+/** Menambah (atau mengurangi) menit habit hari itu; selesai otomatis bila mencapai target. */
+export async function addHabitMinutes(habit: Pick<Habit, 'id' | 'minutes'>, date: ISODate, delta: number): Promise<void> {
+  const id = privateId.habitLog(habit.id, date)
+  await db.transaction('rw', db.habitLogs, async () => {
+    const prev = await db.habitLogs.get(id)
+    const next = applyMinutes(prev?.minutes ?? 0, delta, habit.minutes)
+    await db.habitLogs.put({ ...prev, id, habitId: habit.id, date, ...next, updatedAt: Date.now() })
+  })
 }
 
 export async function setMutabaahDone(itemId: string, date: ISODate, done: boolean): Promise<void> {

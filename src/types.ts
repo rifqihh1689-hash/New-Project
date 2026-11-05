@@ -169,6 +169,7 @@ export interface Habit extends Stamped {
   dayTypes: DayType[]
   /** Hari dalam minggu (0 = Minggu). Kosong = setiap hari. */
   weekdays: number[]
+  /** Target menit per hari. Habit selesai otomatis bila menit tercatat ≥ target. `null` = tanpa menit. */
   minutes: number | null
   /** `sleep` & `workend` dinilai otomatis dari isian tidur / jam berhenti kerja. */
   kind: 'normal' | 'sleep' | 'workend'
@@ -182,6 +183,8 @@ export interface HabitLog extends CloudFields {
   habitId: string
   date: ISODate
   done: boolean
+  /** Menit yang dicatat hari itu (untuk habit bertarget menit). */
+  minutes?: number
   updatedAt: number
 }
 

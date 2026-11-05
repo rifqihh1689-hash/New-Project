@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../test/db-utils'
 import { db } from './db'
 import {
+  addHabitMinutes,
   addTask,
   loadAllResults,
   loadDaySnapshot,
@@ -101,5 +102,17 @@ describe('bawaan tanpa isi awal', () => {
     const roles = await loadRoles()
     expect(roles).toHaveLength(DEFAULT_ROLES.length)
     expect(roles[0]).toMatchObject({ id: '#role:koas', name: 'Internsip' })
+  })
+})
+
+describe('habit bermenit', () => {
+  it('menit menumpuk dan centang menyimpan menit', async () => {
+    const habit = { id: 'hab_x', minutes: 45 }
+    await addHabitMinutes(habit, TODAY, 30)
+    expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 30, done: false })
+    await addHabitMinutes(habit, TODAY, 15)
+    expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 45, done: true })
+    await setHabitDone('hab_x', TODAY, false)
+    expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 45, done: false })
   })
 })

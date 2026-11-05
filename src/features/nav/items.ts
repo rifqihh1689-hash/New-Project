@@ -48,12 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
     Icon: Wallet,
     soon: { phase: 2, what: 'Port Dompetku: transaksi, anggaran, berulang, ditambah tabungan, utang, dan dana jembatan.' },
   },
-  {
-    route: 'habit',
-    label: 'Habit & ibadah',
-    Icon: RefreshCw,
-    soon: { phase: 1, what: "Atur habit harian per tipe hari dan daftar mutaba'ah, konsistensi 7 & 30 hari, impor data MBAPPE OS." },
-  },
+  { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
   {
     route: 'target',
     label: 'Target & PPDS',

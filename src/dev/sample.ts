@@ -3,7 +3,9 @@
  * tidak pernah ikut build produksi.
  */
 import { db } from '../db/db'
-import { addTask, setDayType, setHabitDone, setMutabaahDone, setSleep, setWorkEnd, toggleTask } from '../db/daily'
+import { addHabitMinutes, addTask, setDayType, setHabitDone, setMutabaahDone, setSleep, setWorkEnd, toggleTask } from '../db/daily'
+import { saveHabit } from '../db/structure'
+import { HABIT_TEMPLATES } from '../features/habit/templates'
 import { DEFAULT_MUTABAAH } from '../db/defaults'
 import { addDays, dayKey, weekStart } from '../domain/time'
 import { createId } from '../lib/id'
@@ -28,6 +30,24 @@ export async function loadSample(): Promise<void> {
     if (type !== 'pasca') await toggleTask(t)
     for (const [j, m] of DEFAULT_MUTABAAH.entries()) if ((i + j) % 4 !== 0) await setMutabaahDone(m.id, d, true)
   }
+
+  // Dua habit tambahan dengan riwayat seminggu.
+  const [study, lift] = [HABIT_TEMPLATES[0], HABIT_TEMPLATES[2]].map((t, i) => ({
+    ...t,
+    id: `hab_contoh${i}`,
+    kind: 'normal' as const,
+    active: true,
+    order: 10 + i,
+    ...stamp,
+  }))
+  await saveHabit(study)
+  await saveHabit(lift)
+  for (let i = 6; i >= 1; i--) {
+    const d = addDays(today, -i)
+    if (i % 3 !== 0) await addHabitMinutes(study, d, 45)
+    if (i % 2 === 0) await setHabitDone(lift.id, d, true)
+  }
+  await addHabitMinutes(study, today, 30)
 
   // Hari ini.
   await setDayType(today, 'stase')
