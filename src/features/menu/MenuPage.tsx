@@ -134,7 +134,7 @@ function Summary({ data }: { data: MenuPageData }) {
       {bar !== undefined && (
         <div className="my-2 h-1.5 overflow-hidden rounded-full bg-track">
           <i
-            className="block h-full rounded-full"
+            className="block h-full rounded-full bar-anim"
             style={{ width: `${Math.min(100, bar)}%`, background: overIsBad && bar > 100 ? 'var(--danger)' : 'var(--color-tentir)' }}
           />
         </div>

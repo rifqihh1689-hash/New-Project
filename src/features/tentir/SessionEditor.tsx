@@ -17,23 +17,71 @@ const HOURS = [1, 1.5, 2, 2.5, 3]
 export function SessionEditor({
   draft,
   rate,
+  limit,
   students,
+  studentRates = new Map(),
+  packageFor = () => null,
+  topics = [],
   onClose,
 }: {
   draft: SessionDraft | null
   rate: number
+  /** Batas kerja malam (`null` = tanpa batas). */
+  limit: string | null
   students: string[]
+  /** Tarif khusus per murid (inisial → Rp/jam). */
+  studentRates?: Map<string, number>
+  /** Paket aktif murid (masih ada sisa sesi). */
+  packageFor?: (initials: string) => PackageInfo | null
+  /** Saran topik (judul materi). */
+  topics?: string[]
   onClose: () => void
 }) {
   const editing = draft && 'id' in draft
   return (
     <Sheet open={!!draft} title={editing ? 'Ubah sesi tentir' : 'Sesi tentir baru'} onClose={onClose}>
-      {draft && <Body key={'id' in draft ? draft.id : draft.date} draft={draft} rate={rate} students={students} onClose={onClose} />}
+      {draft && (
+        <Body
+          key={'id' in draft ? draft.id : draft.date}
+          draft={draft}
+          rate={rate}
+          limit={limit}
+          students={students}
+          studentRates={studentRates}
+          packageFor={packageFor}
+          topics={topics}
+          onClose={onClose}
+        />
+      )}
     </Sheet>
   )
 }
 
-function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: number; students: string[]; onClose: () => void }) {
+export interface PackageInfo {
+  id: string
+  name: string
+  left: number
+}
+
+function Body({
+  draft,
+  rate,
+  limit,
+  students,
+  studentRates,
+  packageFor,
+  topics,
+  onClose,
+}: {
+  draft: SessionDraft
+  rate: number
+  limit: string | null
+  students: string[]
+  studentRates: Map<string, number>
+  packageFor: (initials: string) => PackageInfo | null
+  topics: string[]
+  onClose: () => void
+}) {
   const toast = useToast()
   const existing = 'id' in draft ? draft : null
   const [s, setS] = useState<SessionInput>(
@@ -41,26 +89,32 @@ function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: n
   )
   // Tarif mengikuti durasi sampai diubah manual.
   const [feeTouched, setFeeTouched] = useState(!!existing)
+  const rateOf = (initials: string) => studentRates.get(initials.trim().toUpperCase()) ?? rate
   const set = (change: Partial<SessionInput>) =>
     setS((cur) => {
       const next = { ...cur, ...change }
-      if (!feeTouched && change.hours != null) next.fee = Math.round(rate * change.hours)
+      // Tarif mengikuti durasi & tarif khusus murid sampai diubah manual.
+      if (!feeTouched && (change.hours != null || change.student != null)) next.fee = Math.round(rateOf(next.student) * next.hours)
       return next
     })
+  // Sesi baru untuk murid yang punya paket aktif: pakai paket (Rp0, tanpa transaksi sendiri).
+  const pkg = existing ? null : packageFor(s.student)
+  const [usePkg, setUsePkg] = useState(true)
+  const inPackage = existing ? !!existing.packageId : !!pkg && usePkg
   const phi = detectPatientIdentity(`${s.student} ${s.topic}`)
   const validStart = !s.start || parseClock(s.start) != null
   const range = s.start && validStart ? sessionRange(s) : null
-  const late = validStart ? isLate(s) : null
+  const late = validStart ? isLate(s, limit) : null
   const valid = !!s.student.trim() && s.hours > 0 && isValidISODate(s.date) && validStart && !phi
 
   const save = async () => {
     try {
-      const { overtime } = await saveSession({ ...s, start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null })
-      toast({
-        message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid ? ' · masuk pemasukan' : ''}${overtime ? ' · lewat 21.00, berhenti kerja dicatat lewat 21.00' : ''}.`,
-        tone: overtime ? 'warning' : 'success',
-        duration: overtime ? 6000 : undefined,
+      await saveSession({
+        ...s,
+        start: s.start ? s.start.replace(':', '.').padStart(5, '0') : null,
+        ...(pkg && usePkg ? { packageId: pkg.id, fee: 0, paid: true } : {}),
       })
+      toast({ message: `Sesi ${s.student.toUpperCase()} tersimpan${s.paid ? ' · masuk pemasukan' : ''}.` })
       onClose()
     } catch (e) {
       toast({ message: e instanceof PatientIdentityError ? e.message : (e as Error).message, tone: 'error' })
@@ -100,7 +154,13 @@ function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: n
             maxLength={80}
             onChange={(e) => set({ topic: e.target.value })}
             placeholder="mis. Anatomi ekstremitas"
+            list="tentir-topics"
           />
+          <datalist id="tentir-topics">
+            {topics.map((x) => (
+              <option key={x} value={x} />
+            ))}
+          </datalist>
         </label>
       </div>
       {phi && <p className="-mt-2 text-xs text-danger">Mirip identitas pasien ({phi}). Pakai inisial murid saja, tanpa data pasien.</p>}
@@ -135,36 +195,52 @@ function Body({ draft, rate, students, onClose }: { draft: SessionDraft; rate: n
             </button>
           ))}
         </div>
-        <p className={`mt-1.5 text-xs ${late ? 'text-danger' : 'text-muted'}`}>
+        <p className={`mt-1.5 text-xs ${late ? 'text-uang' : 'text-muted'}`}>
           {range
-            ? `${range}${late ? ' · lewat 21.00 (dihitung lembur)' : ' · selesai ≤ 21.00'}`
+            ? `${range}${late ? ` · melewati batas ${limit} (quest tentir hari itu tidak dapat XP, tanpa penalti)` : limit ? ` · sebelum ${limit}` : ''}`
             : validStart
-              ? 'Isi jam mulai untuk menilai selesai ≤ 21.00.'
+              ? 'Jam mulai opsional.'
               : 'Format jam: 19.00'}
         </p>
       </div>
-      <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-        <label className="text-xs text-muted">
-          Tarif sesi (Rp)
-          <input
-            className="field mt-1"
-            inputMode="numeric"
-            value={s.fee ? s.fee.toLocaleString('id-ID') : ''}
-            onChange={(e) => {
-              setFeeTouched(true)
-              setS((cur) => ({ ...cur, fee: Number(e.target.value.replace(/[^\d]/g, '')) || 0 }))
-            }}
-          />
+      {pkg && (
+        <label className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-[13.5px]">
+          <input type="checkbox" className="size-4 accent-current" checked={usePkg} onChange={(e) => setUsePkg(e.target.checked)} />
+          Pakai paket {pkg.name} (sisa {pkg.left} sesi)
         </label>
-        <label className="flex items-center gap-2 pb-2.5 text-[13.5px]">
-          <input type="checkbox" className="size-4 accent-current" checked={s.paid} onChange={(e) => set({ paid: e.target.checked })} />
-          Lunas
-        </label>
-      </div>
-      <p className="-mt-2 text-xs text-faint">
-        {formatRupiah(rate)}/jam × {String(s.hours).replace('.', ',')} j = {formatRupiah(rate * s.hours)}. Ubah manual untuk kelompok atau
-        paket. Sesi lunas otomatis jadi pemasukan.
-      </p>
+      )}
+      {inPackage ? (
+        <p className="text-xs text-faint">
+          Bagian dari paket: Rp0 di sesi ini, karena paketnya sudah dicatat sebagai pemasukan saat dibayar.
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+            <label className="text-xs text-muted">
+              Tarif sesi (Rp)
+              <input
+                className="field mt-1"
+                inputMode="numeric"
+                value={s.fee ? s.fee.toLocaleString('id-ID') : ''}
+                onChange={(e) => {
+                  setFeeTouched(true)
+                  setS((cur) => ({ ...cur, fee: Number(e.target.value.replace(/[^\d]/g, '')) || 0 }))
+                }}
+              />
+            </label>
+            <label className="flex items-center gap-2 pb-2.5 text-[13.5px]">
+              <input type="checkbox" className="size-4 accent-current" checked={s.paid} onChange={(e) => set({ paid: e.target.checked })} />
+              Lunas
+            </label>
+          </div>
+          <p className="-mt-2 text-xs text-faint">
+            {formatRupiah(rateOf(s.student))}/jam
+            {studentRates.has(s.student.trim().toUpperCase()) ? ` (tarif khusus ${s.student.toUpperCase()})` : ''} ×{' '}
+            {String(s.hours).replace('.', ',')} j = {formatRupiah(rateOf(s.student) * s.hours)}. Ubah manual untuk kelompok. Sesi lunas
+            otomatis jadi pemasukan.
+          </p>
+        </>
+      )}
       <div className="flex gap-2">
         {existing && (
           <button type="button" className="btn-ghost border border-line" onClick={() => void remove()}>

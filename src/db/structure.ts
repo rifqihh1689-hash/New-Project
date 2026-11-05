@@ -116,3 +116,9 @@ export async function saveRitme(type: DayType, slots: RitmeSlot[] | null): Promi
     await db.profile.put({ ...current, ritme, id: DEFAULT_PROFILE.id, updatedAt: Date.now() })
   })
 }
+
+/** Ubah sebagian aturan XP (disimpan sebagai perubahan di atas aturan bawaan). */
+export async function updateRules(changes: Partial<XpRules>): Promise<void> {
+  const current = (await db.profile.get(DEFAULT_PROFILE.id))?.rules
+  await updateProfile({ rules: { ...current, ...changes } })
+}

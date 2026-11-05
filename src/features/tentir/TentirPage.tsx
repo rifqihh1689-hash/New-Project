@@ -10,6 +10,8 @@ import { formatNumber, formatRupiah } from '../../lib/format'
 import type { TentirSession } from '../../types'
 import { useTentirPage, type TentirPageData } from './data'
 import { SessionEditor, type SessionDraft } from './SessionEditor'
+import { MaterialsTab, SlotsTab, StudentsTab } from './TentirPlus'
+import { activePackage, packageUsage } from '../../domain/tentirPlus'
 
 const shortDate = (d: string) => `${Number(d.slice(8))} ${MONTH_NAMES[Number(d.slice(5, 7)) - 1].slice(0, 3)}`
 const hrs = (h: number) => `${formatNumber(h, 1)} j`
@@ -76,18 +78,18 @@ function Days({ data, today, onAdd }: { data: TentirPageData; today: string; onA
         {data.dates.map((d, i) => {
           const h = data.perDay[i]
           const type = data.dayTypes.get(d)
-          const late = data.sessions.some((s) => s.date === d && isLate(s) === true)
+          const late = data.sessions.some((s) => s.date === d && isLate(s, data.limit) === true)
           return (
             <button
               key={d}
               type="button"
               onClick={() => onAdd(d)}
-              aria-label={`${DAY_SHORT[weekday(d)]} ${shortDate(d)}: ${hrs(h)}${late ? ', lewat 21.00' : ''}. Tambah sesi.`}
+              aria-label={`${DAY_SHORT[weekday(d)]} ${shortDate(d)}: ${hrs(h)}${late ? `, melewati ${data.limit}` : ''}. Tambah sesi.`}
               className={`flex flex-col items-center gap-1 rounded-xl py-2 transition hover:bg-surface-2 ${d === today ? 'bg-surface-2' : ''}`}
             >
               <span className="text-[11px] text-muted tabular-nums">{h ? formatNumber(h, 1) : ''}</span>
               <span className="flex h-16 w-5 items-end overflow-hidden rounded-md bg-track">
-                <span className={`w-full rounded-md ${late ? 'bg-danger' : 'bg-tentir'}`} style={{ height: `${(h / top) * 100}%` }} />
+                <span className={`w-full rounded-md ${late ? 'bg-uang' : 'bg-tentir'}`} style={{ height: `${(h / top) * 100}%` }} />
               </span>
               <span className="text-[11px] font-medium">{DAY_SHORT[weekday(d)]}</span>
               <span className="text-[10px] text-faint">{type === 'jaga' ? 'jaga' : type === 'pasca' ? 'pasca' : Number(d.slice(8))}</span>
@@ -96,16 +98,18 @@ function Days({ data, today, onAdd }: { data: TentirPageData; today: string; onA
         })}
       </div>
       <p className="mt-2 text-xs text-faint">
-        Ketuk hari untuk menambah sesi. Merah = selesai lewat 21.00 (dihitung lembur). Hari bertentir mendapat quest “Sesi tentir selesai ≤
-        21.00”.
+        Ketuk hari untuk menambah sesi.
+        {data.limit
+          ? ` Kuning = selesai melewati ${data.limit} (tanpa penalti; quest tentir hari itu saja yang tidak dapat XP). Batas bisa diubah atau dimatikan di Setelan.`
+          : ''}
       </p>
     </section>
   )
 }
 
-function SessionRow({ s, onEdit }: { s: TentirSession; onEdit: () => void }) {
+function SessionRow({ s, limit, onEdit }: { s: TentirSession; limit: string | null; onEdit: () => void }) {
   const toast = useToast()
-  const late = isLate(s)
+  const late = isLate(s, limit)
   return (
     <li className="flex items-start gap-2 border-t border-line py-2 first:border-t-0">
       <button type="button" onClick={onEdit} className="flex flex-1 items-start gap-2.5 text-left">
@@ -113,8 +117,8 @@ function SessionRow({ s, onEdit }: { s: TentirSession; onEdit: () => void }) {
         <span className="flex-1 text-[13.5px]">
           {s.topic || 'Tanpa topik'}
           <span className="block text-xs text-muted tabular-nums">
-            {sessionRange(s) ?? 'jam mulai kosong'} · {hrs(s.hours)} · {formatRupiah(s.fee)}
-            {late && <span className="text-danger"> · lewat 21.00</span>}
+            {sessionRange(s) ?? 'jam mulai kosong'} · {hrs(s.hours)} · {s.packageId ? 'paket' : formatRupiah(s.fee)}
+            {late && <span className="text-uang"> · melewati {limit}</span>}
           </span>
         </span>
       </button>
@@ -150,7 +154,7 @@ function Sessions({ data, onEdit, onAdd }: { data: TentirPageData; onEdit: (s: T
           <div className="text-xs font-medium tracking-wide text-faint uppercase">{formatDateShort(g.d)}</div>
           <ul>
             {g.list.map((s) => (
-              <SessionRow key={s.id} s={s} onEdit={() => onEdit(s)} />
+              <SessionRow key={s.id} s={s} limit={data.limit} onEdit={() => onEdit(s)} />
             ))}
           </ul>
         </div>
@@ -169,7 +173,7 @@ function Unpaid({ data, onEdit }: { data: TentirPageData; onEdit: (s: TentirSess
       </h2>
       <ul>
         {data.unpaid.map((s) => (
-          <SessionRow key={s.id} s={s} onEdit={() => onEdit(s)} />
+          <SessionRow key={s.id} s={s} limit={data.limit} onEdit={() => onEdit(s)} />
         ))}
       </ul>
     </section>
@@ -237,35 +241,84 @@ export function TentirPage() {
   const [editing, setEditing] = useState<SessionDraft | null>(null)
   const thisWeek = monday === weekStart(today)
   const newOn = (date: string) => setEditing({ date })
+  const [tab, setTab] = useState<'sesi' | 'murid' | 'slot' | 'materi'>('sesi')
   return (
     <>
       <PageTop title="Tentir" />
       <h1 className="mt-4 text-[26px] font-semibold tracking-tight md:hidden">Tentir</h1>
-      <section className="mt-3 flex items-center gap-1 md:mt-[26px]">
-        <button type="button" className="btn-ghost p-2" onClick={() => setMonday(addDays(monday, -7))} aria-label="Minggu sebelumnya">
-          <ChevronLeft size={18} aria-hidden="true" />
-        </button>
-        <div className="min-w-[150px] text-center">
-          <div className="font-serif text-xl">{thisWeek ? 'Minggu ini' : `${shortDate(monday)} – ${shortDate(addDays(monday, 6))}`}</div>
-          <div className="text-xs text-muted">
-            {shortDate(monday)} – {shortDate(addDays(monday, 6))}
-          </div>
-        </div>
-        <button type="button" className="btn-ghost p-2" onClick={() => setMonday(addDays(monday, 7))} aria-label="Minggu berikutnya">
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
-      </section>
-      {data && (
+      <div
+        role="tablist"
+        aria-label="Bagian Tentir"
+        className="mt-3 flex gap-1 overflow-x-auto rounded-full bg-surface-2 p-[3px] md:mt-[26px] md:w-fit"
+      >
+        {(
+          [
+            ['sesi', 'Sesi'],
+            ['murid', 'Murid & paket'],
+            ['slot', 'Slot & pesan'],
+            ['materi', 'Materi'],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={tab === v}
+            onClick={() => setTab(v)}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] ${tab === v ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {data && tab === 'murid' && <StudentsTab data={data} today={today} />}
+      {data && tab === 'slot' && <SlotsTab data={data} today={today} />}
+      {data && tab === 'materi' && <MaterialsTab data={data} />}
+      {tab === 'sesi' && (
         <>
-          <Tiles data={data} />
-          <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
-            <Days data={data} today={today} onAdd={newOn} />
-            <Sessions data={data} onEdit={setEditing} onAdd={() => newOn(thisWeek ? today : monday)} />
-            <Unpaid data={data} onEdit={setEditing} />
-            <Settings data={data} />
-          </div>
-          <SessionEditor draft={editing} rate={data.rate} students={data.students} onClose={() => setEditing(null)} />
+          <section className="mt-3 flex items-center gap-1">
+            <button type="button" className="btn-ghost p-2" onClick={() => setMonday(addDays(monday, -7))} aria-label="Minggu sebelumnya">
+              <ChevronLeft size={18} aria-hidden="true" />
+            </button>
+            <div className="min-w-[150px] text-center">
+              <div className="font-serif text-xl">
+                {thisWeek ? 'Minggu ini' : `${shortDate(monday)} – ${shortDate(addDays(monday, 6))}`}
+              </div>
+              <div className="text-xs text-muted">
+                {shortDate(monday)} – {shortDate(addDays(monday, 6))}
+              </div>
+            </div>
+            <button type="button" className="btn-ghost p-2" onClick={() => setMonday(addDays(monday, 7))} aria-label="Minggu berikutnya">
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </section>
+          {data && (
+            <>
+              <Tiles data={data} />
+              <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
+                <Days data={data} today={today} onAdd={newOn} />
+                <Sessions data={data} onEdit={setEditing} onAdd={() => newOn(thisWeek ? today : monday)} />
+                <Unpaid data={data} onEdit={setEditing} />
+                <Settings data={data} />
+              </div>
+            </>
+          )}
         </>
+      )}
+      {data && (
+        <SessionEditor
+          draft={editing}
+          rate={data.rate}
+          limit={data.limit}
+          students={data.students}
+          studentRates={new Map(data.studentRows.filter((x) => x.rate).map((x) => [x.initials, x.rate!]))}
+          packageFor={(initials) => {
+            const p = activePackage(initials, data.packages, data.allSessions)
+            return p ? { id: p.id, name: p.name, left: packageUsage(p, data.allSessions).left } : null
+          }}
+          topics={data.materials.map((m) => m.title)}
+          onClose={() => setEditing(null)}
+        />
       )}
     </>
   )

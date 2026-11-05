@@ -34,7 +34,8 @@ const EMPTY_DAY: DayInfo = { type: null, sleepNight: null, nap: 0, workEnd: null
 
 /**
  * Satu kotak di grid habit. Habit otomatis (tidur, jam berhenti kerja) dinilai dari isian hari itu
- * dan tidak bisa dicentang. Hari terkunci (lewat jendela isi mundur) hanya bisa dilihat.
+ * dan tidak bisa dicentang. Hari terkunci (lewat jendela isi mundur) tetap bisa dicentang, tetapi XP-nya
+ * sudah dibekukan sehingga tidak berubah (UI memberi tahu).
  */
 export function habitCell(
   habit: Pick<Habit, 'active' | 'dayTypes' | 'weekdays' | 'kind' | 'size'>,
@@ -54,7 +55,8 @@ export function habitCell(
     applies,
     done,
     minutes: log?.minutes ?? 0,
-    editable: !auto && !locked && applies !== false && date <= today,
+    // Hari lama tetap bisa dicentang (catatan jujur); XP hari yang sudah dibekukan tidak berubah, cukup diberi tahu.
+    editable: !auto && applies !== false && date <= today,
     locked,
     isToday: date === today,
   }

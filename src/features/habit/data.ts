@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { withWorkEndRule } from '../../db/daily'
 import { db } from '../../db/db'
 import { loadHabits, loadMutabaah, loadProfile, loadRoles, rulesOf } from '../../db/structure'
 import { habitCell, habitRowSummary, lastDays } from '../../domain/habitGrid'
@@ -21,7 +22,7 @@ export async function loadHabitPage(today: ISODate) {
   const rules = rulesOf(profile)
   const dayMap = new Map(days.map((d) => [d.date, d]))
   const logMap = new Map(logs.map((l) => [l.id, l]))
-  const rows = habits
+  const rows = withWorkEndRule(habits, rules.workEndLimit)
     .filter((h) => h.active)
     .map((habit) => {
       const cells = dates.map((d) => habitCell(habit, d, dayMap.get(d), logMap.get(privateId.habitLog(habit.id, d)), today, rules))

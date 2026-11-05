@@ -99,7 +99,7 @@ export function UsulanPage() {
         menghapus data, dan item yang mirip identitas pasien tidak pernah ditulis.
       </p>
       {list && roles && (
-        <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
+        <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
           {pending.map((p) => (
             <Pending key={p.id} p={p} roles={roles} today={today} />
           ))}

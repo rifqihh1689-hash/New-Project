@@ -32,7 +32,7 @@ const LEVEL: Record<BudgetLevel, { bar: string; text: string; label: string }> =
 
 const Bar = ({ pct, className }: { pct: number; className: string }) => (
   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-track" aria-hidden="true">
-    <div className={`h-full rounded-full ${className}`} style={{ width: `${Math.max(0, Math.min(100, pct * 100))}%` }} />
+    <div className={`h-full rounded-full ${className} bar-anim`} style={{ width: `${Math.max(0, Math.min(100, pct * 100))}%` }} />
   </div>
 )
 

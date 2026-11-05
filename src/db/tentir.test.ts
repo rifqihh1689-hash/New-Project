@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../test/db-utils'
-import { loadDaySnapshot, PatientIdentityError, setDayType } from './daily'
+import { loadDaySnapshot, PatientIdentityError, setDayType, setWorkEnd } from './daily'
 import { db } from './db'
 import { deleteSession, loadTentirRate, restoreSession, saveSession, saveTentirSettings, setPaid, TENTIR_CATEGORY_ID } from './tentir'
-import { loadProfile } from './structure'
+import { loadProfile, updateProfile } from './structure'
 
 beforeEach(resetDatabase)
 
@@ -36,27 +36,46 @@ describe('sesi tentir', () => {
     expect(await db.transactions.count()).toBe(1)
   })
 
-  it('quest "selesai ≤ 21.00" muncul di hari bertentir; lewat 21.00 mencatat lembur', async () => {
+  it('quest tentir ikut batas kerja malam; sesi yang melewati batas tidak pernah dicatat lembur', async () => {
     await setDayType(TODAY, 'stase')
     let snap = await loadDaySnapshot(TODAY, TODAY)
     expect(snap.rows.some((r) => r.habitKind === 'tentir')).toBe(false)
 
     await saveSession(base)
     snap = await loadDaySnapshot(TODAY, TODAY)
-    expect(snap.rows.find((r) => r.habitKind === 'tentir')).toMatchObject({ done: true, size: 'sedang' })
+    expect(snap.rows.find((r) => r.habitKind === 'tentir')).toMatchObject({
+      done: true,
+      size: 'sedang',
+      title: 'Sesi tentir selesai ≤ 21.00',
+    })
 
-    const late = await saveSession({ ...base, start: '20.00' })
-    expect(late.overtime).toBe(true)
+    await saveSession({ ...base, start: '20.30', hours: 1.5 }) // 20.30–22.00
     snap = await loadDaySnapshot(TODAY, TODAY)
     expect(snap.rows.find((r) => r.habitKind === 'tentir')?.done).toBe(false)
-    expect(snap.day?.workEnd).toBe('late')
-    expect(snap.result.penalty).toBe(15)
+    expect(snap.day?.workEnd ?? null).toBeNull() // tidak ada lembur otomatis
+    expect(snap.result.penalty).toBe(0)
+
+    // Batas digeser ke 22.30 → sesi itu masuk batas; quest berganti nama.
+    await updateProfile({ rules: { workEndLimit: '22.30' } })
+    snap = await loadDaySnapshot(TODAY, TODAY)
+    expect(snap.rows.find((r) => r.habitKind === 'tentir')).toMatchObject({ done: true, title: 'Sesi tentir selesai ≤ 22.30' })
+    expect(snap.rows.find((r) => r.habitKind === 'workend')?.title).toBe('Berhenti kerja ≤ 22.30')
   })
 
-  it('di hari jaga tidak ada quest tentir dan tidak mencatat lembur', async () => {
+  it('batas kerja malam dimatikan: tanpa quest tentir, tanpa habit berhenti kerja, tanpa penalti', async () => {
+    await setDayType(TODAY, 'stase')
+    await saveSession({ ...base, start: '21.00' })
+    await setWorkEnd(TODAY, 'late')
+    expect((await loadDaySnapshot(TODAY, TODAY)).result.penalty).toBe(15)
+    await updateProfile({ rules: { workEndLimit: null } })
+    const snap = await loadDaySnapshot(TODAY, TODAY)
+    expect(snap.rows.some((x) => x.habitKind === 'tentir' || x.habitKind === 'workend')).toBe(false)
+    expect(snap.result.penalty).toBe(0)
+  })
+
+  it('di hari jaga tidak ada quest tentir', async () => {
     await setDayType(TODAY, 'jaga')
-    const r = await saveSession({ ...base, start: '21.00' })
-    expect(r.overtime).toBe(false)
+    await saveSession({ ...base, start: '21.00' })
     const snap = await loadDaySnapshot(TODAY, TODAY)
     expect(snap.rows.some((x) => x.habitKind === 'tentir')).toBe(false)
   })

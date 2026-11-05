@@ -1,4 +1,6 @@
-import { Inbox } from 'lucide-react'
+import { ChevronDown, Inbox } from 'lucide-react'
+import { useState } from 'react'
+import { useMediaQuery } from '../../app/useMediaQuery'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { dayTypeLabel } from '../../domain/dayType'
@@ -9,7 +11,9 @@ import { CloseDayCard } from './CloseDayCard'
 import { useBeranda } from './data'
 import { DayTypePicker } from './DayTypePicker'
 import { GameStrip } from './GameStrip'
+import { LevelUp } from './LevelUp'
 import { MealsCard } from './MealsCard'
+import { MiniCalendar } from './MiniCalendar'
 import { MutabaahCard } from './MutabaahCard'
 import { PrioritiesCard } from './PrioritiesCard'
 import { Ritme } from './Ritme'
@@ -17,9 +21,17 @@ import { RoadCard } from './RoadCard'
 import { StatCards } from './StatCards'
 import { TodayList } from './TodayList'
 
+const MORE_KEY = 'qawwam:beranda-lainnya'
+
 export function BerandaPage() {
   const today = useToday()
   const data = useBeranda(today)
+  const wide = useMediaQuery('(min-width: 768px)')
+  const [more, setMoreState] = useState(() => localStorage.getItem(MORE_KEY) === '1')
+  const setMore = (v: boolean) => {
+    setMoreState(v)
+    localStorage.setItem(MORE_KEY, v ? '1' : '0')
+  }
   if (!data) return <PageTop title="Beranda" />
   const type = data.snap.day?.type ?? null
   const isPasca = data.snap.result.effType === 'pasca'
@@ -60,29 +72,61 @@ export function BerandaPage() {
         </a>
       )}
       <GameStrip data={data} />
-      <StatCards data={data} isPasca={isPasca} />
-
-      <section className="grid gap-3 lg:grid-cols-[1.55fr_1fr]">
-        <div className="grid content-start gap-3">
-          <Ritme data={data} />
+      {wide ? (
+        <>
+          <StatCards data={data} isPasca={isPasca} />
+          <section className="grid gap-3 lg:grid-cols-[1.55fr_1fr]">
+            <div className="stagger grid content-start gap-3">
+              <Ritme data={data} />
+              <TodayList data={data} />
+            </div>
+            <div className="stagger grid content-start gap-3">
+              {!isPasca && <PrioritiesCard data={data} />}
+              <MutabaahCard data={data} />
+              <MiniCalendar today={today} />
+              <MealsCard data={data} />
+              <CloseDayCard data={data} />
+              {!isPasca && <RoadCard data={data} />}
+            </div>
+          </section>
+          {!isPasca && (
+            <section className="stagger mt-3 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              <WeekCard data={data} />
+              <TentirCard data={data} />
+              <MoneyCard data={data} />
+            </section>
+          )}
+        </>
+      ) : (
+        // HP = "Hari ini": yang dikerjakan sekarang dulu, ringkasan lain bisa dibuka.
+        <div className="stagger grid gap-3">
           <TodayList data={data} />
-        </div>
-        <div className="grid content-start gap-3">
-          {!isPasca && <PrioritiesCard data={data} />}
           <MutabaahCard data={data} />
-          <MealsCard data={data} />
           <CloseDayCard data={data} />
-          {!isPasca && <RoadCard data={data} />}
+          <button
+            type="button"
+            aria-expanded={more}
+            onClick={() => setMore(!more)}
+            className="flex items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-line py-2.5 text-[13px] text-muted"
+          >
+            {more ? 'Sembunyikan ringkasan lain' : 'Ringkasan lain: tidur, ritme, prioritas, makan, uang…'}
+            <ChevronDown size={15} className={`transition-transform duration-300 ${more ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+          {more && (
+            <>
+              <StatCards data={data} isPasca={isPasca} />
+              <Ritme data={data} />
+              {!isPasca && <PrioritiesCard data={data} />}
+              <MealsCard data={data} />
+              {!isPasca && <RoadCard data={data} />}
+              {!isPasca && <WeekCard data={data} />}
+              {!isPasca && <TentirCard data={data} />}
+              {!isPasca && <MoneyCard data={data} />}
+            </>
+          )}
         </div>
-      </section>
-
-      {!isPasca && (
-        <section className="mt-3 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-          <WeekCard data={data} />
-          <TentirCard data={data} />
-          <MoneyCard data={data} />
-        </section>
       )}
+      <LevelUp level={data.level.level} tokens={data.tokens} />
     </>
   )
 }

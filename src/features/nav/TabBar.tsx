@@ -7,10 +7,19 @@ export function TabBar({ active, onCapture }: { active: RouteName; onCapture: ()
     <a
       href={routeHref(route)}
       aria-current={on ? 'page' : undefined}
-      className={`grid justify-items-center gap-[3px] text-[11px] ${on ? 'text-text' : 'text-muted'}`}
+      className={`relative grid justify-items-center gap-[3px] text-[11px] transition-colors duration-200 ${on ? 'text-text' : 'text-muted'}`}
     >
-      <Icon size={22} strokeWidth={on ? 2.1 : 1.8} aria-hidden="true" />
+      <Icon
+        size={22}
+        strokeWidth={on ? 2.1 : 1.8}
+        aria-hidden="true"
+        className={`transition-transform duration-300 ${on ? '-translate-y-px scale-105' : ''}`}
+      />
       {label}
+      <span
+        aria-hidden="true"
+        className={`absolute -top-2 h-[3px] rounded-full bg-text transition-all duration-300 ${on ? 'w-5 opacity-100' : 'w-0 opacity-0'}`}
+      />
     </a>
   )
   const inMore = !['beranda', 'tugas', 'uang'].includes(active)
@@ -26,7 +35,7 @@ export function TabBar({ active, onCapture }: { active: RouteName; onCapture: ()
           type="button"
           onClick={onCapture}
           aria-label="Catat cepat"
-          className="-mt-1 grid size-[46px] place-items-center rounded-full bg-btn text-btn-text shadow-lg active:scale-95"
+          className="-mt-1 grid size-[46px] place-items-center rounded-full bg-btn text-btn-text shadow-lg transition-transform duration-150 active:scale-90"
         >
           <Plus size={22} strokeWidth={2.2} aria-hidden="true" />
         </button>

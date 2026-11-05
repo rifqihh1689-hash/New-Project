@@ -9,7 +9,9 @@ import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
 import { HabitPage } from './features/habit/HabitPage'
 import { ImportPage } from './features/import/ImportPage'
+import { CatatanPage } from './features/catatan/CatatanPage'
 import { HadiahPage } from './features/hadiah/HadiahPage'
+import { KalenderPage } from './features/kalender/KalenderPage'
 import { LatihanPage } from './features/latihan/LatihanPage'
 import { MenuPage } from './features/menu/MenuPage'
 import { TentirPage } from './features/tentir/TentirPage'
@@ -51,6 +53,10 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <UsulanPage />
     case 'uang':
       return <UangPage />
+    case 'kalender':
+      return <KalenderPage />
+    case 'catatan':
+      return <CatatanPage />
     case 'impor':
       return <ImportPage />
     case 'setelan':
@@ -89,7 +95,10 @@ function Shell() {
       <div className="min-w-0">
         <MobileTop />
         <main className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(110px+env(safe-area-inset-bottom))] md:px-8 md:pt-[22px] md:pb-12">
-          <Page name={route.name} date={route.date} />
+          {/* Kunci per rute: setiap pindah halaman, isinya masuk dengan animasi halus. */}
+          <div key={route.name} className="animate-page-in">
+            <Page name={route.name} date={route.date} />
+          </div>
         </main>
       </div>
       <TabBar active={route.name} onCapture={() => setCapture(true)} />

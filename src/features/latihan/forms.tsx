@@ -30,16 +30,19 @@ export function StrengthForm({
   today,
   exercises,
   plans,
+  day,
 }: {
   open: boolean
   onClose: () => void
   today: string
   exercises: Exercise[]
   plans: Prescription[]
+  /** Hari program (mis. "Atas"); disimpan supaya hari berikutnya bergiliran. */
+  day?: string
 }) {
   return (
-    <Sheet open={open} title="Catat sesi beban" onClose={onClose}>
-      {open && <StrengthBody onClose={onClose} today={today} exercises={exercises} plans={plans} />}
+    <Sheet open={open} title={day ? `Catat sesi beban · ${day}` : 'Catat sesi beban'} onClose={onClose}>
+      {open && <StrengthBody onClose={onClose} today={today} exercises={exercises} plans={plans} day={day} />}
     </Sheet>
   )
 }
@@ -49,11 +52,13 @@ function StrengthBody({
   today,
   exercises,
   plans,
+  day,
 }: {
   onClose: () => void
   today: string
   exercises: Exercise[]
   plans: Prescription[]
+  day?: string
 }) {
   const toast = useToast()
   const [date, setDate] = useState(today)
@@ -82,7 +87,14 @@ function StrengthBody({
       sets: r.sets.filter((s) => s.kg > 0 && s.reps > 0),
       feel: r.feel,
     }))
-    const { habit } = await saveWorkout({ date: isValidISODate(date) ? date : today, kind: 'beban', entries, run: null, note: note.trim() })
+    const { habit } = await saveWorkout({
+      date: isValidISODate(date) ? date : today,
+      kind: 'beban',
+      ...(day ? { day } : {}),
+      entries,
+      run: null,
+      note: note.trim(),
+    })
     toast({ message: `Sesi beban tersimpan${habit ? ` · habit "${habit}" dicentang` : ''}.` })
     onClose()
   }

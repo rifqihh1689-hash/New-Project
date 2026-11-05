@@ -14,6 +14,7 @@ import {
   mergeWithDefaults,
 } from '../../src/db/defaults'
 import { computeResults, dailyRows } from '../../src/domain/dayRows'
+import { inDay, muscleOf, nextDay, SPLITS } from '../../src/domain/exerciseCatalog'
 import { IMPORT_ITEM_GUIDE } from '../../src/domain/importGuide'
 import { describeItem, parseImport } from '../../src/domain/importer'
 import { categoryLookup, mergeCategories, summarize as summarizeMoney } from '../../src/domain/money'
@@ -251,6 +252,7 @@ const getSummary: ToolDef = {
         d.logs.filter((l) => weekStart(l.date) === weekStart(date)),
         base.roles,
         d.sessions,
+        base.rules.workEndLimit,
       )
       const sleep = day ? sleepTotal(day.sleepNight, day.nap, base.rules) : null
       if (sleep != null && day?.type !== 'jaga') sleeps.push(sleep)
@@ -267,14 +269,14 @@ const getSummary: ToolDef = {
         tasks: `${tasks.filter((t) => t.done).length}/${tasks.length}`,
         habits: `${habitRows.filter((h) => h.done).length}/${habitRows.filter((h) => !h.weekly).length}`,
         mutabaah: mutLogs.filter((m) => m.date === date && m.done).length,
-        tentirHours: sessions.length ? dayTentir(sessions).hours : 0,
+        tentirHours: sessions.length ? dayTentir(sessions, base.rules.workEndLimit).hours : 0,
         workouts: w.map((x) => (x.kind === 'lari' && x.run ? `lari ${x.run.km} km (${x.run.type})` : `beban ${x.entries.length} gerakan`)),
         overtime: day?.workEnd === 'late',
         note: day?.note || undefined,
       })
     }
     const inRange = <T extends { date: string }>(list: T[]) => list.filter((x) => x.date >= from && x.date <= to)
-    const tentir = summarizeTentir(inRange(d.sessions))
+    const tentir = summarizeTentir(inRange(d.sessions), base.rules.workEndLimit)
     const runs = runsOf(inRange(workouts))
     const typed = rows.filter((x) => x.type)
     return {
@@ -337,6 +339,9 @@ const TABLES: Record<string, string | null> = {
   workouts: 'date',
   rewards: null,
   claims: 'date',
+  students: null,
+  tentirPackages: null,
+  materials: null,
   lifeRoles: null,
   phases: null,
   profile: null,
@@ -382,7 +387,7 @@ const getTrainingPlan: ToolDef = {
   name: 'get_training_plan',
   title: 'Rencana latihan',
   description:
-    'Resep sesi beban berikutnya per gerakan (double progression, turun 10% setelah 2× gagal, deload saat e1RM stagnan, ringan saat pasca-jaga/kurang tidur), proyeksi bench ke target, rencana lari minggu ini (volume, pace santai/tempo dari perkiraan 5K, minggu pemulihan, 80/20), dan km minggu ini.',
+    'Program beban (full body / atas-bawah / push-pull-kaki) dan hari berikutnya; resep sesi beban berikutnya per gerakan (double progression, turun 10% setelah 2× gagal, deload saat e1RM stagnan, ringan saat pasca-jaga/kurang tidur), proyeksi bench ke target, rencana lari minggu ini (volume, pace santai/tempo dari perkiraan 5K, minggu pemulihan, 80/20), dan km minggu ini.',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   readOnly: true,
   async run(_args, { store, now }) {
@@ -402,14 +407,19 @@ const getTrainingPlan: ToolDef = {
     const jaga = days.filter((x) => x.type === 'jaga' && x.date >= monday && x.date <= addDays(monday, 6)).length
     const runs = runsOf(sorted)
     const bench = exerciseHistory('#ex:bench', sorted)
+    const split = base.profile.trainingSplit ?? 'fullbody'
+    const programDay = nextDay(split, sorted)
     return {
       today,
       readiness: ready,
+      program: { split, nextDay: programDay, days: SPLITS[split].days },
       strength: active.map((ex) => {
         const history = exerciseHistory(ex.id, sorted)
         const last = history[history.length - 1]
         return {
           exercise: ex.name,
+          muscle: muscleOf(ex),
+          inNextSession: inDay(ex, split, programDay),
           last: last ? { date: last.date, sets: last.entry.sets, e1rm: round1(last.e1rm) } : null,
           next: prescribe(ex, history, ready),
         }

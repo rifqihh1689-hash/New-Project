@@ -6,15 +6,16 @@ import { guessRole, matchRole, type RoleRef } from './quickCapture'
 import { normalizeClock } from './ritme'
 import { formatDateShort, isValidISODate, MONTH_NAMES } from './time'
 
-export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'stase' | 'menu'
+export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu'
 
-export const IMPORT_KINDS: ImportKind[] = ['ritme', 'habit', 'tugas', 'jaga', 'stase', 'menu']
+export const IMPORT_KINDS: ImportKind[] = ['ritme', 'habit', 'tugas', 'jaga', 'agenda', 'stase', 'menu']
 
 export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   ritme: 'Ritme harian',
   habit: 'Habit / latihan',
   tugas: 'Tugas',
   jaga: 'Jadwal jaga',
+  agenda: 'Agenda',
   stase: 'Stase',
   menu: 'Menu makan',
 }
@@ -33,6 +34,7 @@ export type ImportItem =
     }
   | { kind: 'tugas'; title: string; date: ISODate; roleId: string; important: boolean }
   | { kind: 'jaga'; date: ISODate }
+  | { kind: 'agenda'; title: string; date: ISODate; start: string | null; end: string | null; roleId: string | null }
   | { kind: 'stase'; name: string; start: ISODate; end: ISODate; masuk?: string; pulang?: string; weight: Chapter['weight'] }
   | {
       kind: 'menu'
@@ -142,6 +144,11 @@ const KIND_ALIASES: Record<string, ImportKind> = {
   todo: 'tugas',
   jaga: 'jaga',
   jadwal_jaga: 'jaga',
+  agenda: 'agenda',
+  acara: 'agenda',
+  event: 'agenda',
+  ujian: 'agenda',
+  kegiatan: 'agenda',
   stase: 'stase',
   rotasi: 'stase',
   menu: 'menu',
@@ -383,6 +390,16 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       if (!date) return { error: `Tanggal jaga "${r.tanggal ?? ''}" tidak dikenali.` }
       return { items: [{ kind, date }] }
     }
+    case 'agenda': {
+      if (!title) return { error: 'Judul agenda kosong.' }
+      const date = parseDate(r.tanggal ?? '', ctx.today)
+      if (!date) return { error: `Tanggal "${r.tanggal ?? ''}" tidak dikenali (contoh 2026-11-12 atau 12/11).` }
+      const start = r.jam ? normalizeClock(r.jam) : null
+      if (r.jam && !start) return { error: `Jam "${r.jam}" tidak dikenali (contoh 08.00).` }
+      const end = r.sampai ? normalizeClock(r.sampai) : null
+      if (r.sampai && !end) return { error: `Jam selesai "${r.sampai}" tidak dikenali.` }
+      return { items: [{ kind, title, date, start, end, roleId: role(null) }] }
+    }
     case 'menu': {
       if (!title) return { error: 'Nama menu kosong.' }
       // Kolom "waktu" juga dipakai jam ritme; untuk menu, isinya nama waktu makan (bukan jam).
@@ -513,6 +530,8 @@ export function describeItem(item: ImportItem, roleName: (id: string | undefined
       return `${formatDateShort(item.date)} · ${item.title} · ${roleName(item.roleId)}${item.important ? ' · penting' : ''}`
     case 'jaga':
       return `Jaga malam ${formatDateShort(item.date)}`
+    case 'agenda':
+      return `${formatDateShort(item.date)}${item.start ? ` ${item.start}${item.end ? `–${item.end}` : ''}` : ''} · ${item.title}`
     case 'menu':
       return `${item.name} · ${item.source} · ${item.proteinG} g · Rp${item.costRp.toLocaleString('id-ID')}`
     case 'stase':

@@ -3,12 +3,15 @@ import { useState } from 'react'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { useToast } from '../../components/toast-context'
-import { deleteWorkout, newExercise, restoreWorkout, saveTargets } from '../../db/training'
-import { formatDuration, formatPace, parseDuration, type Readiness, type StrengthAction } from '../../domain/training'
-import { formatDateShort, MONTH_NAMES } from '../../domain/time'
+import { deleteWorkout, newExercise, restoreWorkout, saveSplit, saveTargets } from '../../db/training'
+import { MUSCLE_LABELS, muscleOf, SPLITS } from '../../domain/exerciseCatalog'
+import { formatDuration, formatPace, parseDuration, riegel, type Readiness, type StrengthAction } from '../../domain/training'
+import { addDays, formatDateShort, MONTH_NAMES } from '../../domain/time'
 import { formatNumber } from '../../lib/format'
-import type { Exercise, RunType, Workout } from '../../types'
+import type { Exercise, RunType, TrainingSplit, Workout } from '../../types'
+import { CatalogSheet } from './Catalog'
 import { useLatihan, type LatihanData } from './data'
+import { LineChart, type ChartPoint } from './LineChart'
 import { ExerciseEditor } from './ExerciseEditor'
 import { RunForm, StrengthForm } from './forms'
 import { Sparkline } from './Sparkline'
@@ -41,7 +44,7 @@ function Bar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
   return (
     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-track">
-      <div className="h-full rounded-full bg-text" style={{ width: `${pct}%` }} />
+      <div className="h-full rounded-full bg-text bar-anim" style={{ width: `${pct}%` }} />
     </div>
   )
 }
@@ -107,17 +110,53 @@ function Targets({ data }: { data: LatihanData }) {
   )
 }
 
-function StrengthCard({ data, onLog }: { data: LatihanData; onLog: () => void }) {
+function StrengthCard({
+  data,
+  onLog,
+  onAdd,
+  onDay,
+}: {
+  data: LatihanData
+  onLog: () => void
+  onAdd: () => void
+  onDay: (d: string) => void
+}) {
+  const days = SPLITS[data.split].days
   return (
     <section className="card">
-      <h2 className="card-title">
+      <h2 className="card-title flex-wrap">
         <Dumbbell size={17} aria-hidden="true" /> Sesi beban berikutnya
-        <button type="button" onClick={onLog} className="btn-primary -my-1 ml-auto py-1.5">
-          <Plus size={15} aria-hidden="true" /> Catat
-        </button>
+        <span className="ml-auto flex gap-1.5">
+          <button type="button" onClick={onAdd} className="btn-ghost -my-1 border border-line py-1.5">
+            <Plus size={15} aria-hidden="true" /> Gerakan
+          </button>
+          <button type="button" onClick={onLog} className="btn-primary -my-1 py-1.5">
+            <Plus size={15} aria-hidden="true" /> Catat
+          </button>
+        </span>
       </h2>
+      {days.length > 1 && (
+        <div role="radiogroup" aria-label="Hari program" className="mb-2 flex flex-wrap gap-1.5">
+          {days.map((d) => (
+            <button
+              key={d}
+              type="button"
+              role="radio"
+              aria-checked={data.programDay === d}
+              onClick={() => onDay(d)}
+              className={`chip py-1 ${data.programDay === d ? 'border-transparent bg-btn text-btn-text' : ''}`}
+            >
+              {d}
+              {d === data.suggestedDay && <span className="opacity-60">berikutnya</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {!data.dayStrength.length && (
+        <p className="text-[13px] text-muted">Belum ada gerakan untuk hari {data.programDay}. Tambah dari katalog.</p>
+      )}
       <ul>
-        {data.strength.map(({ ex, plan }) => (
+        {data.dayStrength.map(({ ex, plan }) => (
           <li key={ex.id} className="border-t border-line py-2 first:border-t-0">
             <div className="flex items-baseline gap-2 text-[13.5px]">
               <span className="font-medium">{ex.name}</span>
@@ -132,7 +171,8 @@ function StrengthCard({ data, onLog }: { data: LatihanData; onLog: () => void })
         ))}
       </ul>
       <p className="mt-2 text-xs text-faint">
-        Beban naik hanya setelah semua set mencapai rep maks dan tidak terasa berat. Gagal 2× → turun 10%. e1RM datar 4 sesi → deload.
+        Beban naik hanya setelah semua set mencapai rep maks dan tidak terasa berat. Gagal 2× → turun 10%. e1RM datar 4 sesi → deload. Bosan
+        atau stagnan berulang → ganti variasi (ketuk gerakan di Setelan latihan).
       </p>
     </section>
   )
@@ -183,48 +223,119 @@ function RunCard({ data, onLog }: { data: LatihanData; onLog: () => void }) {
   )
 }
 
-function Progress({ data }: { data: LatihanData }) {
+/** Contoh 10 minggu (bukan data pengguna) untuk menunjukkan bentuk grafik sebelum ada sesi tercatat. */
+const DEMO: ChartPoint[] = [60, 62, 63.5, 65, 66, 66, 64, 67.5, 69, 70.5].map((y, i) => ({
+  x: addDays('2026-08-31', i * 7),
+  y,
+  note: i === 6 ? 'deload (85%)' : undefined,
+}))
+
+function Progress({ data, onEdit }: { data: LatihanData; onEdit: (ex: Exercise) => void }) {
   const rows = data.strength.filter((s) => s.history.length > 0)
-  const fiveK = data.runs.filter((r) => r.run.type === 'tes' || r.run.type === 'kualitas')
+  const hard = data.runs.filter((r) => r.run.type === 'tes' || r.run.type === 'kualitas')
+  const options = [...rows.map((r) => ({ id: r.ex.id, label: r.ex.name })), ...(hard.length > 1 ? [{ id: 'lari', label: 'Lari 5K' }] : [])]
+  const [pick, setPick] = useState<string | null>(null)
+  const chosen = options.find((o) => o.id === pick) ?? options.find((o) => o.id === '#ex:bench') ?? options[0]
+  const row = rows.find((r) => r.ex.id === chosen?.id)
+  const points: ChartPoint[] = row
+    ? row.history.map((h) => ({
+        x: h.date,
+        y: Math.round(h.e1rm * 10) / 10,
+        note: `${formatNumber(h.workKg, 2)} kg × ${h.entry.sets.map((s) => s.reps).join(', ')}`,
+      }))
+    : chosen?.id === 'lari'
+      ? hard.map((r) => ({
+          x: r.date,
+          y: Math.round(riegel(r.run.sec, r.run.km, 5)),
+          note: `${formatNumber(r.run.km, 1)} km ${formatDuration(r.run.sec)}`,
+        }))
+      : []
   return (
     <section className="card">
       <h2 className="card-title">Progres</h2>
-      {!rows.length && !data.runs.length && <p className="text-[13px] text-muted">Belum ada sesi tercatat.</p>}
-      <ul>
-        {rows.map(({ ex, history, plateau }) => {
-          const last = history[history.length - 1]
-          return (
-            <li key={ex.id} className="flex items-center gap-3 border-t border-line py-2 first:border-t-0">
-              <span className="flex-1 text-[13.5px]">
-                {ex.name}
-                <span className="block text-xs text-muted tabular-nums">
-                  e1RM {kg(Math.round(last.e1rm * 10) / 10)}
-                  {plateau.slopePerWeek != null &&
-                    ` · ${plateau.slopePerWeek >= 0 ? '+' : ''}${formatNumber(plateau.slopePerWeek, 1)} kg/mgg`}
-                  {plateau.stalled && <span className="text-uang"> · stagnan</span>}
-                </span>
-              </span>
-              <Sparkline values={history.slice(-12).map((h) => h.e1rm)} label={`Tren e1RM ${ex.name}`} />
-            </li>
-          )
-        })}
-        {fiveK.length > 0 && (
-          <li className="flex items-center gap-3 border-t border-line py-2 first:border-t-0">
-            <span className="flex-1 text-[13.5px]">
-              Pace lari keras
-              <span className="block text-xs text-muted tabular-nums">
-                terakhir {formatPace(fiveK[fiveK.length - 1].run.sec / fiveK[fiveK.length - 1].run.km)}/km
-              </span>
-            </span>
-            {/* Dibalik agar garis naik = makin cepat. */}
-            <Sparkline
-              values={fiveK.slice(-12).map((r) => -r.run.sec / r.run.km)}
-              label="Tren pace lari keras"
-              color="var(--color-pulih)"
-            />
-          </li>
-        )}
-      </ul>
+      {!options.length ? (
+        <>
+          <div className="mb-1 flex items-center gap-2 text-xs text-muted">
+            <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-medium">Contoh</span> begini nanti progres bench-mu tampil (bukan
+            datamu)
+          </div>
+          <LineChart
+            points={DEMO}
+            target={{ y: data.targets.benchKg, label: `target ${data.targets.benchKg}` }}
+            format={(v) => `${formatNumber(v, 1)}`}
+            label="Contoh grafik perkiraan 1RM bench per minggu"
+          />
+          <p className="mt-2 text-xs text-faint">
+            Tiap sesi yang kamu catat jadi satu titik perkiraan 1RM (dari set terberat). Garis naik = makin kuat; turunan kecil di tengah =
+            minggu deload. Lari tes/kualitas jadi grafik perkiraan 5K. Di bawahnya ada rekor tiap gerakan dan laju kg/minggu.
+          </p>
+        </>
+      ) : (
+        <>
+          {options.length > 1 && (
+            <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1">
+              {options.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  aria-pressed={chosen?.id === o.id}
+                  onClick={() => setPick(o.id)}
+                  className={`chip shrink-0 py-1 ${chosen?.id === o.id ? 'border-transparent bg-btn text-btn-text' : ''}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {points.length >= 2 ? (
+            chosen?.id === 'lari' ? (
+              <LineChart
+                points={points}
+                target={{ y: data.targets.fiveKSec, label: `target ${formatDuration(data.targets.fiveKSec)}` }}
+                format={formatDuration}
+                color="var(--color-pulih)"
+                label="Perkiraan waktu 5K dari lari tes/kualitas"
+                lowerIsBetter
+              />
+            ) : (
+              <LineChart
+                points={points}
+                target={chosen?.id === '#ex:bench' ? { y: data.targets.benchKg, label: `target ${data.targets.benchKg}` } : undefined}
+                format={(v) => `${formatNumber(v, 1)}`}
+                label={`Perkiraan 1RM ${chosen?.label} (kg) per sesi`}
+              />
+            )
+          ) : (
+            <p className="text-[13px] text-muted">Grafik muncul setelah 2 sesi {chosen?.label}.</p>
+          )}
+          <div className="mt-3 mb-1 text-xs font-medium tracking-wide text-faint uppercase">Rekor & laju</div>
+          <ul>
+            {rows.map(({ ex, history, plateau }) => {
+              const best = history.reduce((a, h) => (h.e1rm > a.e1rm ? h : a), history[0])
+              return (
+                <li key={ex.id} className="flex items-center gap-3 border-t border-line py-2 first:border-t-0">
+                  <span className="flex-1 text-[13.5px]">
+                    {ex.name}
+                    <span className="block text-xs text-muted tabular-nums">
+                      rekor {formatNumber(best.workKg, 2)} kg ×{' '}
+                      {Math.max(...best.entry.sets.filter((s) => s.kg >= best.workKg).map((s) => s.reps))} (e1RM{' '}
+                      {kg(Math.round(best.e1rm * 10) / 10)})
+                      {plateau.slopePerWeek != null &&
+                        ` · ${plateau.slopePerWeek >= 0 ? '+' : ''}${formatNumber(plateau.slopePerWeek, 1)} kg/mgg`}
+                    </span>
+                    {plateau.stalled && (
+                      <button type="button" className="mt-0.5 text-xs text-uang underline underline-offset-2" onClick={() => onEdit(ex)}>
+                        Stagnan: ganti variasi?
+                      </button>
+                    )}
+                  </span>
+                  <Sparkline values={history.slice(-12).map((h) => h.e1rm)} label={`Tren e1RM ${ex.name}`} />
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
     </section>
   )
 }
@@ -274,8 +385,7 @@ function Recent({ data }: { data: LatihanData }) {
   )
 }
 
-function Settings({ data }: { data: LatihanData }) {
-  const [editing, setEditing] = useState<Exercise | null>(null)
+function Settings({ data, setEditing }: { data: LatihanData; setEditing: (ex: Exercise) => void }) {
   const time = (field: 'fiveKSec' | 'tenKSec', label: string) => (
     <label className="text-xs text-muted">
       {label}
@@ -295,6 +405,22 @@ function Settings({ data }: { data: LatihanData }) {
   return (
     <section className="card">
       <h2 className="card-title">Setelan latihan</h2>
+      <div className="mb-1.5 text-xs text-muted">Program beban</div>
+      <div role="radiogroup" aria-label="Program beban" className="flex rounded-full bg-surface-2 p-[3px]">
+        {(Object.keys(SPLITS) as TrainingSplit[]).map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={data.split === k}
+            onClick={() => void saveSplit(k)}
+            className={`flex-1 rounded-full px-2 py-1.5 text-[12.5px] ${data.split === k ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+          >
+            {SPLITS[k].label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1.5 mb-4 text-xs text-faint">{SPLITS[data.split].hint}</p>
       <div className="grid grid-cols-3 gap-2">
         <label className="text-xs text-muted">
           Target bench (kg)
@@ -329,7 +455,10 @@ function Settings({ data }: { data: LatihanData }) {
               onClick={() => setEditing(ex)}
               className="flex w-full items-center gap-2 border-t border-line py-2 text-left text-[13.5px] first:border-t-0"
             >
-              <span className="flex-1">{ex.name}</span>
+              <span className="flex-1">
+                {ex.name}
+                <span className="ml-1.5 text-[11px] text-faint">{MUSCLE_LABELS[muscleOf(ex)]}</span>
+              </span>
               <span className="text-xs text-muted tabular-nums">
                 {ex.sets}×{ex.repMin}–{ex.repMax} · +{formatNumber(ex.increment, 2)} kg
               </span>
@@ -351,15 +480,17 @@ function Settings({ data }: { data: LatihanData }) {
           </ul>
         </details>
       )}
-      <ExerciseEditor exercise={editing} onClose={() => setEditing(null)} />
     </section>
   )
 }
 
 export function LatihanPage() {
   const today = useToday()
-  const data = useLatihan(today)
+  const [day, setDay] = useState<string | null>(null)
+  const data = useLatihan(today, day)
   const [form, setForm] = useState<'beban' | 'lari' | null>(null)
+  const [catalog, setCatalog] = useState(false)
+  const [editing, setEditing] = useState<Exercise | null>(null)
   return (
     <>
       <PageTop title="Latihan" />
@@ -371,20 +502,28 @@ export function LatihanPage() {
             {data.dayType == null && <span className="text-faint"> (tipe hari belum dipilih)</span>}
           </p>
           <Targets data={data} />
-          <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
-            <StrengthCard data={data} onLog={() => setForm('beban')} />
+          <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
+            <StrengthCard data={data} onLog={() => setForm('beban')} onAdd={() => setCatalog(true)} onDay={setDay} />
             <RunCard data={data} onLog={() => setForm('lari')} />
-            <Progress data={data} />
+            <Progress data={data} onEdit={setEditing} />
             <Recent data={data} />
-            <Settings data={data} />
+            <Settings data={data} setEditing={setEditing} />
           </div>
           <StrengthForm
             open={form === 'beban'}
             onClose={() => setForm(null)}
             today={today}
-            exercises={data.exercises}
-            plans={data.strength.map((s) => s.plan)}
+            exercises={data.dayStrength.map((s) => s.ex)}
+            plans={data.dayStrength.map((s) => s.plan)}
+            day={data.split === 'fullbody' ? undefined : data.programDay}
           />
+          <CatalogSheet
+            open={catalog}
+            exercises={data.exercises}
+            onClose={() => setCatalog(false)}
+            onCustom={() => setEditing(newExercise(Math.max(0, ...data.exercises.map((e) => e.order)) + 1))}
+          />
+          <ExerciseEditor exercise={editing} existing={data.exercises} onClose={() => setEditing(null)} />
           <RunForm open={form === 'lari'} onClose={() => setForm(null)} today={today} />
         </>
       )}

@@ -28,7 +28,7 @@ function Summary({ data }: { data: HadiahData }) {
           </span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-track" aria-hidden="true">
-          <div className="h-full rounded-full bg-tentir" style={{ width: `${pct}%` }} />
+          <div className="h-full rounded-full bg-tentir bar-anim" style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-2 text-xs text-muted">1 token tiap naik level. Sudah diklaim {data.claims.length}.</p>
       </div>
@@ -46,7 +46,10 @@ function Summary({ data }: { data: HadiahData }) {
               <span className="text-[13px] font-normal text-faint"> / {formatRupiah(bridge.target)}</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-track" aria-hidden="true">
-              <div className="h-full rounded-full bg-uang" style={{ width: `${Math.min(100, (bridge.saved / bridge.target) * 100)}%` }} />
+              <div
+                className="h-full rounded-full bg-uang bar-anim"
+                style={{ width: `${Math.min(100, (bridge.saved / bridge.target) * 100)}%` }}
+              />
             </div>
             <p className={`mt-2 text-xs ${bridge.reached ? 'text-ok' : 'text-muted'}`}>
               {bridge.reached
@@ -232,7 +235,7 @@ export function HadiahPage() {
       {data && (
         <>
           <Summary data={data} />
-          <div className="mt-3 grid items-start gap-3 lg:grid-cols-2">
+          <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
             <RewardList data={data} />
             <History data={data} />
           </div>

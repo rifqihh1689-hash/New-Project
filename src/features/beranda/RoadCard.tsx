@@ -56,7 +56,7 @@ export function RoadCard({ data }: { data: BerandaData }) {
             </div>
             <div className="h-[5px] w-[72px] overflow-hidden rounded-full bg-track">
               <i
-                className="block h-full rounded-full"
+                className="block h-full rounded-full bar-anim"
                 style={{ width: `${Math.round(q.progress * 100)}%`, background: role(q.roleId).color }}
               />
             </div>

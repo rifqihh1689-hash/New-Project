@@ -1,7 +1,8 @@
 import { habitsForDay } from '../domain/xp'
 import { DEFAULT_TARGETS } from '../domain/training'
 import { createId, privateId } from '../lib/id'
-import type { Exercise, ISODate, TrainingTargets, Workout } from '../types'
+import { groupOf, type CatalogItem } from '../domain/exerciseCatalog'
+import type { Exercise, ISODate, TrainingSplit, TrainingTargets, Workout } from '../types'
 import { assertNoPatientIdentity, setHabitDone } from './daily'
 import { db } from './db'
 import { DEFAULT_EXERCISES, DEFAULT_PROFILE, mergeWithDefaults } from './defaults'
@@ -22,6 +23,7 @@ export function newExercise(order: number): Exercise {
     id: createId('exr'),
     name: '',
     group: 'upper',
+    muscle: 'dada',
     repMin: 6,
     repMax: 10,
     sets: 3,
@@ -31,6 +33,41 @@ export function newExercise(order: number): Exercise {
     createdAt: now,
     updatedAt: now,
   }
+}
+
+/** Tambah gerakan dari katalog (rentang rep, set, dan kenaikan ikut katalog). */
+export async function addFromCatalog(item: CatalogItem, order: number): Promise<Exercise> {
+  const ex: Exercise = {
+    ...newExercise(order),
+    name: item.name,
+    muscle: item.muscle,
+    group: groupOf(item.muscle),
+    repMin: item.repMin,
+    repMax: item.repMax,
+    sets: item.sets,
+    increment: item.increment,
+  }
+  await saveExercise(ex)
+  return ex
+}
+
+/**
+ * Ganti variasi: gerakan lama diarsipkan (riwayatnya tetap), variasi baru ditambahkan di urutan yang sama.
+ * Mengembalikan keduanya untuk Urungkan.
+ */
+export async function swapExercise(old: Exercise, item: CatalogItem): Promise<{ old: Exercise; added: Exercise }> {
+  await saveExercise({ ...old, archived: true })
+  const added = await addFromCatalog(item, old.order)
+  return { old, added }
+}
+
+export async function undoSwap({ old, added }: { old: Exercise; added: Exercise }): Promise<void> {
+  await db.exercises.delete(added.id)
+  await saveExercise({ ...old, archived: false })
+}
+
+export async function saveSplit(split: TrainingSplit): Promise<void> {
+  await updateProfile({ trainingSplit: split })
 }
 
 export async function loadTargets(): Promise<TrainingTargets> {

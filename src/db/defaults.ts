@@ -264,10 +264,12 @@ const ex = (
   sets: number,
   increment: number,
   order: number,
+  muscle: Exercise['muscle'],
 ): Exercise => ({
   id: `#ex:${key}`,
   name,
   group,
+  muscle,
   repMin,
   repMax,
   sets,
@@ -279,10 +281,10 @@ const ex = (
 })
 
 export const DEFAULT_EXERCISES: Exercise[] = [
-  ex('bench', 'Bench press', 'upper', 5, 8, 3, 2.5, 1),
-  ex('squat', 'Squat', 'lower', 5, 8, 3, 5, 2),
-  ex('deadlift', 'Deadlift', 'lower', 3, 6, 2, 5, 3),
-  ex('ohp', 'Overhead press', 'upper', 6, 10, 3, 2.5, 4),
-  ex('row', 'Barbell row', 'upper', 6, 10, 3, 2.5, 5),
-  ex('pulldown', 'Pull-up / lat pulldown', 'upper', 6, 10, 3, 2.5, 6),
+  ex('bench', 'Bench press', 'upper', 5, 8, 3, 2.5, 1, 'dada'),
+  ex('squat', 'Squat', 'lower', 5, 8, 3, 5, 2, 'kaki'),
+  ex('deadlift', 'Deadlift', 'lower', 3, 6, 2, 5, 3, 'kaki'),
+  ex('ohp', 'Overhead press', 'upper', 6, 10, 3, 2.5, 4, 'bahu'),
+  ex('row', 'Barbell row', 'upper', 6, 10, 3, 2.5, 5, 'punggung'),
+  ex('pulldown', 'Pull-up / lat pulldown', 'upper', 6, 10, 3, 2.5, 6, 'punggung'),
 ]

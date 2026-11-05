@@ -3,7 +3,7 @@ import { habitCell } from './habitGrid'
 import { sleepTotal } from './sleep'
 import { addDays, diffDays } from './time'
 
-/** Angka ringkasan satu minggu (disimpan di Muhasabah agar Claude bisa membacanya). */
+/** Angka ringkasan satu periode (minggu/bulan), disimpan di Muhasabah agar Claude bisa membacanya. */
 export interface WeekNumbers {
   tasksDone: number
   tasksOpen: number
@@ -35,7 +35,8 @@ export interface WeekInput {
 }
 
 export function computeWeekNumbers(w: WeekInput): WeekNumbers {
-  const inWeek = (d: ISODate) => d >= w.dates[0] && d <= w.dates[6]
+  // Rentang bebas (minggu atau bulan): dari tanggal pertama sampai terakhir di `dates`.
+  const inWeek = (d: ISODate) => d >= w.dates[0] && d <= w.dates[w.dates.length - 1]
   const dayMap = new Map(w.days.map((d) => [d.date, d]))
   const logMap = new Map(w.habitLogs.map((l) => [`${l.habitId}|${l.date}`, l]))
   let habitDone = 0

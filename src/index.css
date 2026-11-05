@@ -69,6 +69,14 @@
   --animate-slide-up: slide-up 0.22s ease-out;
   --animate-fade-in: fade-in 0.18s ease-out;
   --animate-toast-in: toast-in 0.2s ease-out;
+  --animate-page-in: page-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  --animate-card-in: card-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  --animate-check-pop: check-pop 0.34s cubic-bezier(0.3, 1.6, 0.5, 1);
+  --animate-check-draw: check-draw 0.26s ease-out 0.06s both;
+  --animate-ring: ring 0.55s ease-out both;
+  --animate-xp-float: xp-float 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop-in: pop-in 0.38s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  --animate-burst: burst 0.9s cubic-bezier(0.1, 0.8, 0.3, 1) both;
 
   @keyframes slide-up {
     from {
@@ -88,6 +96,89 @@
       opacity: 1;
     }
   }
+  @keyframes page-in {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes card-in {
+    from {
+      transform: translateY(14px) scale(0.985);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes check-pop {
+    0% {
+      transform: scale(0.7);
+    }
+    60% {
+      transform: scale(1.18);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes check-draw {
+    from {
+      stroke-dashoffset: 12;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes ring {
+    from {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    to {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+  }
+  @keyframes xp-float {
+    0% {
+      transform: translateY(4px) scale(0.9);
+      opacity: 0;
+    }
+    20% {
+      transform: translateY(-6px) scale(1.05);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-30px) scale(1);
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      transform: scale(0.88);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes burst {
+    from {
+      transform: rotate(var(--a)) translateY(0) scale(1);
+      opacity: 1;
+    }
+    to {
+      transform: rotate(var(--a)) translateY(calc(-1 * var(--d, 90px))) scale(0.4);
+      opacity: 0;
+    }
+  }
   @keyframes toast-in {
     from {
       transform: translateY(-12px);
@@ -102,6 +193,46 @@
 
 body {
   @apply bg-bg font-sans text-[14px] leading-[1.45] text-text antialiased;
+}
+
+/*
+ * Kartu muncul bertahap: anak langsung dari .stagger masuk satu per satu.
+ * Penting: animasi masuk memakai fill-mode "backwards", bukan "both". Animasi transform yang bertahan
+ * membuat elemen menjadi wadah bagi elemen position: fixed di dalamnya (Sheet, dialog), sehingga
+ * lembar bawah dan dialog ikut terkurung di dalam kartu.
+ */
+.stagger > * {
+  animation: var(--animate-card-in);
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > *:nth-child(n + 7) {
+  animation-delay: 240ms;
+}
+
+/* Bar progres bergerak halus saat nilainya berubah. */
+.bar-anim {
+  transform-origin: left center;
+  transition: width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: bar-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

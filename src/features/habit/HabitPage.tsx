@@ -47,7 +47,7 @@ function Cell({ cell, tone, onToggle, why }: { cell: HabitCell; tone: 'ok' | 'mu
       title={why || undefined}
       className={`grid size-[30px] place-items-center rounded-[9px] text-[11px] font-medium tabular-nums transition md:size-[34px] ${
         done ? fill : na ? 'text-faint' : 'bg-surface-2 text-muted'
-      } ${cell.isToday ? 'outline-[1.5px] outline-text outline-solid' : ''} ${cell.locked ? 'opacity-55' : ''} ${cell.editable ? 'active:scale-95' : 'cursor-default'}`}
+      } ${cell.isToday ? 'outline-[1.5px] outline-text outline-solid' : ''} ${cell.locked ? 'opacity-70' : ''} ${cell.editable ? 'active:scale-95' : 'cursor-default'}`}
     >
       {na ? '·' : n}
     </button>
@@ -98,13 +98,24 @@ function HabitCard({ data }: { data: HabitPageData }) {
     if (h.kind === 'sleep') return 'Otomatis dari jam tidur'
     if (h.kind === 'workend') return 'Otomatis dari "Tutup hari"'
     if (c.applies === false) return `Tidak berlaku saat ${DAY_TYPE_LABELS[data.dayTypes.get(c.date)!]}`
-    if (c.locked) return 'Terkunci: lewat jendela isi mundur'
+    if (c.locked) return 'Lewat jendela isi mundur: tetap bisa dicentang, XP hari itu tidak berubah'
     return ''
   }
-  const toggle = (h: Habit, c: HabitCell) => {
-    if (c.editable) return void setHabitDone(h.id, c.date, !c.done)
-    const reason = why(h, c)
-    if (reason) toast({ message: reason, tone: 'info', duration: 2500 })
+  const toggle = async (h: Habit, c: HabitCell) => {
+    if (!c.editable) {
+      const reason = why(h, c)
+      if (reason) toast({ message: reason, tone: 'info', duration: 2500 })
+      return
+    }
+    await setHabitDone(h.id, c.date, !c.done)
+    // Hari lama boleh dikoreksi; hanya diberi tahu bahwa XP hari itu sudah dibekukan.
+    if (c.locked)
+      toast({
+        message: `${c.done ? 'Dibatalkan' : 'Dicentang'} untuk ${dateLabel(c.date)}. Hari itu sudah lewat jendela isi mundur, jadi XP-nya tidak berubah.`,
+        tone: 'info',
+        duration: 4500,
+        action: { label: 'Urungkan', onClick: () => void setHabitDone(h.id, c.date, c.done) },
+      })
   }
   const addTemplate = async (t: (typeof HABIT_TEMPLATES)[number]) => {
     const now = Date.now()
@@ -156,7 +167,7 @@ function HabitCard({ data }: { data: HabitPageData }) {
             ) : null}
             <div className="grid w-full grid-cols-7 justify-items-center gap-1 sm:ml-auto sm:w-auto md:gap-1.5">
               {cells.map((c) => (
-                <Cell key={c.date} cell={c} tone="ok" onToggle={() => toggle(h, c)} why={why(h, c)} />
+                <Cell key={c.date} cell={c} tone="ok" onToggle={() => void toggle(h, c)} why={why(h, c)} />
               ))}
             </div>
           </li>
