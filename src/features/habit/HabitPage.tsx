@@ -86,6 +86,7 @@ function MinutesSheet({ habit, today, minutes, onClose }: { habit: Habit | null;
 function HabitCard({ data }: { data: HabitPageData }) {
   const toast = useToast()
   const role = roleLookup(data.roles)
+  const weekDone = data.weekDone
   const [editing, setEditing] = useState<HabitDraft | null>(null)
   const [timing, setTiming] = useState<string | null>(null)
   const timingRow = data.rows.find((r) => r.habit.id === timing)
@@ -132,9 +133,13 @@ function HabitCard({ data }: { data: HabitPageData }) {
               </button>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
                 <RoleTag role={role(h.roleId)} />
-                <span>
-                  {summary.done}/{summary.applicable} hari
-                </span>
+                {h.freq === 'weekly' ? (
+                  <span>1×/minggu · {weekDone.has(h.id) ? 'minggu ini selesai' : 'minggu ini belum'}</span>
+                ) : (
+                  <span>
+                    {summary.done}/{summary.applicable} hari
+                  </span>
+                )}
                 {h.minutes && (
                   <span>
                     · hari ini {todayMinutes}/{h.minutes} mnt

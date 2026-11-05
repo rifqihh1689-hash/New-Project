@@ -1,3 +1,4 @@
+import { Gift } from 'lucide-react'
 import { formatMultiplier } from '../../domain/sleep'
 import { formatNumber } from '../../lib/format'
 import type { BerandaData } from './data'
@@ -45,6 +46,15 @@ export function GameStrip({ data }: { data: BerandaData }) {
       <div>
         <b className="font-semibold text-text">{r.xp}</b> XP<span className="hidden sm:inline"> hari ini</span>
       </div>
+      {data.tokens > 0 && (
+        <a
+          href="#/hadiah"
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-[3px] font-semibold text-ok"
+          style={{ background: 'color-mix(in srgb, var(--ok) 14%, transparent)' }}
+        >
+          <Gift size={13} aria-hidden="true" /> {data.tokens} token
+        </a>
+      )}
       <div
         className="rounded-full px-2.5 py-[3px] font-semibold text-uang"
         style={{ background: 'color-mix(in srgb, var(--color-uang) 16%, transparent)' }}

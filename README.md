@@ -24,7 +24,12 @@ PWA offline-first: bisa dipasang di layar utama HP, iPad, dan laptop, jalan tanp
 - **XP dari MBAPPE OS**: `round(min(Σ, 100) × pengali tidur) − 15·[lewat 21.00]`, pengali dari tidur malam + qailulah. Hari lama dibekukan.
 - **Tanpa identitas pasien**: No. RM, angka ≥ 6 digit, Tn./Ny./An. + nama mengunci tombol simpan di semua kolom teks.
 - **Menu & makan**: target protein dari berat badan × 1,6 g/kg, 3–5× makan sesuai fase bulk/maintain/cut, menu bawaan ayam & telur (beli/masak), isi otomatis seminggu mengikuti tipe hari dan anggaran, daftar belanja jadi tugas, kartu "Makan hari ini".
+- **Latihan**: log bench/beban (set kg × rep + rasa) dan lari; resep sesi berikutnya dengan double progression, turun 10% setelah 2× gagal, deload otomatis saat stagnan, latihan ringan saat pasca-jaga/kurang tidur; rencana lari mingguan (naik ≤ 10%, minggu pemulihan, 80/20) dan perkiraan 5K; proyeksi kapan bench 100 kg tercapai.
+- **Tentir**: sesi per murid (inisial), jam per hari vs kuota 9–15 j/minggu, Rp per jam, belum dibayar; sesi lunas otomatis jadi pemasukan; quest "selesai ≤ 21.00" dan lembur tercatat otomatis; Catat cepat "AB 2j anatomi 19.00 lunas".
+- **Hadiah**: 1 token tiap naik level, daftar hadiah sendiri, klaim + riwayat; hadiah berbiaya terkunci sampai dana jembatan tercapai.
+- **Usulan & connector Claude**: Claude membaca ringkasan, data, dan rencana latihan lewat connector (`connector/`, Cloudflare Worker) dan mengirim usulan (tugas, jaga, habit, stase, ritme, menu); kamu memilih item lalu menyetujuinya di halaman Usulan. Panduan pasang di `connector/README.md`.
 - **Jadwal fleksibel**: jam masuk/pulang per stase, ritme harian per tipe hari (Setelan), kalimat pembuka ikut jam pulang.
+- **Impor MBAPPE OS**: pilih file export (atau tempel JSON) di halaman Impor; hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan ikut. Data Qawwam tidak ditimpa, aman diulang.
 - **Impor jadwal**: tempel sel Google Sheets/CSV atau balasan Claude (untuk screenshot, PDF, catatan program latihan) → pratinjau → impor. Jenis: ritme, habit/latihan, tugas, jaga, stase. Aman diulang.
 - **Sinkron**: Dexie Cloud dengan layar masuk berbahasa Indonesia (email + kode). **Setelan**: tema, stase, ritme, fase hidup & peran, export JSON.
 

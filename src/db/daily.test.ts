@@ -96,6 +96,46 @@ describe('XP dari database', () => {
   })
 })
 
+describe('quest mingguan', () => {
+  it('XP hanya di hari pertama selesai minggu itu; hari lain menampilkan tanggal selesainya', async () => {
+    await db.habits.put({
+      id: 'hab_post',
+      name: '1 post edukasi',
+      roleId: '#role:orto',
+      size: 'besar',
+      dayTypes: ['stase', 'libur'],
+      weekdays: [],
+      minutes: null,
+      kind: 'normal',
+      active: true,
+      order: 90,
+      freq: 'weekly',
+      createdAt: 0,
+      updatedAt: 0,
+    })
+    const tue = '2026-11-03'
+    await setDayType(tue, 'stase')
+    await setDayType(TODAY, 'stase')
+    const before = await loadDaySnapshot(tue, TODAY)
+    await setHabitDone('hab_post', tue, true)
+    const done = await loadDaySnapshot(tue, TODAY)
+    expect(done.result.base - before.result.base).toBe(20)
+    expect(done.result.total).toBe(before.result.total) // tidak masuk penyebut lolos
+
+    await setHabitDone('hab_post', TODAY, true) // dicentang lagi hari Kamis: tidak dapat XP kedua
+    const thu = await loadDaySnapshot(TODAY, TODAY)
+    expect(thu.rows.find((r) => r.id === 'hab_post')).toMatchObject({ weekly: true, done: false, doneOn: tue })
+    expect(thu.result.base).toBe(0)
+
+    // Minggu berikutnya mulai dari nol.
+    const nextMon = '2026-11-09'
+    await setDayType(nextMon, 'libur')
+    expect((await loadDaySnapshot(nextMon, nextMon)).rows.find((r) => r.id === 'hab_post')).toMatchObject({ done: false, doneOn: null })
+    const { results } = await loadAllResults(TODAY)
+    expect(results.get(tue)?.base).toBe(done.result.base)
+  })
+})
+
 describe('bawaan tanpa isi awal', () => {
   it('peran bawaan muncul tanpa ditulis ke database, perubahan disimpan dengan ID yang sama', async () => {
     expect(await db.lifeRoles.count()).toBe(0)

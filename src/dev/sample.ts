@@ -188,4 +188,20 @@ export async function loadSample(): Promise<void> {
     ['IELTS', '#role:orto', 'target band diisi di Setelan', 0.1],
   ] as const)
     await db.mainQuests.add({ id: createId('mqs'), name, roleId, status: 'aktif', next, progress, doneAt: null, ...stamp })
+
+  // Satu usulan dari Claude (contoh), termasuk satu item yang mirip identitas pasien.
+  await db.proposals.add({
+    id: createId('prp'),
+    summary: 'Rencana belajar & jaga minggu depan',
+    items: [
+      { jenis: 'tugas', judul: '40 soal kardiologi + review', tanggal: addDays(today, 1), peran: 'ukmppd' },
+      { jenis: 'tugas', judul: 'Baca 2 jurnal fraktur femur', tanggal: addDays(today, 2), peran: 'orto' },
+      { jenis: 'jaga', tanggal: addDays(today, 3) },
+      { jenis: 'tugas', judul: 'Follow up Tn. Budi bed 4', tanggal: addDays(today, 1) },
+    ],
+    status: 'menunggu',
+    source: 'claude',
+    decidedAt: null,
+    ...stamp,
+  })
 }

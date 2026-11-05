@@ -5,6 +5,11 @@ import { weekDates } from './time'
 import {
   formatQty,
   generateWeekPlan,
+  ingredientCost,
+  menuCost,
+  pricesAge,
+  resolvePrices,
+  withComputedCosts,
   mealKey,
   parseIngredients,
   planSummary,
@@ -115,5 +120,38 @@ describe('daftar belanja', () => {
       { name: 'Nasi', qty: 1, unit: 'porsi' },
     ])
     expect(parseIngredients('telur banyak')).toBeNull()
+  })
+})
+
+describe('harga bahan', () => {
+  const prices = resolvePrices(undefined)
+
+  it('biaya menu masak = bahan × harga + bumbu, dibulatkan Rp100', () => {
+    const egg = DEFAULT_MENUS.find((m) => m.id === '#menu:telur-dadar')!
+    // 2 telur × 2.000 + 80 g beras × 14 + bumbu 1.500 = 6.620 → 6.600
+    expect(menuCost(egg, prices, 1_500)).toEqual({ cost: 6_600, auto: true })
+  })
+
+  it('menu beli & bahan tanpa harga memakai biaya manual', () => {
+    const geprek = DEFAULT_MENUS.find((m) => m.id === '#menu:geprek')!
+    expect(menuCost(geprek, prices, 1_500)).toEqual({ cost: 15_000, auto: false })
+    expect(menuCost({ source: 'masak', costRp: 9_000, ingredients: [{ name: 'Udang', qty: 100, unit: 'g' }] }, prices, 1_500)).toEqual({
+      cost: 9_000,
+      auto: false,
+    })
+  })
+
+  it('harga tersimpan menggantikan bawaan dan mengubah biaya semua menu', () => {
+    const naik = resolvePrices([{ name: 'telur', unit: 'butir', rpPerUnit: 2_500 }])
+    expect(naik.find((p) => p.name.toLowerCase() === 'telur')?.rpPerUnit).toBe(2_500)
+    const menus = withComputedCosts(DEFAULT_MENUS, { prices: naik, overheadRp: 1_500 })
+    expect(menus.find((m) => m.id === '#menu:telur-rebus')).toMatchObject({ costRp: 9_000, costAuto: true }) // 3 × 2.500 + 1.500
+  })
+
+  it('harga per baris belanja & umur harga', () => {
+    expect(ingredientCost({ name: 'Dada ayam', qty: 900, unit: 'g' }, prices)).toBe(40_500)
+    expect(ingredientCost({ name: 'Udang', qty: 100, unit: 'g' }, prices)).toBeNull()
+    expect(pricesAge(null)).toBeNull()
+    expect(pricesAge(Date.parse('2026-10-01'), Date.parse('2026-11-05'))).toBe(35)
   })
 })

@@ -1,3 +1,4 @@
+import { Inbox } from 'lucide-react'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { dayTypeLabel } from '../../domain/dayType'
@@ -46,6 +47,18 @@ export function BerandaPage() {
         <DayTypePicker date={today} value={type} suggested={data.suggested} phase={data.phase} className="w-full lg:ml-auto lg:w-auto" />
       </section>
 
+      {data.pendingProposals > 0 && (
+        <a
+          href="#/usulan"
+          className="mb-3.5 flex items-center gap-2.5 rounded-[14px] border border-line bg-surface px-3.5 py-2.5 text-[13.5px] hover:bg-surface-2"
+        >
+          <Inbox size={16} className="text-tentir" aria-hidden="true" />
+          <span className="flex-1">
+            <b className="font-semibold">{data.pendingProposals} usulan dari Claude</b> menunggu persetujuan
+          </span>
+          <span className="text-faint">Tinjau →</span>
+        </a>
+      )}
       <GameStrip data={data} />
       <StatCards data={data} isPasca={isPasca} />
 

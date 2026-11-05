@@ -3,6 +3,8 @@ import dexieCloud from 'dexie-cloud-addon'
 import type {
   Budget,
   CalendarEvent,
+  Claim,
+  Exercise,
   Category,
   Chapter,
   Day,
@@ -20,11 +22,13 @@ import type {
   Proposal,
   RecurringRule,
   Review,
+  Reward,
   Role,
   Saving,
   Task,
   TentirSession,
   Transaction,
+  Workout,
 } from '../types'
 
 export type QawwamDB = Dexie & {
@@ -52,6 +56,10 @@ export type QawwamDB = Dexie & {
   proposals: EntityTable<Proposal, 'id'>
   menus: EntityTable<Menu, 'id'>
   mealPlans: EntityTable<MealPlanEntry, 'id'>
+  exercises: EntityTable<Exercise, 'id'>
+  workouts: EntityTable<Workout, 'id'>
+  rewards: EntityTable<Reward, 'id'>
+  claims: EntityTable<Claim, 'id'>
 }
 
 export const DB_NAME = 'qawwam'
@@ -93,11 +101,21 @@ export const SCHEMA_V2_ADDITIONS = {
   mealPlans: 'id, date',
 } as const
 
+/** Tabel baru di skema v3 (latihan & hadiah). */
+export const SCHEMA_V3_ADDITIONS = {
+  exercises: 'id, order',
+  workouts: 'id, date, kind',
+  rewards: 'id',
+  claims: 'id, date',
+} as const
+
 export function createDatabase(name: string = DB_NAME): QawwamDB {
   const db = new Dexie(name, { addons: [dexieCloud] }) as QawwamDB
   db.version(1).stores(SCHEMA_V1)
   // v2: modul Menu. Data lama tidak tersentuh.
   db.version(2).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS })
+  // v3: latihan & hadiah.
+  db.version(3).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS })
   return db
 }
 

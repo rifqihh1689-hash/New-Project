@@ -103,6 +103,11 @@ function CaptureSheetBody({ onSaved }: { onSaved: () => void }) {
       {c.mode === 'tugas' && (
         <p className="text-xs text-faint">Tanggal: “besok”, “lusa”, “senin”. Peran: #ukmppd, #orto, #tentir. Penting: “!”.</p>
       )}
+      {c.mode === 'tentir' && (
+        <p className="text-xs text-faint">
+          Inisial kapital (AB), durasi “2j”/“90m”, jam “19.00”, tanggal “besok”, “lunas”. Tarif dari Setelan tentir.
+        </p>
+      )}
       <button type="submit" className="btn-primary w-full py-3" disabled={!c.ready || !c.text.trim() || !!c.phi}>
         Catat
       </button>

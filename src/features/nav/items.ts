@@ -2,8 +2,11 @@ import {
   BookOpen,
   BookOpenText,
   CalendarDays,
+  Dumbbell,
   FileText,
+  Gift,
   House,
+  Inbox,
   RefreshCw,
   SquareCheck,
   Target,
@@ -37,12 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
     Icon: BookOpen,
     soon: { phase: 3, what: 'Bank soal per sistem organ, blok belajar, dan tryout.' },
   },
-  {
-    route: 'tentir',
-    label: 'Tentir',
-    Icon: Users,
-    soon: { phase: 2, what: 'Sesi tentir, jam vs kapasitas 9–15 j/minggu. Sesi tercatat otomatis jadi pemasukan.' },
-  },
+  { route: 'tentir', label: 'Tentir', Icon: Users },
   {
     route: 'uang',
     label: 'Uang',
@@ -51,6 +49,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
   { route: 'menu', label: 'Menu', Icon: UtensilsCrossed },
+  { route: 'latihan', label: 'Latihan', Icon: Dumbbell },
+  { route: 'hadiah', label: 'Hadiah', Icon: Gift },
   {
     route: 'target',
     label: 'Target & PPDS',
@@ -59,4 +59,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { route: 'catatan', label: 'Catatan', Icon: FileText, soon: { phase: 2, what: 'Catatan per peran, warna, dan sematan.' } },
   { route: 'muhasabah', label: 'Muhasabah', Icon: BookOpenText },
+  { route: 'usulan', label: 'Usulan', Icon: Inbox },
 ]

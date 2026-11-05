@@ -4,7 +4,7 @@ import { formatQty } from '../domain/menu'
 import { weekDates } from '../domain/time'
 import type { DayType } from '../types'
 import { db } from './db'
-import { autoPlan, loadMenus, restorePlan, saveMenu, setMeal, shoppingTask, updateNutrition } from './menu'
+import { autoPlan, loadMenus, restorePlan, saveMenu, savePrices, setMeal, shoppingTask, updateNutrition } from './menu'
 import { loadProfile } from './structure'
 
 const dates = weekDates('2026-11-02')
@@ -51,5 +51,17 @@ describe('rencana makan', () => {
     const task = (await db.tasks.get(id))!
     expect(task).toMatchObject({ title: 'Belanja mingguan', roleId: '#role:uang', date: '2026-11-07' })
     expect(task.subtasks.map((s) => s.title)).toEqual(['Telur 14 butir', 'Dada ayam 1,2 kg'])
+  })
+})
+
+describe('harga bahan tersimpan', () => {
+  it('memperbarui biaya menu masak dan mencatat tanggal', async () => {
+    const before = (await loadMenus()).find((m) => m.id === '#menu:ayam-panggang')!
+    const nutrition = (await loadProfile()).nutrition
+    expect(nutrition?.pricesUpdatedAt).toBeUndefined()
+    await savePrices([{ name: 'Dada ayam', unit: 'g', rpPerUnit: 60 }])
+    const after = (await loadMenus()).find((m) => m.id === '#menu:ayam-panggang')!
+    expect(after.costRp - before.costRp).toBe(2_200) // 150 g × Rp15 lebih mahal = 2.250 → dibulatkan
+    expect((await loadProfile()).nutrition?.pricesUpdatedAt).toBeGreaterThan(0)
   })
 })

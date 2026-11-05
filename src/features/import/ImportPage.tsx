@@ -8,6 +8,8 @@ import { roleLookup, useRoles } from '../../db/structure'
 import { describeItem, IMPORT_KIND_LABELS, IMPORT_KINDS, parseImport, type ImportKind } from '../../domain/importer'
 import { PHI_HINT } from '../../domain/phi'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
+import { parseMbappe } from '../../domain/mbappe'
+import { MbappeCard } from './MbappeCard'
 import { claudePrompt, csvTemplate, sheetTemplate } from './templates'
 
 async function copy(text: string): Promise<boolean> {
@@ -40,9 +42,10 @@ export function ImportPage() {
   const [skipped, setSkipped] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const role = roleLookup(roles)
+  const mbappe = useMemo(() => (text.trim().startsWith('{') ? parseMbappe(text) : null), [text])
   const rows = useMemo(
-    () => parseImport(text, { roles: roles ?? [], today, defaultKind: defaultKind || undefined }),
-    [text, roles, today, defaultKind],
+    () => (mbappe ? [] : parseImport(text, { roles: roles ?? [], today, defaultKind: defaultKind || undefined })),
+    [text, roles, today, defaultKind, mbappe],
   )
   const valid = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.item && !r.phi)
   const chosen = valid.filter(({ i }) => !skipped.has(i))
@@ -128,6 +131,13 @@ export function ImportPage() {
               </div>
             </div>
           </div>
+          <div className="mt-3 rounded-xl bg-surface-2 p-3.5">
+            <div className="font-medium">Data lama MBAPPE OS</div>
+            <p className="mt-1 text-[13px] text-muted">
+              Di MBAPPE OS: Setelan → Export JSON (simpan ke File) atau Salin JSON. Lalu pilih filenya / tempel di kotak bawah; Qawwam
+              mengenalinya otomatis.
+            </p>
+          </div>
         </section>
 
         <section className="card">
@@ -153,7 +163,9 @@ export function ImportPage() {
                 onChange={(e) => pickFile(e.target.files?.[0])}
               />
             </label>
-            <label className="flex w-full flex-col gap-1 text-[13px] text-muted sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-2">
+            <label
+              className={`w-full flex-col gap-1 text-[13px] text-muted sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-2 ${mbappe ? 'hidden' : 'flex'}`}
+            >
               Tanpa kolom "jenis", anggap sebagai
               <select
                 className="field py-1.5 sm:w-auto"
@@ -170,6 +182,16 @@ export function ImportPage() {
             </label>
           </div>
         </section>
+
+        {mbappe && (
+          <MbappeCard
+            data={mbappe}
+            onDone={() => {
+              setText('')
+              setSkipped(new Set())
+            }}
+          />
+        )}
 
         {rows.length > 0 && (
           <section className="card">

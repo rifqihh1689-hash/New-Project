@@ -160,6 +160,36 @@ function HabitForm({ draft, roles, nextOrder, onClose }: { draft: HabitDraft; ro
           ))}
         </div>
       </div>
+      {!auto && (
+        <div>
+          <span className="label">Frekuensi</span>
+          <div role="radiogroup" aria-label="Frekuensi" className="flex rounded-full bg-surface-2 p-[3px]">
+            {(
+              [
+                ['daily', 'Harian'],
+                ['weekly', 'Mingguan (1×)'],
+              ] as const
+            ).map(([v, label]) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={(h.freq ?? 'daily') === v}
+                onClick={() => set({ freq: v === 'daily' ? undefined : v })}
+                className={`flex-1 rounded-full px-2 py-1.5 text-[13px] ${(h.freq ?? 'daily') === v ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {h.freq === 'weekly' && (
+            <p className="mt-1.5 text-xs text-faint">
+              Cukup sekali seminggu (mis. setor dana jembatan, 1 post edukasi). XP masuk di hari pertama selesai dan tidak memengaruhi
+              syarat lolos harian.
+            </p>
+          )}
+        </div>
+      )}
       <div>
         <span className="label">Berlaku di tipe hari</span>
         <div className="flex flex-wrap gap-1.5">

@@ -1,20 +1,24 @@
-import { generateWeekPlan, mealKey, resolveNutrition, slotsFor } from '../domain/menu'
+import { generateWeekPlan, mealKey, resolveNutrition, slotsFor, withComputedCosts } from '../domain/menu'
 import { createId, privateId } from '../lib/id'
-import type { DayType, Ingredient, ISODate, MealPlanEntry, MealSlot, Menu, NutritionSettings } from '../types'
+import type { DayType, Ingredient, IngredientPrice, ISODate, MealPlanEntry, MealSlot, Menu, NutritionSettings } from '../types'
 import { addTask, assertNoPatientIdentity, updateTask } from './daily'
 import { db } from './db'
 import { DEFAULT_MENUS, DEFAULT_PROFILE } from './defaults'
 
 /** Menu bawaan + menu tersimpan (tersimpan menang), diurutkan masak dulu lalu nama. */
 export async function loadMenus(): Promise<Menu[]> {
+  const [stored, profile] = await Promise.all([db.menus.toArray(), db.profile.get(DEFAULT_PROFILE.id)])
   const map = new Map(DEFAULT_MENUS.map((m) => [m.id, m]))
-  for (const m of await db.menus.toArray()) map.set(m.id, m)
-  return [...map.values()].sort((a, b) => a.source.localeCompare(b.source) || a.name.localeCompare(b.name, 'id'))
+  for (const m of stored) map.set(m.id, m)
+  const menus = [...map.values()].sort((a, b) => a.source.localeCompare(b.source) || a.name.localeCompare(b.name, 'id'))
+  return withComputedCosts(menus, resolveNutrition(profile?.nutrition))
 }
 
 export async function saveMenu(menu: Menu): Promise<void> {
   assertNoPatientIdentity(menu.name, menu.note ?? '', menu.place ?? '')
-  await db.menus.put({ ...menu, updatedAt: Date.now() })
+  const { costAuto: _auto, ...rest } = menu
+  void _auto
+  await db.menus.put({ ...rest, updatedAt: Date.now() })
 }
 
 export function newMenu(): Menu {
@@ -40,6 +44,11 @@ export async function updateNutrition(changes: Partial<NutritionSettings>): Prom
     const current = (await db.profile.get(DEFAULT_PROFILE.id)) ?? DEFAULT_PROFILE
     await db.profile.put({ ...current, nutrition: { ...current.nutrition, ...changes }, id: DEFAULT_PROFILE.id, updatedAt: Date.now() })
   })
+}
+
+/** Menyimpan daftar harga bahan; tanggal pembaruan dicatat untuk pengingat bulanan. */
+export async function savePrices(prices: IngredientPrice[], overheadRp?: number): Promise<void> {
+  await updateNutrition({ prices, pricesUpdatedAt: Date.now(), ...(overheadRp !== undefined ? { overheadRp } : {}) })
 }
 
 export async function setMeal(date: ISODate, slot: MealSlot, menuId: string | null): Promise<void> {

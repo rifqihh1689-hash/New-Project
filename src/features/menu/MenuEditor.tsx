@@ -2,26 +2,27 @@ import { useState } from 'react'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/toast-context'
 import { newMenu, saveMenu } from '../../db/menu'
-import { ingredientsText, parseIngredients, SLOT_LABELS, SLOT_ORDER } from '../../domain/menu'
+import { ingredientsText, menuCost, parseIngredients, SLOT_LABELS, SLOT_ORDER } from '../../domain/menu'
 import { detectPatientIdentity } from '../../domain/phi'
-import type { Menu } from '../../types'
+import type { Menu, NutritionSettings } from '../../types'
 
 export type MenuDraft = Menu | 'baru'
 
-export function MenuEditor({ draft, onClose }: { draft: MenuDraft | null; onClose: () => void }) {
+export function MenuEditor({ draft, nutrition, onClose }: { draft: MenuDraft | null; nutrition: NutritionSettings; onClose: () => void }) {
   return (
     <Sheet open={!!draft} title={draft === 'baru' ? 'Menu baru' : 'Ubah menu'} onClose={onClose}>
-      {draft && <MenuForm key={draft === 'baru' ? 'baru' : draft.id} draft={draft} onClose={onClose} />}
+      {draft && <MenuForm key={draft === 'baru' ? 'baru' : draft.id} draft={draft} nutrition={nutrition} onClose={onClose} />}
     </Sheet>
   )
 }
 
-function MenuForm({ draft, onClose }: { draft: MenuDraft; onClose: () => void }) {
+function MenuForm({ draft, nutrition, onClose }: { draft: MenuDraft; nutrition: NutritionSettings; onClose: () => void }) {
   const toast = useToast()
   const [m, setM] = useState<Menu>(() => (draft === 'baru' ? newMenu() : draft))
   const [bahan, setBahan] = useState(() => ingredientsText(m.ingredients))
   const set = (c: Partial<Menu>) => setM((prev) => ({ ...prev, ...c }))
   const parsed = parseIngredients(bahan)
+  const auto = parsed ? menuCost({ source: m.source, ingredients: parsed, costRp: m.costRp }, nutrition.prices, nutrition.overheadRp) : null
   const phi = detectPatientIdentity(`${m.name} ${m.note ?? ''}`)
   const save = async (changes: Partial<Menu> = {}) => {
     try {
@@ -89,7 +90,13 @@ function MenuForm({ draft, onClose }: { draft: MenuDraft; onClose: () => void })
         </label>
         <label>
           <span className="label">Biaya / porsi (Rp)</span>
-          <input className="field" inputMode="numeric" value={m.costRp} onChange={(e) => set({ costRp: num(e.target.value) })} />
+          {auto?.auto ? (
+            <span className="field block text-muted" title="Dihitung dari harga bahan">
+              {auto.cost.toLocaleString('id-ID')} <span className="text-xs text-faint">otomatis</span>
+            </span>
+          ) : (
+            <input className="field" inputMode="numeric" value={m.costRp} onChange={(e) => set({ costRp: num(e.target.value) })} />
+          )}
         </label>
       </div>
       {m.source === 'masak' ? (
@@ -146,7 +153,9 @@ function MenuForm({ draft, onClose }: { draft: MenuDraft; onClose: () => void })
           Simpan
         </button>
       </div>
-      <p className="text-xs text-faint">Angka protein & biaya adalah perkiraan; sesuaikan dengan porsi dan harga di tempatmu.</p>
+      <p className="text-xs text-faint">
+        Biaya menu masak dihitung dari harga bahan bila semua bahannya sudah berharga (lihat Harga bahan); menu beli diisi manual.
+      </p>
     </form>
   )
 }

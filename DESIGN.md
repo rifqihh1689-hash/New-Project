@@ -66,10 +66,26 @@ Tujuan: tidak perlu memikirkan menu setiap hari.
 - **Rencana mingguan disusun otomatis** dari daftar menu dan tipe hari: sarapan cepat di hari stase, siang beli dekat RS atau bekal, makan sebelum jaga + bekal jaga, pasca-jaga tanpa masak (praktis/beli), libur untuk belanja dan masak lauk beberapa hari. Utamakan protein, jaga anggaran, hindari pengulangan. Bisa isi yang kosong saja atau susun ulang (dengan Urungkan); tiap slot bisa diganti manual.
 - **Daftar belanja** otomatis dari menu masak minggu itu, sekali ketuk jadi tugas "Belanja mingguan" (subtugas per bahan) di hari libur.
 - **Kartu "Makan hari ini"** di Beranda.
-- **Anggaran:** perkiraan biaya mingguan dibandingkan anggaran (bawaan Rp350 rb); nanti masuk anggaran Makan di modul Uang.
+- **Harga bahan** per satuan (telur per butir, ayam & beras per kg, susu per liter, …), diperbarui ±sebulan sekali (lebih cepat bila harga ayam/telur bergejolak). Biaya menu masak = bahan × harga + bumbu/minyak/gas per porsi; menu beli diisi manual. Halaman Menu mengingatkan bila harga lewat 30 hari.
+- **Anggaran:** perkiraan biaya mingguan dibandingkan anggaran (bawaan Rp350 rb); daftar belanja menampilkan perkiraan harga per bahan. Nanti masuk anggaran Makan di modul Uang.
 - Daftar menu bisa diimpor; Claude menyusun menu dari jadwal jaga dan anggaran, hasilnya masuk Usulan.
 
+### Latihan
+
+Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: bench 100 kg (perkiraan 1RM), 5K sub-30, 10K sub-60 (bisa diubah).
+
+- **Beban, double progression.** Tiap gerakan punya rentang rep (bench 3×5–8), jumlah set, dan kenaikan (atas 2,5 kg, bawah 5 kg). Beban tetap sampai semua set mencapai rep maks tanpa terasa berat, lalu naik dan mulai lagi dari rep min. "Rasa" set terakhir (ringan/pas/berat ≈ sisa 3+/2/0–1 rep) menahan kenaikan kalau sudah mentok.
+- **Anti-stagnan.** Gagal mencapai rep min 2× berturut di beban yang sama → turun 10%. Perkiraan 1RM (Epley, maks 12 rep) tidak melewati rekor sebelumnya ≥ 1% dalam 4 sesi (rentang ≥ 14 hari) → satu sesi deload 85% dengan satu set lebih sedikit, plus pengingat cek tidur & protein. Beban dibulatkan ke 1,25 kg.
+- **Kesiapan hari ini** dari tipe hari & tidur: pasca-jaga atau tidur < 5 jam → ringan 80% (teknik), hari jaga → lewati. Jaga tidak memutus apa pun.
+- **Proyeksi target:** tren 1RM 8 minggu terakhir (regresi linear, kg/minggu) → perkiraan bulan tercapai; muncul setelah 3 sesi.
+- **Lari.** Volume mingguan naik ≤ 10% (maks +5 km); setelah 3 minggu naik, satu minggu pemulihan −25%; minggu dengan ≥ 2 jaga volume ditahan dan tanpa sesi kualitas. Perkiraan 5K dari lari tes/kualitas 3–21 km (Riegel ^1,06), pace santai = pace 5K + 60–90 dtk/km, tempo = +15–30 dtk/km. Peringatan bila lari keras > 30% dalam 2 minggu (pola 80/20, dinilai setelah ≥ 3 lari) atau perkiraan 5K tidak membaik ≥ 1% dibanding 4–8 minggu sebelumnya.
+- Mencatat sesi mencentang habit latihan yang cocok di hari itu (nama memuat "beban/bench/gym…" atau "lari/run…"). Catatan sesi dicek identitas pasien.
+
 ### Tentir+
+
+Sudah ada (v1): sesi per murid (inisial saja), topik, tanggal, jam mulai, durasi, tarif (jam × tarif per jam, bawaan Rp85.000, bisa diubah manual untuk kelompok/paket), lunas. Jam per hari dan per minggu dibandingkan kuota 9–15 j, pemasukan, Rp per jam (minggu ini & rata-rata 4 minggu), daftar belum dibayar. Sesi lunas otomatis jadi transaksi pemasukan (kategori `#cat:tentir`). Hari non-jaga yang ada sesinya mendapat quest bersyarat **"Sesi tentir selesai ≤ 21.00"** (sedang, otomatis dari jam mulai + durasi, ala MBAPPE OS); sesi yang lewat 21.00 mencatat berhenti kerja lewat 21.00 (penalti −15). Catat cepat mode Tentir: "AB 2j anatomi 19.00 besok lunas".
+
+Rencana berikutnya:
 
 Data per murid (semester, blok), paket dan sisa sesi, status bayar, angka **Rp per jam**, slot kosong bulanan yang dihitung dari jadwal jaga (dikirim ke murid supaya jarang jadwal ulang), template pesan WA, dan perpustakaan materi per blok yang bisa dipakai ulang tahun berikutnya.
 
@@ -122,7 +138,7 @@ Berbasis bukti: game fiction dan interaksi sosial memperbesar efek pada perilaku
 - **Boss.** Utang (HP turun tiap bayar), tryout bulanan (mini-boss), UKMPPD Feb 2028 (final boss dengan hitung mundur).
 - **Streak + shield.** Jaga dan pasca-jaga netral, tidak memutus streak.
 - **Muhasabah = Weekly Raid.** Selesai sekali seminggu (Sabtu–Selasa, minimal satu prioritas) memberi +50 XP.
-- **Koin → hadiah nyata** yang kamu tentukan sendiri (dari MBAPPE OS: rewards & claims).
+- **Koin → hadiah nyata** yang kamu tentukan sendiri (dari MBAPPE OS: rewards & claims). Saat ini: 1 token per naik level; koin per hari menyusul di sistem game v2.
 - **Pencapaian** yang bermakna dan jarang (mis. "4 minggu tidur rata-rata ≥ 5,5 jam", "100 soal muskuloskeletal benar").
 - **Party (opsional).** Satu atau dua teman koas: quest bersama, saling lihat ringkasan mingguan. Kolaborasi dulu, kompetisi ringan belakangan.
 - **Umpan balik.** Animasi saat centang dan naik level, rekap musim bergaya ringkasan tahunan.
@@ -134,6 +150,7 @@ Berbasis bukti: game fiction dan interaksi sosial memperbesar efek pada perilaku
 - **Jaga:** `round(min(Σ, 100) × 1,0)`, tanpa penalti malam.
 - **Pasca-jaga:** `round(100 × selesai/total)`, hanya sah bila kemarin jaga; selain itu dihitung stase.
 - **Lolos** bila ≥ 60% isi hari selesai. **Level** L → L+1 butuh `150 + 50·L`.
+- **Quest mingguan** (habit 1×/minggu): XP-nya masuk Σ hanya di hari pertama selesai minggu itu, tidak masuk penyebut lolos, tidak dihitung di pasca-jaga.
 
 ## Arsitektur
 
@@ -158,7 +175,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 - Baris "satu per kunci alami" (hari per tanggal, log habit/mutaba'ah per tanggal, profil, Muhasabah per minggu, rencana makan per tanggal & waktu makan): ID privat `#…` (`#day:2026-11-05`). Dexie Cloud menerjemahkannya per pengguna, jadi HP dan laptop yang offline menulis ke baris yang sama, bukan membuat duplikat.
 - Bawaan (peran, fase, mutaba'ah, habit inti, menu awal) hidup di kode dengan ID `#…`; database hanya menyimpan perubahanmu. Perangkat baru tidak pernah menimpa nama atau warna yang sudah kamu ubah.
 - Peran, fase, habit, mutaba'ah, dan menu tidak dihapus, hanya diarsipkan/dinonaktifkan. Riwayat lama tetap utuh.
-- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu).
+- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu, v3 latihan & hadiah).
 
 | Tabel | Isi utama | Status |
 |---|---|---|
@@ -172,16 +189,18 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `mutabaah` / `mutabaahLogs` | daftar amalan; log per tanggal (tanpa skor) | dipakai |
 | `reviews` | Muhasabah mingguan/bulanan: 3 prioritas, refleksi (berhasil, macet, fokus), angka ringkasan, selesai + XP | dipakai |
 | `menus` / `mealPlans` | daftar menu (beli/masak, waktu makan, protein, biaya, bahan, bekal); rencana per tanggal & waktu makan. Daftar belanja dihitung dari rencana, tidak disimpan terpisah | dipakai |
+| `exercises` / `workouts` | gerakan (rentang rep, set, kenaikan, arsip; bawaan di kode); sesi beban (set kg × rep, rasa) atau lari (km, waktu, jenis) | dipakai |
+| `rewards` / `claims` | hadiah (nama, biaya, arsip) dan klaimnya (nama & biaya saat klaim, level). Token = level − 1 − jumlah klaim | dipakai |
 | `events` | agenda, jadwal jaga, jadwal stase | disiapkan |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
-| `tentirSessions` | inisial murid, topik, tanggal, jam, durasi, tarif, lunas. Otomatis membuat transaksi pemasukan. | disiapkan |
+| `tentirSessions` | inisial murid, topik, tanggal, jam mulai, durasi, tarif, lunas. Sesi lunas otomatis membuat transaksi pemasukan. | dipakai |
 | `students`, `tentirPackages`, `materials` | murid (inisial, semester), paket + sisa sesi, materi per blok | rencana |
 | `flashcards` | kartu, sistem organ, jadwal ulang berikutnya | rencana |
 | `documents` | berkas PPDS: nama, status, tenggat, catatan | rencana |
-| `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku | disiapkan |
+| `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku. `transactions` sudah terisi pemasukan tentir; layarnya menyusul di modul Uang | disiapkan |
 | `savings`, `debts` | wishlist/tabungan per pos + setoran; utang + pembayaran | disiapkan |
 | `notes` | teks, peran, warna, sematkan | disiapkan |
-| `proposals` | usulan dari Claude: daftar operasi, status (menunggu/disetujui/ditolak) | disiapkan |
+| `proposals` | usulan dari Claude: judul, item format JSON impor, status (menunggu/disetujui/ditolak), hasil | dipakai |
 
 "Disiapkan" = tabel sudah ada di skema, layarnya belum. "Rencana" = ditambah lewat versi skema berikutnya.
 
@@ -208,17 +227,23 @@ Tidak ada yang direset. Fase, peran, habit, ritme, dan menu adalah data, bukan k
 - **Habit, mutaba'ah, menu:** nonaktifkan/arsipkan yang lama, tambah yang baru.
 - **XP, level, streak:** berlanjut. Hari yang sudah lewat dibekukan, jadi mengubah aturan tidak mengubah masa lalu.
 
-## Connector: tool yang direncanakan
+## Connector Claude
+
+Folder `connector/`: Cloudflare Worker yang berbicara MCP (Streamable HTTP) dan membaca Dexie Cloud lewat REST dengan kunci klien (`client_credentials`). Panduan pasang: `connector/README.md`.
 
 | Tool | Fungsi |
 |---|---|
-| `get_profile` | konteks, peran, target, tanggal penting |
-| `get_summary(from, to)` | ringkasan periode: tidur, tipe hari, tugas per peran, habit, mutaba'ah, tentir, uang, makan |
-| `list_tasks`, `list_days`, `list_events`, `list_tentir`, `list_transactions` | data mentah per rentang tanggal |
-| `get_review(period)` | Muhasabah yang sudah tersimpan (termasuk angka mingguan) |
-| `propose(items)` | tugas, agenda, habit, jadwal jaga, stase, ritme, prioritas, catatan, menu & daftar belanja, slot tentir, flashcard → masuk **Usulan**. Formatnya sama dengan JSON impor. |
+| `get_overview` | konteks: hari ini & tipe hari, fase, stase, level/XP/streak, peran, habit, mutaba'ah, Main Quest, aturan XP, tentir, makan, target latihan, dana jembatan, usulan menunggu |
+| `get_summary(from, to)` | ringkasan per hari + total: tidur, XP, lolos, tugas per peran, habit, mutaba'ah, tentir, latihan, lembur |
+| `list_records(table, from, to)` | data mentah satu tabel |
+| `get_training_plan` | resep sesi beban berikutnya, proyeksi bench, rencana lari minggu ini |
+| `propose(summary, items)` | tugas, jadwal jaga, habit, stase, ritme, menu → **Usulan**. Format sama dengan JSON impor (`src/domain/importGuide.ts`) |
 
-Tidak ada tool yang menghapus data.
+- Hitungan memakai kode domain yang sama dengan app (`src/domain/dayRows.ts`, `xp.ts`, `training.ts`, …), jadi hasilnya identik.
+- Tidak ada tool yang mengubah atau menghapus data; `propose` hanya menulis baris `proposals` (status menunggu). Disetujui di app, item per item, lewat jalur Impor.
+- Identitas pasien ditolak dua kali: di connector (usulan tidak disimpan) dan di app (baris tidak bisa dipilih).
+- Akses: URL berisi kunci rahasia (`/mcp/<CONNECTOR_KEY>`), dibandingkan waktu-konstan; ganti kunci untuk mencabut akses. OAuth bisa ditambahkan nanti bila perlu.
+- ID privat `#…` di server tersimpan sebagai `#…:<email>`; connector mengembalikannya ke bentuk app. Tabel dari skema baru yang belum pernah sinkron dianggap kosong.
 
 ## Fase
 
@@ -236,12 +261,17 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Sinkron Dexie Cloud + layar masuk Indonesia | selesai |
 | Beranda (prototipe), Catat cepat, pemilih tipe hari, XP/level/streak/pengali tidur, hari beku | selesai |
 | Tugas: tampilan Hari & papan Minggu, subtugas | selesai |
-| Habit & Mutaba'ah: kotak 7 hari, target menit, catatan program | selesai |
+| Habit & Mutaba'ah: kotak 7 hari, target menit, catatan program, quest mingguan (1×/minggu, XP di hari pertama selesai, di luar syarat lolos) | selesai |
 | Muhasabah mingguan (+50 XP, prioritas di Beranda) | selesai |
 | Setelan: stase & jamnya, ritme harian, fase hidup, peran, export JSON | selesai |
 | Impor jadwal (Sheets/CSV/Claude) | selesai |
 | Makan & belanja: setelan gizi, menu bawaan ayam & telur, isi otomatis per tipe hari, daftar belanja → tugas, Makan hari ini, impor menu | selesai (v1) |
-| Impor MBAPPE OS, connector + Usulan | Fase 1, belum |
+| Impor MBAPPE OS (hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan) | selesai |
+| Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K | selesai (v1) |
+| Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ 21.00, Catat cepat Tentir | selesai |
+| Hadiah: 1 token per naik level, daftar hadiah sendiri, klaim + riwayat, hadiah berbiaya terkunci sampai dana jembatan tercapai, chip token di Beranda | selesai |
+| Usulan: daftar usulan Claude, pilih item, setujui lewat jalur Impor / tolak (Urungkan), pemberitahuan di Beranda | selesai |
+| Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Modul Fase 2–3 lainnya | belum |
@@ -251,6 +281,6 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 - Rumus XP: dipakai apa adanya dari MBAPPE OS (saat ini) atau disederhanakan.
 - Daftar mutaba'ah final.
 - Nama dan warna peran final.
-- Data MBAPPE OS mana yang diimpor (riwayat XP, hari terkunci, latihan).
+- Log latihan, hadiah & klaim, dan jam tentir harian dari MBAPPE OS belum ikut diimpor (XP-nya tetap terbawa lewat hari beku). MBAPPE OS mencatat jam per hari tanpa murid/topik, jadi bila diimpor nanti jadi sesi tanpa inisial.
 - Tarif kelompok dan harga paket tentir.
 - Berat badan untuk target protein (diisi di halaman Menu).

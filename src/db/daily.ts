@@ -1,10 +1,11 @@
 import { isAllowedOnDayType } from '../domain/dayType'
 import { applyMinutes } from '../domain/habitGrid'
 import { detectPatientIdentity } from '../domain/phi'
-import { addDays } from '../domain/time'
-import { computeDay, habitsForDay, isLocked, type DayInput, type DayItem } from '../domain/xp'
+import { addDays, weekStart } from '../domain/time'
+import { computeDay, isLocked } from '../domain/xp'
+import { computeResults, dailyRows, toDayInput, type DailyRow } from '../domain/dayRows'
 import { createId, privateId } from '../lib/id'
-import type { Day, DayResult, DayType, Habit, HabitLog, ISODate, Role, Task, WorkEnd, XpRules, XpSize } from '../types'
+import type { Day, DayResult, DayType, Habit, ISODate, Task, WorkEnd, XpRules, XpSize } from '../types'
 import { db } from './db'
 import { DEFAULT_ROLE_ID } from './defaults'
 import { loadHabits, loadProfile, loadRoles, rulesOf } from './structure'
@@ -149,12 +150,6 @@ export async function moveUndoneToTomorrow(date: ISODate): Promise<string[]> {
   return ids
 }
 
-export function sortTasks(tasks: Task[]): Task[] {
-  return [...tasks].sort(
-    (a, b) => Number(a.done) - Number(b.done) || Number(b.important) - Number(a.important) || a.createdAt - b.createdAt,
-  )
-}
-
 // ---------- Habit & mutaba'ah ----------
 
 export async function setHabitDone(habitId: string, date: ISODate, done: boolean): Promise<void> {
@@ -181,18 +176,7 @@ export async function setMutabaahDone(itemId: string, date: ISODate, done: boole
 
 // ---------- Hitung hari ----------
 
-export interface DailyRow {
-  kind: 'task' | 'habit'
-  id: string
-  title: string
-  roleId: string
-  size: XpSize
-  done: boolean
-  recovery: boolean
-  habitKind?: Habit['kind']
-  important?: boolean
-  task?: Task
-}
+export { computeResults, dailyRows, sortTasks, toDayInput, weeklyFirstDone, type DailyRow } from '../domain/dayRows'
 
 export interface DaySnapshot {
   date: ISODate
@@ -203,66 +187,23 @@ export interface DaySnapshot {
   frozen: boolean
 }
 
-/** Baris harian (tugas + habit) sebelum disaring tipe hari. */
-export function dailyRows(
-  date: ISODate,
-  type: DayType | null,
-  tasks: Task[],
-  habits: Habit[],
-  logs: HabitLog[],
-  roles: Role[],
-): DailyRow[] {
-  const recovery = new Set(roles.filter((r) => r.recovery).map((r) => r.id))
-  const logMap = new Map(logs.filter((l) => l.date === date).map((l) => [l.habitId, l.done]))
-  const taskRows: DailyRow[] = sortTasks(tasks.filter((t) => t.date === date)).map((t) => ({
-    kind: 'task',
-    id: t.id,
-    title: t.title,
-    roleId: t.roleId,
-    size: t.size,
-    done: t.done,
-    recovery: recovery.has(t.roleId),
-    important: t.important,
-    task: t,
-  }))
-  const habitRows: DailyRow[] = habitsForDay(habits, date, type).map((h) => ({
-    kind: 'habit',
-    id: h.id,
-    title: h.name,
-    roleId: h.roleId,
-    size: h.size,
-    done: logMap.get(h.id) ?? false,
-    recovery: recovery.has(h.roleId),
-    habitKind: h.kind,
-  }))
-  return [...taskRows, ...habitRows]
-}
-
-export function toDayInput(day: Day | null, prevType: DayType | null, rows: DailyRow[]): DayInput {
-  const items: DayItem[] = rows.map((r) => ({ id: r.id, size: r.size, done: r.done, recovery: r.recovery, kind: r.habitKind }))
-  return {
-    type: day?.type ?? null,
-    prevType,
-    sleepNight: day?.sleepNight ?? null,
-    nap: day?.nap ?? 0,
-    workEnd: day?.workEnd ?? null,
-    items,
-  }
-}
-
 /** Data satu hari lengkap dengan hasil XP-nya (hasil beku bila hari sudah terkunci). */
 export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<DaySnapshot & { rules: XpRules }> {
-  const [day, prev, tasks, habits, logs, roles, profile] = await Promise.all([
+  const [day, prev, tasks, habits, logs, roles, profile, sessions] = await Promise.all([
     db.days.get(privateId.day(date)),
     db.days.get(privateId.day(addDays(date, -1))),
     db.tasks.where('date').equals(date).toArray(),
     loadHabits(),
-    db.habitLogs.where('date').equals(date).toArray(),
+    db.habitLogs
+      .where('date')
+      .between(weekStart(date), addDays(weekStart(date), 6), true, true)
+      .toArray(),
     loadRoles(),
     loadProfile(),
+    db.tentirSessions.where('date').equals(date).toArray(),
   ])
   const rules = rulesOf(profile)
-  const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles)
+  const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles, sessions)
   const prevType = prev?.type ?? null
   const result = day?.frozen ?? computeDay(toDayInput(day ?? null, prevType, rows), rules, { final: isLocked(date, today, rules) })
   return { date, day: day ?? null, prevType, rows, result, frozen: !!day?.frozen, rules }
@@ -275,29 +216,17 @@ export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<Da
 export async function loadAllResults(
   today: ISODate,
 ): Promise<{ results: Map<ISODate, DayResult>; firstDate: ISODate | null; rules: XpRules }> {
-  const [days, tasks, habits, logs, roles, profile] = await Promise.all([
+  const [days, tasks, habits, logs, roles, profile, sessions] = await Promise.all([
     db.days.toArray(),
     db.tasks.toArray(),
     loadHabits(),
     db.habitLogs.toArray(),
     loadRoles(),
     loadProfile(),
+    db.tentirSessions.toArray(),
   ])
   const rules = rulesOf(profile)
-  const byDate = new Map(days.map((d) => [d.date, d]))
-  const tasksByDate = groupBy(tasks, (t) => t.date)
-  const logsByDate = groupBy(logs, (l) => l.date)
-  const results = new Map<ISODate, DayResult>()
-  for (const day of days) {
-    if (day.date > today || !day.type) continue
-    if (day.frozen) {
-      results.set(day.date, day.frozen)
-      continue
-    }
-    const prevType = byDate.get(addDays(day.date, -1))?.type ?? null
-    const rows = dailyRows(day.date, day.type, tasksByDate.get(day.date) ?? [], habits, logsByDate.get(day.date) ?? [], roles)
-    results.set(day.date, computeDay(toDayInput(day, prevType, rows), rules, { final: isLocked(day.date, today, rules) }))
-  }
+  const results = computeResults({ days, tasks, habits, logs, roles, sessions }, today, rules)
   const dates = [...results.keys()].sort()
   return { results, firstDate: dates[0] ?? null, rules }
 }
@@ -309,15 +238,4 @@ export async function freezeLockedDays(today: ISODate): Promise<number> {
   if (!toFreeze.length) return 0
   await db.days.bulkPut(toFreeze.map((d) => ({ ...d, frozen: results.get(d.date)!, updatedAt: Date.now() })))
   return toFreeze.length
-}
-
-function groupBy<T>(list: T[], key: (item: T) => string): Map<string, T[]> {
-  const map = new Map<string, T[]>()
-  for (const item of list) {
-    const k = key(item)
-    const arr = map.get(k)
-    if (arr) arr.push(item)
-    else map.set(k, [item])
-  }
-  return map
 }

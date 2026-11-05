@@ -120,7 +120,7 @@ export function SettingsPage() {
         <section className="card">
           <h2 className="card-title">Data milikmu</h2>
           <p className="mb-3 text-[13px] text-muted">
-            Export semua data ke JSON kapan saja, walau sudah sinkron. Impor (termasuk dari MBAPPE OS) menyusul di Fase 1.
+            Export semua data ke JSON kapan saja, walau sudah sinkron. Data lama MBAPPE OS diimpor lewat Impor jadwal.
           </p>
           <button type="button" className="btn-ghost border border-line" onClick={() => void exportJson()}>
             <Download size={15} aria-hidden="true" /> Export JSON
