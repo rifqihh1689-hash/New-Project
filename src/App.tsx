@@ -3,6 +3,7 @@ import { useRoute, type RouteName } from './app/router'
 import { useToday } from './app/useToday'
 import { ToastProvider } from './components/Toast'
 import { freezeLockedDays } from './db/daily'
+import { runRecurring } from './db/money'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
@@ -12,6 +13,7 @@ import { HadiahPage } from './features/hadiah/HadiahPage'
 import { LatihanPage } from './features/latihan/LatihanPage'
 import { MenuPage } from './features/menu/MenuPage'
 import { TentirPage } from './features/tentir/TentirPage'
+import { UangPage } from './features/uang/UangPage'
 import { UsulanPage } from './features/usulan/UsulanPage'
 import { MuhasabahPage } from './features/muhasabah/MuhasabahPage'
 import { MobileTop } from './features/nav/MobileTop'
@@ -47,6 +49,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <HadiahPage />
     case 'usulan':
       return <UsulanPage />
+    case 'uang':
+      return <UangPage />
     case 'impor':
       return <ImportPage />
     case 'setelan':
@@ -75,6 +79,8 @@ function Shell() {
   // Hari yang lewat jendela isi mundur dibekukan saat app dibuka dan saat hari berganti.
   useEffect(() => {
     void freezeLockedDays(today)
+    // Transaksi berulang yang jatuh tempo dicatat otomatis (ID deterministik, aman di banyak perangkat).
+    void runRecurring(today)
   }, [today])
 
   return (

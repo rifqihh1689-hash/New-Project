@@ -10,6 +10,8 @@ import { parseQuickTask } from '../../domain/quickCapture'
 import { DEFAULT_TENTIR_RATE, parseTentir, sessionRange } from '../../domain/tentir'
 import { dayKey, relativeDayLabel } from '../../domain/time'
 import { deleteSession, loadTentirRate, saveSession } from '../../db/tentir'
+import { deleteTransaction, loadCategories, saveTransaction } from '../../db/money'
+import { categoryLookup, parseQuickMoney } from '../../domain/money'
 import { formatNumber, formatRupiah } from '../../lib/format'
 import { createId } from '../../lib/id'
 
@@ -18,7 +20,7 @@ export type CaptureMode = 'tugas' | 'catatan' | 'uang' | 'tentir'
 export const CAPTURE_MODES: { mode: CaptureMode; label: string; ready: boolean; placeholder: string }[] = [
   { mode: 'tugas', label: 'Tugas', ready: true, placeholder: 'Catat cepat… mis. “50 soal kardio besok”' },
   { mode: 'catatan', label: 'Catatan', ready: true, placeholder: 'Catatan singkat, tanpa identitas pasien' },
-  { mode: 'uang', label: 'Uang', ready: false, placeholder: 'Uang dicatat mulai Fase 2' },
+  { mode: 'uang', label: 'Uang', ready: true, placeholder: 'Uang… mis. “25rb makan siang”, “+500rb kiriman”' },
   { mode: 'tentir', label: 'Tentir', ready: true, placeholder: 'Sesi tentir… mis. “AB 2j anatomi 19.00 lunas”' },
 ]
 
@@ -32,8 +34,10 @@ export function useQuickCapture(onSaved?: () => void) {
   const role = roleLookup(roles)
 
   const rate = useLiveQuery(loadTentirRate) ?? DEFAULT_TENTIR_RATE
+  const categories = useLiveQuery(loadCategories)
   const parsed = mode === 'tugas' && text.trim() ? parseQuickTask(text, today, roles ?? []) : null
   const tentir = mode === 'tentir' && text.trim() ? parseTentir(text, today) : null
+  const money = mode === 'uang' && text.trim() && categories ? parseQuickMoney(text, today, categories) : null
   const phi = text.trim() ? detectPatientIdentity(text) : null
   const preview = parsed
     ? [role(parsed.roleId ?? DEFAULT_ROLE_ID).name, relativeDayLabel(parsed.date, today), parsed.important ? 'penting' : null]
@@ -49,7 +53,13 @@ export function useQuickCapture(onSaved?: () => void) {
         ]
           .filter(Boolean)
           .join(' · ')
-      : null
+      : money
+        ? [
+            money.amount ? `${money.type === 'income' ? '+' : '−'}${formatRupiah(money.amount)}` : 'nominal?',
+            categoryLookup(categories ?? [])(money.categoryId).name,
+            relativeDayLabel(money.date, today),
+          ].join(' · ')
+        : null
 
   const submit = async () => {
     const value = text.trim()
@@ -83,6 +93,17 @@ export function useQuickCapture(onSaved?: () => void) {
             label: 'Urungkan',
             onClick: () => void deleteSession(id),
           },
+        })
+      } else if (mode === 'uang') {
+        const m = parseQuickMoney(value, today, categories ?? [])
+        if (!m.amount) {
+          toast({ message: 'Tulis nominalnya, mis. “25rb makan siang”.', tone: 'warning' })
+          return
+        }
+        const tx = await saveTransaction({ amount: m.amount, type: m.type, categoryId: m.categoryId, date: m.date, note: m.note })
+        toast({
+          message: `${m.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} ${formatRupiah(m.amount)} · ${categoryLookup(categories ?? [])(m.categoryId).name}`,
+          action: { label: 'Urungkan', onClick: () => void deleteTransaction(tx.id) },
         })
       } else return
       setText('')

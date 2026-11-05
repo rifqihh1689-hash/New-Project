@@ -97,8 +97,13 @@ export function MoneyCard({ data }: { data: BerandaData }) {
           Buka →
         </a>
       </h3>
+      {line(
+        'Keluar bulan ini',
+        money.budget ? `${formatRupiahShort(money.expense)} / ${formatRupiahShort(money.budget)}` : formatRupiah(money.expense),
+      )}
+      {money.budget > 0 && bar((money.expense / money.budget) * 100, money.expense > money.budget ? 'var(--danger)' : 'var(--ok)')}
       {!money.hasDebt && !money.bridge.length && money.tentirIncome === 0 ? (
-        <p className="text-[13px] text-muted">Utang, dana jembatan, dan pemasukan tentir tampil di sini setelah modul Uang (Fase 2).</p>
+        <p className="mt-3 text-xs text-faint">Atur dana jembatan, utang, dan anggaran di halaman Uang.</p>
       ) : (
         <>
           {money.hasDebt && (

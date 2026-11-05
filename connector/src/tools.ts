@@ -16,6 +16,7 @@ import {
 import { computeResults, dailyRows } from '../../src/domain/dayRows'
 import { IMPORT_ITEM_GUIDE } from '../../src/domain/importGuide'
 import { describeItem, parseImport } from '../../src/domain/importer'
+import { categoryLookup, mergeCategories, summarize as summarizeMoney } from '../../src/domain/money'
 import { currentPhase } from '../../src/domain/phase'
 import { detectPatientIdentity } from '../../src/domain/phi'
 import { computeStreak, dayStatus, levelFromXp } from '../../src/domain/progress'
@@ -38,6 +39,7 @@ import {
 import { reviewXpTotal } from '../../src/domain/weekly'
 import { createId } from '../../src/lib/id'
 import type {
+  Category,
   Chapter,
   Claim,
   Day,
@@ -56,6 +58,7 @@ import type {
   Saving,
   Task,
   TentirSession,
+  Transaction,
   Workout,
 } from '../../src/types'
 import type { Store } from './dexie'
@@ -205,7 +208,7 @@ const getSummary: ToolDef = {
   name: 'get_summary',
   title: 'Ringkasan periode',
   description:
-    "Ringkasan per hari dan total untuk rentang tanggal (maks. 120 hari; bawaan 7 hari terakhir): tipe hari, total tidur 24 jam, XP, lolos, tugas & habit selesai, mutaba'ah, jam tentir, latihan, lembur; plus total per peran, rata-rata tidur di luar jaga, jam & pemasukan tentir, km lari. Cocok untuk Muhasabah mingguan/bulanan.",
+    "Ringkasan per hari dan total untuk rentang tanggal (maks. 120 hari; bawaan 7 hari terakhir): tipe hari, total tidur 24 jam, XP, lolos, tugas & habit selesai, mutaba'ah, jam tentir, latihan, lembur; plus total per peran, rata-rata tidur di luar jaga, jam & pemasukan tentir, km lari, pemasukan/pengeluaran per kategori. Cocok untuk Muhasabah mingguan/bulanan.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -218,11 +221,13 @@ const getSummary: ToolDef = {
   async run(args, { store, now }) {
     const today = dayKey(now)
     const { from, to } = range(args, today, 7, 120)
-    const [base, d, mutLogs, workouts] = await Promise.all([
+    const [base, d, mutLogs, workouts, txs, storedCats] = await Promise.all([
       loadBase(store),
       loadDays(store),
       store.all<MutabaahLog>('mutabaahLogs'),
       store.all<Workout>('workouts'),
+      store.all<Transaction>('transactions'),
+      store.all<Category>('categories'),
     ])
     const results = computeResults({ ...d, habits: base.habits, roles: base.roles }, today, base.rules)
     const roleName = new Map(base.roles.map((r) => [r.id, r.name]))
@@ -294,6 +299,15 @@ const getSummary: ToolDef = {
         strengthSessions: inRange(workouts).filter((x) => x.kind === 'beban').length,
         runKm: round1(runs.reduce((a, x) => a + x.run.km, 0)),
         overtimeDays: rows.filter((x) => x.overtime).length,
+        money: (() => {
+          const list = inRange(txs)
+          const cats = categoryLookup(mergeCategories(storedCats))
+          const sum = summarizeMoney(list)
+          const byCategory: Record<string, number> = {}
+          for (const t of list)
+            if (t.type === 'expense') byCategory[cats(t.categoryId).name] = (byCategory[cats(t.categoryId).name] ?? 0) + t.amount
+          return { income: sum.income, expense: sum.expense, balance: sum.balance, expenseByCategory: byCategory }
+        })(),
       },
     }
   },

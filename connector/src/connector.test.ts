@@ -99,6 +99,23 @@ const sample = () =>
         updatedAt: 1,
       },
     ],
+    transactions: [
+      { id: 'trx_1', amount: 25_000, type: 'expense', categoryId: 'cat_kopi', date: '2026-11-04', note: '', createdAt: 1, updatedAt: 1 },
+      {
+        id: 'trx_2',
+        amount: 500_000,
+        type: 'income',
+        categoryId: '#cat:kiriman',
+        date: '2026-11-05',
+        note: '',
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      { id: 'trx_3', amount: 99_000, type: 'expense', categoryId: '#cat:makan', date: '2026-10-01', note: '', createdAt: 1, updatedAt: 1 },
+    ],
+    categories: [
+      { id: 'cat_kopi', name: 'Kopi', icon: 'tag', color: '#7c4a2d', kind: 'expense', builtIn: false, createdAt: 1, updatedAt: 1 },
+    ],
     workouts: [
       {
         id: 'wko_1',
@@ -178,6 +195,7 @@ describe('alat baca', () => {
     expect(s.days[0]).toMatchObject({ type: 'stase', sleepTotal: 6.5, tasks: '1/2' })
     expect(s.days[0].xp).toBe(48) // (tugas besar 20 + habit tidur ≥ 6 j 10 + berhenti kerja ≤ 21.00 10) × 1,2
     expect(s.totals.tasksByRole['Ortopedi & PPDS']).toEqual({ done: 0, total: 1 })
+    expect(s.totals.money).toEqual({ income: 500_000, expense: 25_000, balance: 475_000, expenseByCategory: { Kopi: 25_000 } })
     expect((await call(c, 'get_summary', { from: '2026-11-05', to: '2026-11-01' })).isError).toBe(true)
   })
 

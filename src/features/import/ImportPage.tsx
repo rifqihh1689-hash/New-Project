@@ -8,7 +8,9 @@ import { roleLookup, useRoles } from '../../db/structure'
 import { describeItem, IMPORT_KIND_LABELS, IMPORT_KINDS, parseImport, type ImportKind } from '../../domain/importer'
 import { PHI_HINT } from '../../domain/phi'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
+import { parseDompetku } from '../../domain/dompetku'
 import { parseMbappe } from '../../domain/mbappe'
+import { DompetkuCard } from './DompetkuCard'
 import { MbappeCard } from './MbappeCard'
 import { claudePrompt, csvTemplate, sheetTemplate } from './templates'
 
@@ -43,9 +45,10 @@ export function ImportPage() {
   const [busy, setBusy] = useState(false)
   const role = roleLookup(roles)
   const mbappe = useMemo(() => (text.trim().startsWith('{') ? parseMbappe(text) : null), [text])
+  const dompetku = useMemo(() => (text.trim().startsWith('{') ? parseDompetku(text) : null), [text])
   const rows = useMemo(
-    () => (mbappe ? [] : parseImport(text, { roles: roles ?? [], today, defaultKind: defaultKind || undefined })),
-    [text, roles, today, defaultKind, mbappe],
+    () => (mbappe || dompetku ? [] : parseImport(text, { roles: roles ?? [], today, defaultKind: defaultKind || undefined })),
+    [text, roles, today, defaultKind, mbappe, dompetku],
   )
   const valid = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.item && !r.phi)
   const chosen = valid.filter(({ i }) => !skipped.has(i))
@@ -132,10 +135,10 @@ export function ImportPage() {
             </div>
           </div>
           <div className="mt-3 rounded-xl bg-surface-2 p-3.5">
-            <div className="font-medium">Data lama MBAPPE OS</div>
+            <div className="font-medium">Data lama MBAPPE OS & Dompetku</div>
             <p className="mt-1 text-[13px] text-muted">
-              Di MBAPPE OS: Setelan → Export JSON (simpan ke File) atau Salin JSON. Lalu pilih filenya / tempel di kotak bawah; Qawwam
-              mengenalinya otomatis.
+              Di MBAPPE OS maupun Dompetku: Setelan → Export JSON. Lalu pilih filenya / tempel di kotak bawah; Qawwam mengenali keduanya
+              otomatis.
             </p>
           </div>
         </section>
@@ -164,7 +167,7 @@ export function ImportPage() {
               />
             </label>
             <label
-              className={`w-full flex-col gap-1 text-[13px] text-muted sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-2 ${mbappe ? 'hidden' : 'flex'}`}
+              className={`w-full flex-col gap-1 text-[13px] text-muted sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:gap-2 ${mbappe || dompetku ? 'hidden' : 'flex'}`}
             >
               Tanpa kolom "jenis", anggap sebagai
               <select
@@ -186,6 +189,16 @@ export function ImportPage() {
         {mbappe && (
           <MbappeCard
             data={mbappe}
+            onDone={() => {
+              setText('')
+              setSkipped(new Set())
+            }}
+          />
+        )}
+
+        {dompetku && (
+          <DompetkuCard
+            data={dompetku}
             onDone={() => {
               setText('')
               setSkipped(new Set())

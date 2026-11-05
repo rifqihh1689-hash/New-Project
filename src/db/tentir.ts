@@ -1,3 +1,4 @@
+import { TENTIR_CATEGORY_ID } from '../domain/money'
 import { DEFAULT_TENTIR_RATE, isLate } from '../domain/tentir'
 import { createId, privateId } from '../lib/id'
 import type { ISODate, TentirSession, Transaction } from '../types'
@@ -5,8 +6,7 @@ import { assertNoPatientIdentity, setWorkEnd } from './daily'
 import { db } from './db'
 import { loadProfile, updateProfile } from './structure'
 
-/** Kategori pemasukan tentir. Modul Uang nanti menampilkannya sebagai kategori bawaan dengan ID yang sama. */
-export const TENTIR_CATEGORY_ID = '#cat:tentir'
+export { TENTIR_CATEGORY_ID }
 
 export type SessionInput = Omit<TentirSession, 'id' | 'createdAt' | 'updatedAt' | 'transactionId'> & { id?: string }
 

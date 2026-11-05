@@ -81,6 +81,18 @@ Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: 
 - **Lari.** Volume mingguan naik ≤ 10% (maks +5 km); setelah 3 minggu naik, satu minggu pemulihan −25%; minggu dengan ≥ 2 jaga volume ditahan dan tanpa sesi kualitas. Perkiraan 5K dari lari tes/kualitas 3–21 km (Riegel ^1,06), pace santai = pace 5K + 60–90 dtk/km, tempo = +15–30 dtk/km. Peringatan bila lari keras > 30% dalam 2 minggu (pola 80/20, dinilai setelah ≥ 3 lari) atau perkiraan 5K tidak membaik ≥ 1% dibanding 4–8 minggu sebelumnya.
 - Mencatat sesi mencentang habit latihan yang cocok di hari itu (nama memuat "beban/bench/gym…" atau "lari/run…"). Catatan sesi dicek identitas pasien.
 
+### Uang
+
+Port Dompetku, disesuaikan untuk koas:
+- Kategori bawaan: Makan, Transportasi, Kos & tagihan, Belajar & buku, Kesehatan, Sedekah & infak, Belanja, Hiburan; pemasukan Tentir dan Kiriman & gaji. Bisa diganti nama/warna dan ditambah.
+- Anggaran per kategori per bulan, status aman / hampir habis (≥ 80%) / lewat; salin dari bulan lalu.
+- Transaksi berulang (kos, kuota, kiriman) dibuat otomatis saat jatuh tempo, mengejar bulan yang terlewat, dengan ID deterministik supaya dua perangkat tidak membuat dobel.
+- **Dana jembatan** (biaya hidup jeda koas → PPDS) dan tabungan lain: target, tanggal, setoran/penarikan, kebutuhan per bulan. Hadiah berbiaya terkunci sampai dana jembatan tercapai.
+- Utang: pembayaran, sisa, cicilan per bulan sampai target lunas.
+- Catat cepat: "25rb makan siang", "+500rb kiriman ortu", "kemarin 15k parkir" (kategori ditebak dari kata, atau `#makan`).
+- Transaksi dari sesi tentir hanya diubah lewat Tentir.
+- Impor backup Dompetku (Export JSON): kategori bawaan dipetakan, catatan berisi identitas pasien dikosongkan, aman diulang.
+
 ### Tentir+
 
 Sudah ada (v1): sesi per murid (inisial saja), topik, tanggal, jam mulai, durasi, tarif (jam × tarif per jam, bawaan Rp85.000, bisa diubah manual untuk kelompok/paket), lunas. Jam per hari dan per minggu dibandingkan kuota 9–15 j, pemasukan, Rp per jam (minggu ini & rata-rata 4 minggu), daftar belum dibayar. Sesi lunas otomatis jadi transaksi pemasukan (kategori `#cat:tentir`). Hari non-jaga yang ada sesinya mendapat quest bersyarat **"Sesi tentir selesai ≤ 21.00"** (sedang, otomatis dari jam mulai + durasi, ala MBAPPE OS); sesi yang lewat 21.00 mencatat berhenti kerja lewat 21.00 (penalti −15). Catat cepat mode Tentir: "AB 2j anatomi 19.00 besok lunas".
@@ -197,8 +209,8 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `students`, `tentirPackages`, `materials` | murid (inisial, semester), paket + sisa sesi, materi per blok | rencana |
 | `flashcards` | kartu, sistem organ, jadwal ulang berikutnya | rencana |
 | `documents` | berkas PPDS: nama, status, tenggat, catatan | rencana |
-| `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku. `transactions` sudah terisi pemasukan tentir; layarnya menyusul di modul Uang | disiapkan |
-| `savings`, `debts` | wishlist/tabungan per pos + setoran; utang + pembayaran | disiapkan |
+| `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku: transaksi (termasuk pemasukan tentir otomatis), kategori bawaan `#cat:*` di kode + buatan sendiri, anggaran per kategori per bulan (`#bud:<bulan>:<kategori>`), aturan berulang (transaksi `#rtx:<aturan>:<bulan>`, tidak pernah dobel) | dipakai |
+| `savings`, `debts` | dana jembatan/wishlist + setoran & penarikan; utang + pembayaran; setoran/cicilan per bulan dihitung dari tanggal target | dipakai |
 | `notes` | teks, peran, warna, sematkan | disiapkan |
 | `proposals` | usulan dari Claude: judul, item format JSON impor, status (menunggu/disetujui/ditolak), hasil | dipakai |
 
@@ -274,6 +286,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
+| Uang: transaksi, ringkasan bulanan, anggaran (aman/hampir habis/lewat, salin bulan lalu), berulang (mengejar bulan terlewat), dana jembatan & tabungan, utang, kategori, Catat cepat Uang, impor backup Dompetku | selesai (v1) |
 | Modul Fase 2–3 lainnya | belum |
 
 ## Belum diputuskan

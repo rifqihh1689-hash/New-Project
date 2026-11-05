@@ -72,6 +72,29 @@ export function monthOf(date: ISODate): MonthKey {
   return date.slice(0, 7)
 }
 
+export function isValidMonthKey(value: unknown): value is MonthKey {
+  return typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
+}
+
+/** Jumlah hari dalam bulan. */
+export function daysInMonth(month: MonthKey): number {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(Date.UTC(y, m, 0)).getUTCDate()
+}
+
+/** Menggeser bulan: addMonths('2026-12', 1) → '2027-01'. */
+export function addMonths(month: MonthKey, delta: number): MonthKey {
+  const [y, m] = month.split('-').map(Number)
+  const total = y * 12 + (m - 1) + delta
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
+}
+
+/** Tanggal di bulan tertentu; hari disesuaikan ke akhir bulan bila perlu (31 Feb → 28/29 Feb). */
+export function dateInMonth(month: MonthKey, day: number): ISODate {
+  const clamped = Math.min(Math.max(1, Math.floor(day)), daysInMonth(month))
+  return `${month}-${String(clamped).padStart(2, '0')}`
+}
+
 export function isValidISODate(value: unknown): value is ISODate {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const d = new Date(`${value}T00:00:00Z`)
