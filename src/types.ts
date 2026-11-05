@@ -96,6 +96,8 @@ export interface XpRules {
   levelBase: number
   levelStep: number
   backfillDays: number
+  /** XP sekali seminggu untuk Muhasabah mingguan (Raid di MBAPPE OS). */
+  reviewXP: number
 }
 
 /** Stase/chapter: rentang waktu dengan bobot. */
@@ -169,6 +171,7 @@ export interface Habit extends Stamped {
   dayTypes: DayType[]
   /** Hari dalam minggu (0 = Minggu). Kosong = setiap hari. */
   weekdays: number[]
+  /** Target menit per hari. Habit selesai otomatis bila menit tercatat ≥ target. `null` = tanpa menit. */
   minutes: number | null
   /** `sleep` & `workend` dinilai otomatis dari isian tidur / jam berhenti kerja. */
   kind: 'normal' | 'sleep' | 'workend'
@@ -182,6 +185,8 @@ export interface HabitLog extends CloudFields {
   habitId: string
   date: ISODate
   done: boolean
+  /** Menit yang dicatat hari itu (untuk habit bertarget menit). */
+  minutes?: number
   updatedAt: number
 }
 
@@ -308,6 +313,10 @@ export interface Review extends CloudFields {
   stuck: string
   focus: string
   numbers: Record<string, number | null>
+  /** Kapan Muhasabah diselesaikan (memberi XP sekali). `null`/kosong = belum. */
+  completedAt?: number | null
+  /** XP yang diberikan saat selesai (dibekukan, tidak berubah walau aturan diubah). */
+  xp?: number
   updatedAt: number
 }
 

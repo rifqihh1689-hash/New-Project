@@ -13,15 +13,17 @@ PWA offline-first: bisa dipasang di layar utama HP, iPad, dan laptop, jalan tanp
 
 <sub>Screenshot memakai data contoh.</sub>
 
-## Yang sudah ada (awal Fase 1)
+## Yang sudah ada (Fase 1)
 
-- **Beranda**: kalimat pembuka per tipe hari, strip level/XP/pengali tidur/streak, tidur 24 jam, tugas, tentir, pengeluaran, ritme hari ini, tugas + rutin, mutaba'ah tanpa skor, tutup hari, jalan ke PPDS, minggu ini.
+- **Beranda**: kalimat pembuka per tipe hari, strip level/XP/pengali tidur/streak, tidur 24 jam, tugas, tentir, pengeluaran, ritme hari ini, tugas + rutin, prioritas minggu ini, mutaba'ah tanpa skor, tutup hari, jalan ke PPDS, minggu ini.
 - **Tipe hari**: Stase / Jaga malam / Pasca-jaga / Libur, dengan saran otomatis. Pasca-jaga memindah tugas non-pemulihan ke besok. Jaga dan pasca-jaga tidak memutus streak.
 - **Catat cepat**: `50 soal kardio besok` → tugas UKMPPD untuk besok. Kenal `besok`, `lusa`, nama hari, tagar peran (`#orto`), dan `!` untuk penting.
-- **Tugas per hari** dengan label peran, saring per peran, pindah ke besok, urungkan.
+- **Tugas**: tampilan Hari atau papan Minggu (satu kartu per hari, tambah langsung di harinya), label peran, subtugas, pindah ke besok, urungkan.
+- **Habit & mutaba'ah**: kotak 7 hari, habit per tipe hari & hari dalam minggu, target menit, tambah cepat dari habit MBAPPE OS; mutaba'ah netral dengan konsistensi 7 & 30 hari.
+- **Muhasabah mingguan**: 8 angka minggu itu, selesai vs belum, refleksi dan 3 prioritas minggu depan (tampil di Beranda), +50 XP sekali seminggu (Sabtu–Selasa).
 - **XP dari MBAPPE OS**: `round(min(Σ, 100) × pengali tidur) − 15·[lewat 21.00]`, pengali dari tidur malam + qailulah. Hari lama dibekukan.
-- **Tanpa identitas pasien**: No. RM, angka ≥ 6 digit, Tn./Ny./An. + nama mengunci tombol simpan.
-- **Setelan**: sinkron & akun, tema gelap/terang, fase hidup & peran, export JSON.
+- **Tanpa identitas pasien**: No. RM, angka ≥ 6 digit, Tn./Ny./An. + nama mengunci tombol simpan di semua kolom teks.
+- **Sinkron**: Dexie Cloud dengan layar masuk berbahasa Indonesia (email + kode). **Setelan**: tema, fase hidup & peran, export JSON.
 
 ## Menjalankan di komputer
 

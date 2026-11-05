@@ -20,6 +20,7 @@ export const DEFAULT_RULES: XpRules = {
   levelBase: 150,
   levelStep: 50,
   backfillDays: 1,
+  reviewXP: 50,
 }
 
 /** Gabungkan aturan tersimpan dengan bawaan. Nilai yang melanggar pagar pengaman diabaikan. */

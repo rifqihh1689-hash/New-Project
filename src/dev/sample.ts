@@ -3,7 +3,19 @@
  * tidak pernah ikut build produksi.
  */
 import { db } from '../db/db'
-import { addTask, setDayType, setHabitDone, setMutabaahDone, setSleep, setWorkEnd, toggleTask } from '../db/daily'
+import {
+  addHabitMinutes,
+  addTask,
+  updateTask,
+  setDayType,
+  setHabitDone,
+  setMutabaahDone,
+  setSleep,
+  setWorkEnd,
+  toggleTask,
+} from '../db/daily'
+import { saveHabit } from '../db/structure'
+import { HABIT_TEMPLATES } from '../features/habit/templates'
 import { DEFAULT_MUTABAAH } from '../db/defaults'
 import { addDays, dayKey, weekStart } from '../domain/time'
 import { createId } from '../lib/id'
@@ -29,6 +41,24 @@ export async function loadSample(): Promise<void> {
     for (const [j, m] of DEFAULT_MUTABAAH.entries()) if ((i + j) % 4 !== 0) await setMutabaahDone(m.id, d, true)
   }
 
+  // Dua habit tambahan dengan riwayat seminggu.
+  const [study, lift] = [HABIT_TEMPLATES[0], HABIT_TEMPLATES[2]].map((t, i) => ({
+    ...t,
+    id: `hab_contoh${i}`,
+    kind: 'normal' as const,
+    active: true,
+    order: 10 + i,
+    ...stamp,
+  }))
+  await saveHabit(study)
+  await saveHabit(lift)
+  for (let i = 6; i >= 1; i--) {
+    const d = addDays(today, -i)
+    if (i % 3 !== 0) await addHabitMinutes(study, d, 45)
+    if (i % 2 === 0) await setHabitDone(lift.id, d, true)
+  }
+  await addHabitMinutes(study, today, 30)
+
   // Hari ini.
   await setDayType(today, 'stase')
   await setSleep(today, 5.5, 0)
@@ -45,6 +75,24 @@ export async function loadSample(): Promise<void> {
   }
   for (const id of ['#mut:qiyam', '#mut:subuh', '#mut:dzikirpagi']) await setMutabaahDone(id, today, true)
 
+  // Subtugas & tugas di hari lain minggu ini (untuk papan mingguan).
+  const tentirPrep = (await db.tasks.toArray()).find((t) => t.title.startsWith('Siapkan materi tentir'))
+  if (tentirPrep)
+    await updateTask(tentirPrep.id, {
+      subtasks: [
+        { id: 'sub_1', title: 'Ringkasan fraktur terbuka', done: true },
+        { id: 'sub_2', title: '10 soal latihan', done: false },
+        { id: 'sub_3', title: 'Slide dislokasi bahu', done: false },
+      ],
+    })
+  for (const [offset, title, roleId] of [
+    [1, 'Presentasi lapsus bedah', '#role:koas'],
+    [1, 'Tentir Murid B: neurologi', '#role:tentir'],
+    [2, 'Tryout mini 100 soal', '#role:ukmppd'],
+    [3, 'Muhasabah mingguan + 3 prioritas', '#role:orto'],
+  ] as const)
+    await addTask({ title, roleId, date: addDays(today, offset) })
+
   // Minggu ini direncanakan.
   const ws = weekStart(today)
   const plan: DayType[] = ['stase', 'jaga', 'pasca', 'stase', 'stase', 'jaga', 'pasca']
@@ -54,6 +102,21 @@ export async function loadSample(): Promise<void> {
       await db.days.put({ id: `#day:${d}`, date: d, type: plan[i], sleepNight: null, nap: 0, workEnd: null, note: '', updatedAt: now })
   }
 
+  // Muhasabah minggu lalu (selesai) → prioritas minggu ini di Beranda.
+  const lastMonday = addDays(ws, -7)
+  await db.reviews.put({
+    id: `#rev:minggu:${lastMonday}`,
+    period: 'minggu',
+    start: lastMonday,
+    priorities: ['200 soal kardio + review yang salah', 'Seleksi 60 abstrak systematic review', 'Tentir maksimal 12 jam'],
+    wins: 'Qailulah hampir setiap hari setelah stase.',
+    stuck: 'Bank soal tertinggal di minggu jaga.',
+    focus: 'Blok belajar pendek tapi rutin.',
+    numbers: {},
+    completedAt: now,
+    xp: 50,
+    updatedAt: now,
+  })
   await db.chapters.add({
     id: createId('chp'),
     name: 'Stase Bedah',

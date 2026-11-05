@@ -90,7 +90,8 @@ export function createDatabase(name: string = DB_NAME): QawwamDB {
 }
 
 /** URL database Dexie Cloud dari `.env.local` / variabel repo saat build. Kosong = mode lokal saja. */
-export const CLOUD_URL = (import.meta.env.VITE_DEXIE_CLOUD_URL ?? '').trim()
+// Tes selalu tanpa sinkron, walau .env.local berisi URL, agar hasilnya tidak bergantung pada jaringan atau login.
+export const CLOUD_URL = import.meta.env.MODE === 'test' ? '' : (import.meta.env.VITE_DEXIE_CLOUD_URL ?? '').trim()
 
 /** Instans database utama aplikasi (IndexedDB di perangkat, sinkron bila CLOUD_URL diisi). */
 export const db = createDatabase()
@@ -102,5 +103,7 @@ if (CLOUD_URL) {
     // langsung milik akunmu dan perangkat baru tidak menimpa data lama. Setelah itu tetap jalan offline.
     requireAuth: true,
     socialAuth: false,
+    // Layar masuk dibuat sendiri dalam bahasa Indonesia (features/auth/LoginDialog.tsx).
+    customLoginGui: true,
   })
 }

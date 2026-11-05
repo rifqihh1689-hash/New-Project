@@ -48,12 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
     Icon: Wallet,
     soon: { phase: 2, what: 'Port Dompetku: transaksi, anggaran, berulang, ditambah tabungan, utang, dan dana jembatan.' },
   },
-  {
-    route: 'habit',
-    label: 'Habit & ibadah',
-    Icon: RefreshCw,
-    soon: { phase: 1, what: "Atur habit harian per tipe hari dan daftar mutaba'ah, konsistensi 7 & 30 hari, impor data MBAPPE OS." },
-  },
+  { route: 'habit', label: 'Habit & ibadah', Icon: RefreshCw },
   {
     route: 'target',
     label: 'Target & PPDS',
@@ -61,10 +56,5 @@ export const NAV_ITEMS: NavItem[] = [
     soon: { phase: 3, what: 'Main Quest (maks. 3 aktif), portofolio PPDS, systematic review, IELTS.' },
   },
   { route: 'catatan', label: 'Catatan', Icon: FileText, soon: { phase: 2, what: 'Catatan per peran, warna, dan sematan.' } },
-  {
-    route: 'muhasabah',
-    label: 'Muhasabah',
-    Icon: BookOpenText,
-    soon: { phase: 1, what: 'Review mingguan 15–30 menit: berhasil, macet, fokus, dan 3 prioritas minggu depan.' },
-  },
+  { route: 'muhasabah', label: 'Muhasabah', Icon: BookOpenText },
 ]

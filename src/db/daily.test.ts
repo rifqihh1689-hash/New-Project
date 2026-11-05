@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../test/db-utils'
 import { db } from './db'
 import {
+  addHabitMinutes,
   addTask,
   loadAllResults,
   loadDaySnapshot,
@@ -11,7 +12,9 @@ import {
   setDayType,
   setHabitDone,
   setSleep,
+  toggleSubtask,
   toggleTask,
+  updateTask,
 } from './daily'
 import { DEFAULT_ROLES } from './defaults'
 import { loadRoles, saveRole } from './structure'
@@ -101,5 +104,37 @@ describe('bawaan tanpa isi awal', () => {
     const roles = await loadRoles()
     expect(roles).toHaveLength(DEFAULT_ROLES.length)
     expect(roles[0]).toMatchObject({ id: '#role:koas', name: 'Internsip' })
+  })
+})
+
+describe('habit bermenit', () => {
+  it('menit menumpuk dan centang menyimpan menit', async () => {
+    const habit = { id: 'hab_x', minutes: 45 }
+    await addHabitMinutes(habit, TODAY, 30)
+    expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 30, done: false })
+    await addHabitMinutes(habit, TODAY, 15)
+    expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 45, done: true })
+    await setHabitDone('hab_x', TODAY, false)
+    expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 45, done: false })
+  })
+})
+
+describe('subtugas', () => {
+  it('disimpan rapi, dicentang tanpa editor, dan dicek identitas pasien', async () => {
+    const t = await addTask({ title: 'Siapkan materi tentir', date: TODAY })
+    await updateTask(t.id, {
+      subtasks: [
+        { id: 's1', title: '  Ringkasan fraktur ', done: false },
+        { id: 's2', title: '   ', done: false },
+      ],
+    })
+    let saved = (await db.tasks.get(t.id))!
+    expect(saved.subtasks).toEqual([{ id: 's1', title: 'Ringkasan fraktur', done: false }])
+    await toggleSubtask(saved, 's1')
+    saved = (await db.tasks.get(t.id))!
+    expect(saved.subtasks[0].done).toBe(true)
+    await expect(updateTask(t.id, { subtasks: [{ id: 's3', title: 'Cek lab Ny. Siti', done: false }] })).rejects.toBeInstanceOf(
+      PatientIdentityError,
+    )
   })
 })
