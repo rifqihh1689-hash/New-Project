@@ -200,7 +200,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku. `transactions` sudah terisi pemasukan tentir; layarnya menyusul di modul Uang | disiapkan |
 | `savings`, `debts` | wishlist/tabungan per pos + setoran; utang + pembayaran | disiapkan |
 | `notes` | teks, peran, warna, sematkan | disiapkan |
-| `proposals` | usulan dari Claude: daftar operasi, status (menunggu/disetujui/ditolak) | disiapkan |
+| `proposals` | usulan dari Claude: judul, item format JSON impor, status (menunggu/disetujui/ditolak), hasil | dipakai |
 
 "Disiapkan" = tabel sudah ada di skema, layarnya belum. "Rencana" = ditambah lewat versi skema berikutnya.
 
@@ -227,17 +227,23 @@ Tidak ada yang direset. Fase, peran, habit, ritme, dan menu adalah data, bukan k
 - **Habit, mutaba'ah, menu:** nonaktifkan/arsipkan yang lama, tambah yang baru.
 - **XP, level, streak:** berlanjut. Hari yang sudah lewat dibekukan, jadi mengubah aturan tidak mengubah masa lalu.
 
-## Connector: tool yang direncanakan
+## Connector Claude
+
+Folder `connector/`: Cloudflare Worker yang berbicara MCP (Streamable HTTP) dan membaca Dexie Cloud lewat REST dengan kunci klien (`client_credentials`). Panduan pasang: `connector/README.md`.
 
 | Tool | Fungsi |
 |---|---|
-| `get_profile` | konteks, peran, target, tanggal penting |
-| `get_summary(from, to)` | ringkasan periode: tidur, tipe hari, tugas per peran, habit, mutaba'ah, tentir, uang, makan |
-| `list_tasks`, `list_days`, `list_events`, `list_tentir`, `list_transactions` | data mentah per rentang tanggal |
-| `get_review(period)` | Muhasabah yang sudah tersimpan (termasuk angka mingguan) |
-| `propose(items)` | tugas, agenda, habit, jadwal jaga, stase, ritme, prioritas, catatan, menu & daftar belanja, slot tentir, flashcard → masuk **Usulan**. Formatnya sama dengan JSON impor. |
+| `get_overview` | konteks: hari ini & tipe hari, fase, stase, level/XP/streak, peran, habit, mutaba'ah, Main Quest, aturan XP, tentir, makan, target latihan, dana jembatan, usulan menunggu |
+| `get_summary(from, to)` | ringkasan per hari + total: tidur, XP, lolos, tugas per peran, habit, mutaba'ah, tentir, latihan, lembur |
+| `list_records(table, from, to)` | data mentah satu tabel |
+| `get_training_plan` | resep sesi beban berikutnya, proyeksi bench, rencana lari minggu ini |
+| `propose(summary, items)` | tugas, jadwal jaga, habit, stase, ritme, menu → **Usulan**. Format sama dengan JSON impor (`src/domain/importGuide.ts`) |
 
-Tidak ada tool yang menghapus data.
+- Hitungan memakai kode domain yang sama dengan app (`src/domain/dayRows.ts`, `xp.ts`, `training.ts`, …), jadi hasilnya identik.
+- Tidak ada tool yang mengubah atau menghapus data; `propose` hanya menulis baris `proposals` (status menunggu). Disetujui di app, item per item, lewat jalur Impor.
+- Identitas pasien ditolak dua kali: di connector (usulan tidak disimpan) dan di app (baris tidak bisa dipilih).
+- Akses: URL berisi kunci rahasia (`/mcp/<CONNECTOR_KEY>`), dibandingkan waktu-konstan; ganti kunci untuk mencabut akses. OAuth bisa ditambahkan nanti bila perlu.
+- ID privat `#…` di server tersimpan sebagai `#…:<email>`; connector mengembalikannya ke bentuk app. Tabel dari skema baru yang belum pernah sinkron dianggap kosong.
 
 ## Fase
 
@@ -264,7 +270,8 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K | selesai (v1) |
 | Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ 21.00, Catat cepat Tentir | selesai |
 | Hadiah: 1 token per naik level, daftar hadiah sendiri, klaim + riwayat, hadiah berbiaya terkunci sampai dana jembatan tercapai, chip token di Beranda | selesai |
-| Connector + Usulan | Fase 1, belum |
+| Usulan: daftar usulan Claude, pilih item, setujui lewat jalur Impor / tolak (Urungkan), pemberitahuan di Beranda | selesai |
+| Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | kode selesai; tinggal deploy ke akun Cloudflare |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Modul Fase 2–3 lainnya | belum |

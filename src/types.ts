@@ -337,19 +337,19 @@ export interface Review extends CloudFields {
   updatedAt: number
 }
 
-export interface ProposalOp {
-  table: 'tasks' | 'events' | 'habits' | 'notes' | 'mainQuests' | 'days'
-  action: 'add' | 'update'
-  values: Record<string, unknown>
-  targetId?: string
-}
-
+/**
+ * Usulan dari Claude (lewat connector). Item memakai format JSON impor yang sama dengan halaman Impor
+ * (`jenis: tugas | jaga | habit | stase | ritme | menu`), jadi dicek identitas pasien dan bisa dipratinjau
+ * sebelum disetujui. Tidak ada usulan yang menghapus data.
+ */
 export interface Proposal extends Stamped {
   summary: string
-  ops: ProposalOp[]
+  items: Record<string, unknown>[]
   status: 'menunggu' | 'disetujui' | 'ditolak'
   source: 'claude'
   decidedAt: number | null
+  /** Ringkasan hasil saat disetujui, mis. "3 tugas, 1 jadwal jaga". */
+  result?: string
 }
 
 // ---------- Menu & makan ----------

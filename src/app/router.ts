@@ -15,6 +15,7 @@ export type RouteName =
   | 'menu'
   | 'latihan'
   | 'hadiah'
+  | 'usulan'
   | 'setelan'
   | 'impor'
   | 'lainnya'
@@ -33,6 +34,7 @@ export const ROUTES: readonly RouteName[] = [
   'menu',
   'latihan',
   'hadiah',
+  'usulan',
   'setelan',
   'impor',
   'lainnya',

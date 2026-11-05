@@ -1,3 +1,4 @@
+import { IMPORT_ITEM_GUIDE } from '../../domain/importGuide'
 import type { Role } from '../../types'
 
 const COLUMNS = [
@@ -82,12 +83,7 @@ export function claudePrompt(today: string, roles: Role[]): string {
 Balas HANYA dengan satu blok \`\`\`json berisi {"items": [...]}. Hari ini ${today} (WIB). Tanggal pakai YYYY-MM-DD, jam pakai HH.MM.
 
 Jenis item yang boleh:
-- {"jenis":"ritme","tipe_hari":"stase|jaga|pasca|libur","jam":"06.00","sampai":"14.00","judul":"...","peran":"...","catatan":"..."}  → jadwal harian berulang; satu set lengkap per tipe hari (menggantikan jadwal lama tipe itu).
-- {"jenis":"habit","judul":"...","hari":["Sen","Rab","Jum"],"tipe_hari":["stase","libur"],"menit":45,"ukuran":"kecil|sedang|besar","peran":"pulih","catatan":"detail, mis. set & repetisi"}  → kebiasaan/program latihan berulang. "hari" kosong = setiap hari.
-- {"jenis":"tugas","judul":"...","tanggal":"YYYY-MM-DD","peran":"...","penting":true}  → tugas sekali di tanggal tertentu.
-- {"jenis":"jaga","tanggal":"YYYY-MM-DD"}  → malam jaga.
-- {"jenis":"menu","judul":"...","sumber":"masak|beli","waktu_makan":["sarapan","siang","malam","snack"],"protein":40,"biaya":12000,"bahan":"Dada ayam 130 g; Beras 80 g","bekal":true,"tempat":"..."}  → daftar menu makan; protein (gram) & biaya (Rupiah) per porsi, bahan per porsi untuk menu masak.
-- {"jenis":"stase","judul":"Stase ...","mulai":"YYYY-MM-DD","selesai":"YYYY-MM-DD","masuk":"06.00","pulang":"16.00","bobot":"ringan|sedang|berat"}  → rotasi stase beserta jam masuk/pulang.
+${IMPORT_ITEM_GUIDE}
 
 Peran yang tersedia: ${roleList}. Pakai "ibadah" untuk slot ritme ibadah.
 Jangan tulis identitas pasien (nama, No. RM, tanggal lahir). Kalau ada yang tidak jelas, tebak yang paling masuk akal dan sebutkan di luar blok JSON.`

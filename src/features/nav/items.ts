@@ -6,6 +6,7 @@ import {
   FileText,
   Gift,
   House,
+  Inbox,
   RefreshCw,
   SquareCheck,
   Target,
@@ -58,4 +59,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { route: 'catatan', label: 'Catatan', Icon: FileText, soon: { phase: 2, what: 'Catatan per peran, warna, dan sematan.' } },
   { route: 'muhasabah', label: 'Muhasabah', Icon: BookOpenText },
+  { route: 'usulan', label: 'Usulan', Icon: Inbox },
 ]

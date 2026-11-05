@@ -1,0 +1,10 @@
+# Connector Qawwam untuk Claude (Cloudflare Workers, paket gratis cukup).
+# Rahasia diisi dengan `npx wrangler secret put <NAMA>`, JANGAN ditulis di file ini:
+#   DEXIE_DB_URL, DEXIE_CLIENT_ID, DEXIE_CLIENT_SECRET, OWNER_EMAIL, CONNECTOR_KEY
+name = "qawwam-connector"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[observability]
+enabled = true

@@ -61,11 +61,7 @@ export function roleLookup(roles: Role[] | undefined): (id: string | null | unde
 }
 
 /** Fase yang sedang berjalan: fase aktif terakhir yang sudah mulai dan belum selesai. */
-export function currentPhase(phases: Phase[], today: string): Phase | null {
-  const active = phases.filter((p) => !p.archived)
-  const running = active.filter((p) => (!p.start || p.start <= today) && (!p.end || today <= p.end))
-  return running[running.length - 1] ?? active.find((p) => !p.end || today <= p.end) ?? null
-}
+export { currentPhase } from '../domain/phase'
 
 // ---------- Tulis ----------
 

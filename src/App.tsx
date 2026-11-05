@@ -12,6 +12,7 @@ import { HadiahPage } from './features/hadiah/HadiahPage'
 import { LatihanPage } from './features/latihan/LatihanPage'
 import { MenuPage } from './features/menu/MenuPage'
 import { TentirPage } from './features/tentir/TentirPage'
+import { UsulanPage } from './features/usulan/UsulanPage'
 import { MuhasabahPage } from './features/muhasabah/MuhasabahPage'
 import { MobileTop } from './features/nav/MobileTop'
 import { MorePage } from './features/nav/MorePage'
@@ -44,6 +45,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <TentirPage />
     case 'hadiah':
       return <HadiahPage />
+    case 'usulan':
+      return <UsulanPage />
     case 'impor':
       return <ImportPage />
     case 'setelan':

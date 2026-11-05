@@ -29,3 +29,7 @@ dexie-cloud.key
 dexie-cloud.json
 .env.local
 dev-dist
+
+# Connector (Cloudflare)
+.wrangler
+.dev.vars
