@@ -271,7 +271,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ 21.00, Catat cepat Tentir | selesai |
 | Hadiah: 1 token per naik level, daftar hadiah sendiri, klaim + riwayat, hadiah berbiaya terkunci sampai dana jembatan tercapai, chip token di Beranda | selesai |
 | Usulan: daftar usulan Claude, pilih item, setujui lewat jalur Impor / tolak (Urungkan), pemberitahuan di Beranda | selesai |
-| Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | kode selesai; tinggal deploy ke akun Cloudflare |
+| Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
 | Modul Fase 2–3 lainnya | belum |
