@@ -12,7 +12,9 @@ import {
   setDayType,
   setHabitDone,
   setSleep,
+  toggleSubtask,
   toggleTask,
+  updateTask,
 } from './daily'
 import { DEFAULT_ROLES } from './defaults'
 import { loadRoles, saveRole } from './structure'
@@ -114,5 +116,25 @@ describe('habit bermenit', () => {
     expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 45, done: true })
     await setHabitDone('hab_x', TODAY, false)
     expect(await db.habitLogs.get('#hl:hab_x:2026-11-05')).toMatchObject({ minutes: 45, done: false })
+  })
+})
+
+describe('subtugas', () => {
+  it('disimpan rapi, dicentang tanpa editor, dan dicek identitas pasien', async () => {
+    const t = await addTask({ title: 'Siapkan materi tentir', date: TODAY })
+    await updateTask(t.id, {
+      subtasks: [
+        { id: 's1', title: '  Ringkasan fraktur ', done: false },
+        { id: 's2', title: '   ', done: false },
+      ],
+    })
+    let saved = (await db.tasks.get(t.id))!
+    expect(saved.subtasks).toEqual([{ id: 's1', title: 'Ringkasan fraktur', done: false }])
+    await toggleSubtask(saved, 's1')
+    saved = (await db.tasks.get(t.id))!
+    expect(saved.subtasks[0].done).toBe(true)
+    await expect(updateTask(t.id, { subtasks: [{ id: 's3', title: 'Cek lab Ny. Siti', done: false }] })).rejects.toBeInstanceOf(
+      PatientIdentityError,
+    )
   })
 })

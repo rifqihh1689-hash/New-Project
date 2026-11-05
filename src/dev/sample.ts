@@ -3,7 +3,17 @@
  * tidak pernah ikut build produksi.
  */
 import { db } from '../db/db'
-import { addHabitMinutes, addTask, setDayType, setHabitDone, setMutabaahDone, setSleep, setWorkEnd, toggleTask } from '../db/daily'
+import {
+  addHabitMinutes,
+  addTask,
+  updateTask,
+  setDayType,
+  setHabitDone,
+  setMutabaahDone,
+  setSleep,
+  setWorkEnd,
+  toggleTask,
+} from '../db/daily'
 import { saveHabit } from '../db/structure'
 import { HABIT_TEMPLATES } from '../features/habit/templates'
 import { DEFAULT_MUTABAAH } from '../db/defaults'
@@ -64,6 +74,24 @@ export async function loadSample(): Promise<void> {
     if (done) await toggleTask(t)
   }
   for (const id of ['#mut:qiyam', '#mut:subuh', '#mut:dzikirpagi']) await setMutabaahDone(id, today, true)
+
+  // Subtugas & tugas di hari lain minggu ini (untuk papan mingguan).
+  const tentirPrep = (await db.tasks.toArray()).find((t) => t.title.startsWith('Siapkan materi tentir'))
+  if (tentirPrep)
+    await updateTask(tentirPrep.id, {
+      subtasks: [
+        { id: 'sub_1', title: 'Ringkasan fraktur terbuka', done: true },
+        { id: 'sub_2', title: '10 soal latihan', done: false },
+        { id: 'sub_3', title: 'Slide dislokasi bahu', done: false },
+      ],
+    })
+  for (const [offset, title, roleId] of [
+    [1, 'Presentasi lapsus bedah', '#role:koas'],
+    [1, 'Tentir Murid B: neurologi', '#role:tentir'],
+    [2, 'Tryout mini 100 soal', '#role:ukmppd'],
+    [3, 'Muhasabah mingguan + 3 prioritas', '#role:orto'],
+  ] as const)
+    await addTask({ title, roleId, date: addDays(today, offset) })
 
   // Minggu ini direncanakan.
   const ws = weekStart(today)

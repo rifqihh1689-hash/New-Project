@@ -1,109 +1,63 @@
-import { ArrowRight, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { navigate } from '../../app/router'
 import { useToday } from '../../app/useToday'
-import { Check } from '../../components/Check'
 import { PageTop } from '../../components/PageTop'
-import { RoleDot, RoleTag } from '../../components/RoleTag'
-import { useToast } from '../../components/toast-context'
-import { addTask, moveTasks, moveUndoneToTomorrow, PatientIdentityError, toggleTask } from '../../db/daily'
-import { DEFAULT_ROLE_ID } from '../../db/defaults'
-import { roleLookup } from '../../db/structure'
-import { detectPatientIdentity, PHI_HINT } from '../../domain/phi'
-import { addDays, formatDateLong, relativeDayLabel } from '../../domain/time'
-import type { Task } from '../../types'
+import { RoleDot } from '../../components/RoleTag'
+import { addDays, formatDateLong, MONTH_NAMES, relativeDayLabel, weekStart } from '../../domain/time'
+import type { Role, Task } from '../../types'
 import { DayTypePicker } from '../beranda/DayTypePicker'
-import { useTugas } from './data'
+import { useTugas, useTugasWeek } from './data'
+import { DayView } from './DayView'
 import { TaskEditor } from './TaskEditor'
+import { WeekView } from './WeekView'
 
-const XP = { kecil: 5, sedang: 10, besar: 20 } as const
+type View = 'hari' | 'minggu'
+const VIEW_KEY = 'qawwam-tugas-view'
 
-export function TugasPage({ date: routeDate }: { date: string | null }) {
-  const today = useToday()
-  const date = routeDate ?? today
-  const data = useTugas(date)
-  const toast = useToast()
-  const [filter, setFilter] = useState<string | null>(null)
-  const [title, setTitle] = useState('')
-  const [roleId, setRoleId] = useState<string>(DEFAULT_ROLE_ID)
-  const [editing, setEditing] = useState<Task | null>(null)
-  const role = roleLookup(data?.roles)
-  const phi = title.trim() ? detectPatientIdentity(title) : null
-  const go = (d: string) => navigate('tugas', d === today ? null : d)
-
-  if (!data) return <PageTop title="Tugas" />
-  const activeRoles = data.roles.filter((r) => !r.archived)
-  const shown = filter ? data.tasks.filter((t) => t.roleId === filter) : data.tasks
-  const left = data.tasks.filter((t) => !t.done)
-  const next = addDays(date, 1)
-
-  const add = async () => {
-    try {
-      await addTask({ title, roleId: filter ?? roleId, date })
-      setTitle('')
-    } catch (e) {
-      toast({ message: e instanceof PatientIdentityError ? e.message : (e as Error).message, tone: 'error' })
-    }
+function readView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'hari' ? 'hari' : 'minggu'
+  } catch {
+    return 'minggu'
   }
-  const moveOne = async (t: Task) => {
-    await moveTasks([t.id], next)
-    toast({
-      message: `Dipindah ke ${relativeDayLabel(next, today).toLowerCase()}.`,
-      action: { label: 'Urungkan', onClick: () => void moveTasks([t.id], date) },
-    })
-  }
-  const moveLeft = async () => {
-    const ids = await moveUndoneToTomorrow(date)
-    toast({
-      message: `${ids.length} tugas dipindah ke ${relativeDayLabel(next, today).toLowerCase()}.`,
-      action: { label: 'Urungkan', onClick: () => void moveTasks(ids, date) },
-    })
-  }
+}
 
+/** "2–8 Nov" atau "30 Nov – 6 Des". */
+function weekRangeLabel(monday: string): string {
+  const sunday = addDays(monday, 6)
+  const [m1, d1] = [Number(monday.slice(5, 7)), Number(monday.slice(8))]
+  const [m2, d2] = [Number(sunday.slice(5, 7)), Number(sunday.slice(8))]
+  const mon = (m: number) => MONTH_NAMES[m - 1].slice(0, 3)
+  return m1 === m2 ? `${d1}–${d2} ${mon(m2)}` : `${d1} ${mon(m1)} – ${d2} ${mon(m2)}`
+}
+
+function RoleFilter({
+  roles,
+  tasks,
+  filter,
+  setFilter,
+}: {
+  roles: Role[]
+  tasks: Task[]
+  filter: string | null
+  setFilter: (f: string | null) => void
+}) {
   return (
-    <>
-      <PageTop title="Tugas" />
-      <h1 className="mt-4 text-[26px] font-semibold tracking-tight md:hidden">Tugas</h1>
-
-      <section className="mt-3 flex flex-wrap items-center gap-3 md:mt-[26px]">
-        <div className="flex items-center gap-1">
-          <button type="button" className="btn-ghost p-2" onClick={() => go(addDays(date, -1))} aria-label="Hari sebelumnya">
-            <ChevronLeft size={18} aria-hidden="true" />
-          </button>
-          <div className="min-w-[180px] text-center">
-            <div className="font-serif text-xl">{relativeDayLabel(date, today)}</div>
-            <div className="text-xs text-muted">{formatDateLong(date)}</div>
-          </div>
-          <button type="button" className="btn-ghost p-2" onClick={() => go(addDays(date, 1))} aria-label="Hari berikutnya">
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
-          {date !== today && (
-            <button type="button" className="chip ml-1 py-1" onClick={() => go(today)}>
-              Hari ini
-            </button>
-          )}
-        </div>
-        <DayTypePicker
-          date={date}
-          value={data.type}
-          suggested={data.suggested}
-          phase={data.phase}
-          className="w-full lg:ml-auto lg:w-auto"
-        />
-      </section>
-
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Saring peran">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!filter}
-          onClick={() => setFilter(null)}
-          className={`chip ${!filter ? 'border-transparent bg-btn font-semibold text-btn-text' : ''}`}
-        >
-          Semua <span className="opacity-60">{data.tasks.length}</span>
-        </button>
-        {activeRoles.map((r) => {
-          const n = data.tasks.filter((t) => t.roleId === r.id).length
+    <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Saring peran">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={!filter}
+        onClick={() => setFilter(null)}
+        className={`chip ${!filter ? 'border-transparent bg-btn font-semibold text-btn-text' : ''}`}
+      >
+        Semua <span className="opacity-60">{tasks.length}</span>
+      </button>
+      {roles
+        .filter((r) => !r.archived)
+        .map((r) => {
+          const n = tasks.filter((t) => t.roleId === r.id).length
           return (
             <button
               key={r.id}
@@ -119,95 +73,101 @@ export function TugasPage({ date: routeDate }: { date: string | null }) {
             </button>
           )
         })}
-      </div>
+    </div>
+  )
+}
 
-      <section className="card mt-3">
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void add()
-          }}
-        >
-          <input
-            className="field min-w-0 flex-[1_1_220px]"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={`Tugas baru untuk ${relativeDayLabel(date, today).toLowerCase()}…`}
-            aria-label="Judul tugas baru"
-            maxLength={200}
-          />
-          {!filter && (
-            <select className="field w-auto flex-none" value={roleId} onChange={(e) => setRoleId(e.target.value)} aria-label="Peran">
-              {activeRoles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <button type="submit" className="btn-primary py-2.5" disabled={!title.trim() || !!phi}>
-            Tambah
-          </button>
-        </form>
-        {phi && (
-          <p className="mt-2 text-xs text-danger" role="alert">
-            Mirip identitas pasien ({phi}). {PHI_HINT}
-          </p>
-        )}
+export function TugasPage({ date: routeDate }: { date: string | null }) {
+  const today = useToday()
+  const date = routeDate ?? today
+  const [view, setViewState] = useState<View>(readView)
+  const [filter, setFilter] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Task | null>(null)
+  const day = useTugas(date)
+  const week = useTugasWeek(date)
+  const go = (d: string) => navigate('tugas', d === today ? null : d)
+  const setView = (v: View) => {
+    setViewState(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      // Tidak tersimpan (mode privat) — pilihan tetap berlaku untuk sesi ini.
+    }
+  }
+  const monday = weekStart(date)
+  const thisWeek = monday === weekStart(today)
+  const roles = day?.roles ?? week?.roles ?? []
 
-        <ul className="mt-3">
-          {shown.length === 0 && (
-            <li className="py-3 text-[13px] text-muted">Belum ada tugas{filter ? ` ${role(filter).name}` : ''} di hari ini.</li>
-          )}
-          {shown.map((t) => (
-            <li key={t.id} className="group flex items-start gap-3 border-t border-line px-1 py-2.5 first:border-t-0">
-              <Check checked={t.done} onChange={() => void toggleTask(t)} label={`Centang ${t.title}`} />
-              <button type="button" onClick={() => setEditing(t)} className={`flex-1 text-left ${t.done ? 'text-faint line-through' : ''}`}>
-                {t.title}
-                {t.important && !t.done && (
-                  <span
-                    className="ml-1.5 rounded-md px-[7px] py-0.5 text-[11px] text-danger"
-                    style={{ background: 'color-mix(in srgb, var(--danger) 14%, transparent)' }}
-                  >
-                    Penting
-                  </span>
-                )}
-                {t.source === 'claude' && <span className="ml-1.5 text-[11px] text-faint">dari Claude</span>}
-              </button>
-              <span className="flex items-center gap-2 pt-0.5">
-                <RoleTag role={role(t.roleId)} compact />
-                <span className="text-[11.5px] text-faint tabular-nums">+{XP[t.size]}</span>
-                {!t.done && (
-                  <button
-                    type="button"
-                    onClick={() => void moveOne(t)}
-                    className="rounded-full p-1 text-faint hover:text-text"
-                    aria-label={`Pindahkan "${t.title}" ke hari berikutnya`}
-                    title="Pindah ke hari berikutnya"
-                  >
-                    <ArrowRight size={15} aria-hidden="true" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setEditing(t)}
-                  className="rounded-full p-1 text-faint hover:text-text"
-                  aria-label={`Ubah "${t.title}"`}
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                </button>
-              </span>
-            </li>
+  return (
+    <>
+      <PageTop title="Tugas" />
+      <h1 className="mt-4 text-[26px] font-semibold tracking-tight md:hidden">Tugas</h1>
+
+      <section className="mt-3 flex flex-wrap items-center gap-3 md:mt-[26px]">
+        <div role="tablist" aria-label="Tampilan" className="flex rounded-full bg-surface-2 p-[3px]">
+          {(['hari', 'minggu'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => setView(v)}
+              className={`rounded-full px-3.5 py-1.5 text-[13px] ${view === v ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+            >
+              {v === 'hari' ? 'Hari' : 'Minggu'}
+            </button>
           ))}
-        </ul>
-        {left.length > 0 && (
-          <button type="button" onClick={() => void moveLeft()} className="btn-ghost mt-2 w-full justify-between border border-line">
-            Pindahkan sisa ke {relativeDayLabel(next, today).toLowerCase()} <span className="text-faint">{left.length}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="btn-ghost p-2"
+            onClick={() => go(addDays(date, view === 'hari' ? -1 : -7))}
+            aria-label={view === 'hari' ? 'Hari sebelumnya' : 'Minggu sebelumnya'}
+          >
+            <ChevronLeft size={18} aria-hidden="true" />
           </button>
+          <div className="min-w-[150px] text-center">
+            {view === 'hari' ? (
+              <>
+                <div className="font-serif text-xl">{relativeDayLabel(date, today)}</div>
+                <div className="text-xs text-muted">{formatDateLong(date)}</div>
+              </>
+            ) : (
+              <>
+                <div className="font-serif text-xl">{thisWeek ? 'Minggu ini' : weekRangeLabel(monday)}</div>
+                <div className="text-xs text-muted">Senin–Minggu · {weekRangeLabel(monday)}</div>
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn-ghost p-2"
+            onClick={() => go(addDays(date, view === 'hari' ? 1 : 7))}
+            aria-label={view === 'hari' ? 'Hari berikutnya' : 'Minggu berikutnya'}
+          >
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+          {(view === 'hari' ? date !== today : !thisWeek) && (
+            <button type="button" className="chip ml-1 py-1" onClick={() => go(today)}>
+              {view === 'hari' ? 'Hari ini' : 'Minggu ini'}
+            </button>
+          )}
+        </div>
+        {view === 'hari' && day && (
+          <DayTypePicker date={date} value={day.type} suggested={day.suggested} phase={day.phase} className="w-full lg:ml-auto lg:w-auto" />
         )}
       </section>
-      <TaskEditor task={editing} roles={data.roles} onClose={() => setEditing(null)} />
+
+      <RoleFilter roles={roles} tasks={(view === 'hari' ? day?.tasks : week?.all) ?? []} filter={filter} setFilter={setFilter} />
+
+      {view === 'hari' && day && (
+        <DayView date={date} today={today} tasks={day.tasks} roles={day.roles} filter={filter} onEdit={setEditing} />
+      )}
+      {view === 'minggu' && week && (
+        <WeekView key={monday} week={week.week} today={today} roles={week.roles} filter={filter} focus={routeDate} onEdit={setEditing} />
+      )}
+      <TaskEditor task={editing} roles={roles} onClose={() => setEditing(null)} />
     </>
   )
 }

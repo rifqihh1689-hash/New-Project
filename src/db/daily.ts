@@ -107,7 +107,17 @@ export async function updateTask(id: string, changes: Partial<Omit<Task, 'id' | 
     if (!changes.title) throw new Error('Judul tugas kosong.')
     assertNoPatientIdentity(changes.title)
   }
+  if (changes.subtasks) {
+    changes.subtasks = changes.subtasks.map((st) => ({ ...st, title: st.title.trim() })).filter((st) => st.title)
+    assertNoPatientIdentity(...changes.subtasks.map((st) => st.title))
+  }
   await db.tasks.update(id, { ...changes, updatedAt: Date.now() })
+}
+
+/** Centang/batal satu subtugas tanpa membuka editor. */
+export async function toggleSubtask(task: Task, subtaskId: string): Promise<void> {
+  const subtasks = task.subtasks.map((st) => (st.id === subtaskId ? { ...st, done: !st.done } : st))
+  await db.tasks.update(task.id, { subtasks, updatedAt: Date.now() })
 }
 
 export async function toggleTask(task: Task): Promise<void> {
