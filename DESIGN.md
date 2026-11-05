@@ -66,7 +66,8 @@ Tujuan: tidak perlu memikirkan menu setiap hari.
 - **Rencana mingguan disusun otomatis** dari daftar menu dan tipe hari: sarapan cepat di hari stase, siang beli dekat RS atau bekal, makan sebelum jaga + bekal jaga, pasca-jaga tanpa masak (praktis/beli), libur untuk belanja dan masak lauk beberapa hari. Utamakan protein, jaga anggaran, hindari pengulangan. Bisa isi yang kosong saja atau susun ulang (dengan Urungkan); tiap slot bisa diganti manual.
 - **Daftar belanja** otomatis dari menu masak minggu itu, sekali ketuk jadi tugas "Belanja mingguan" (subtugas per bahan) di hari libur.
 - **Kartu "Makan hari ini"** di Beranda.
-- **Anggaran:** perkiraan biaya mingguan dibandingkan anggaran (bawaan Rp350 rb); nanti masuk anggaran Makan di modul Uang.
+- **Harga bahan** per satuan (telur per butir, ayam & beras per kg, susu per liter, …), diperbarui ±sebulan sekali (lebih cepat bila harga ayam/telur bergejolak). Biaya menu masak = bahan × harga + bumbu/minyak/gas per porsi; menu beli diisi manual. Halaman Menu mengingatkan bila harga lewat 30 hari.
+- **Anggaran:** perkiraan biaya mingguan dibandingkan anggaran (bawaan Rp350 rb); daftar belanja menampilkan perkiraan harga per bahan. Nanti masuk anggaran Makan di modul Uang.
 - Daftar menu bisa diimpor; Claude menyusun menu dari jadwal jaga dan anggaran, hasilnya masuk Usulan.
 
 ### Tentir+

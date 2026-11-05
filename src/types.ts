@@ -360,6 +360,19 @@ export interface NutritionSettings {
   proteinPerKg: number
   /** Anggaran makan per minggu (Rupiah). */
   weeklyBudget: number
+  /** Harga bahan per satuan; biaya menu masak dihitung dari sini. Diperbarui ±sebulan sekali. */
+  prices: IngredientPrice[]
+  /** Kapan harga terakhir diperbarui. `null` = masih harga bawaan. */
+  pricesUpdatedAt: number | null
+  /** Bumbu, minyak & gas per porsi menu masak (Rupiah). */
+  overheadRp: number
+}
+
+export interface IngredientPrice {
+  name: string
+  /** Satuan dasar yang sama dengan bahan di menu: g, ml, butir, buah. */
+  unit: string
+  rpPerUnit: number
 }
 
 export interface Ingredient {
@@ -385,6 +398,8 @@ export interface Menu extends Stamped {
   place?: string
   note?: string
   archived: boolean
+  /** Tidak disimpan: biaya dihitung dari harga bahan saat dimuat. */
+  costAuto?: boolean
 }
 
 export interface MealPlanEntry extends CloudFields {

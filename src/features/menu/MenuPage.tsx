@@ -7,13 +7,14 @@ import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/toast-context'
 import { autoPlan, restorePlan, setMeal, shoppingTask, updateNutrition } from '../../db/menu'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
-import { formatQty, mealsForPhase, PHASE_LABELS, SLOT_LABELS } from '../../domain/menu'
+import { formatQty, ingredientCost, mealsForPhase, PHASE_LABELS, pricesAge, SLOT_LABELS } from '../../domain/menu'
 import { addDays, DAY_NAMES, MONTH_NAMES, weekday, weekStart } from '../../domain/time'
 import { formatRupiah } from '../../lib/format'
 import type { FoodPhase, MealSlot, Menu } from '../../types'
 import { DAY_TYPE_COLORS } from '../beranda/dayTypeColors'
 import { useMenuPage, type MenuPageData } from './data'
 import { MenuEditor, type MenuDraft } from './MenuEditor'
+import { PricesCard } from './PricesCard'
 
 const shortDate = (d: string) => `${Number(d.slice(8))} ${MONTH_NAMES[Number(d.slice(5, 7)) - 1].slice(0, 3)}`
 
@@ -303,10 +304,19 @@ function Shopping({ data, today }: { data: MenuPageData; today: string }) {
         {data.shopping.map((i) => (
           <li key={`${i.name}|${i.unit}`} className="flex justify-between border-b border-line py-1.5">
             <span>{i.name}</span>
-            <span className="text-muted tabular-nums">{formatQty(i)}</span>
+            <span className="text-muted tabular-nums">
+              {formatQty(i)}
+              {ingredientCost(i, data.nutrition.prices) != null && (
+                <span className="ml-2 text-faint">{formatRupiah(ingredientCost(i, data.nutrition.prices)!)}</span>
+              )}
+            </span>
           </li>
         ))}
       </ul>
+      <p className="mt-2 text-right text-[13px] text-muted">
+        Perkiraan belanja bahan{' '}
+        <b className="text-text">{formatRupiah(data.shopping.reduce((a, i) => a + (ingredientCost(i, data.nutrition.prices) ?? 0), 0))}</b>
+      </p>
       <button type="button" className="btn-ghost mt-3 border border-line" onClick={() => void make()}>
         Jadikan tugas belanja ({DAY_NAMES[weekday(shopDate)]})
       </button>
@@ -380,7 +390,7 @@ function Library({ data }: { data: MenuPageData }) {
         </a>
         .
       </p>
-      <MenuEditor draft={editing} onClose={() => setEditing(null)} />
+      <MenuEditor draft={editing} nutrition={data.nutrition} onClose={() => setEditing(null)} />
     </section>
   )
 }
@@ -430,10 +440,24 @@ export function MenuPage({ date: routeDate }: { date: string | null }) {
       </section>
       {data && (
         <>
+          {(() => {
+            const age = pricesAge(data.nutrition.pricesUpdatedAt)
+            if (age != null && age <= 30) return null
+            return (
+              <p className="mt-3 rounded-xl border border-line bg-surface px-4 py-2.5 text-[13px] text-muted">
+                {age == null ? 'Biaya memakai harga bahan perkiraan.' : `Harga bahan terakhir diperbarui ${age} hari lalu.`}{' '}
+                <a href="#harga-bahan" className="text-text underline-offset-2 hover:underline">
+                  Perbarui harga
+                </a>{' '}
+                (±2 menit, sebulan sekali).
+              </p>
+            )
+          })()}
           <Summary data={data} />
           <WeekPlan data={data} today={today} />
           <Shopping data={data} today={today} />
           <Settings data={data} />
+          <PricesCard nutrition={data.nutrition} />
           <Library data={data} />
         </>
       )}

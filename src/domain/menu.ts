@@ -1,4 +1,4 @@
-import type { DayType, FoodPhase, Ingredient, ISODate, MealPlanEntry, MealSlot, Menu, NutritionSettings } from '../types'
+import type { DayType, FoodPhase, Ingredient, IngredientPrice, ISODate, MealPlanEntry, MealSlot, Menu, NutritionSettings } from '../types'
 
 export const SLOT_ORDER: MealSlot[] = ['sarapan', 'snack1', 'siang', 'snack2', 'malam']
 
@@ -14,18 +14,91 @@ export const PHASE_LABELS: Record<FoodPhase, string> = { bulk: 'Bulk', maintain:
 
 const MEALS_BY_PHASE: Record<FoodPhase, 3 | 4 | 5> = { bulk: 5, maintain: 4, cut: 3 }
 
+/** Harga bawaan (perkiraan pasar Malang, Nov 2026). Rupiah per g / ml / butir / buah. */
+export const DEFAULT_PRICES: IngredientPrice[] = [
+  { name: 'Beras', unit: 'g', rpPerUnit: 14 },
+  { name: 'Dada ayam', unit: 'g', rpPerUnit: 45 },
+  { name: 'Paha ayam fillet', unit: 'g', rpPerUnit: 50 },
+  { name: 'Telur', unit: 'butir', rpPerUnit: 2_000 },
+  { name: 'Tempe', unit: 'g', rpPerUnit: 16 },
+  { name: 'Tahu', unit: 'g', rpPerUnit: 12 },
+  { name: 'Sayur', unit: 'g', rpPerUnit: 15 },
+  { name: 'Sayur sup', unit: 'g', rpPerUnit: 15 },
+  { name: 'Oat', unit: 'g', rpPerUnit: 40 },
+  { name: 'Susu UHT', unit: 'ml', rpPerUnit: 18 },
+  { name: 'Pisang', unit: 'buah', rpPerUnit: 1_500 },
+]
+
 export const DEFAULT_NUTRITION: NutritionSettings = {
   weightKg: null,
   phase: 'bulk',
   mealsPerDay: 5,
   proteinPerKg: 1.6,
   weeklyBudget: 350_000,
+  prices: DEFAULT_PRICES,
+  pricesUpdatedAt: null,
+  overheadRp: 1_500,
+}
+
+const priceKey = (name: string, unit: string) => `${name.trim().toLowerCase()}|${unit.trim().toLowerCase()}`
+
+/** Harga bawaan + harga tersimpan (tersimpan menang, per nama + satuan). */
+export function resolvePrices(stored: IngredientPrice[] | undefined): IngredientPrice[] {
+  const map = new Map(DEFAULT_PRICES.map((p) => [priceKey(p.name, p.unit), p]))
+  for (const p of stored ?? []) map.set(priceKey(p.name, p.unit), p)
+  return [...map.values()]
 }
 
 /** Gabungkan setelan tersimpan dengan bawaan; jumlah makan mengikuti fase bila belum diatur sendiri. */
 export function resolveNutrition(stored: Partial<NutritionSettings> | undefined): NutritionSettings {
   const phase = stored?.phase ?? DEFAULT_NUTRITION.phase
-  return { ...DEFAULT_NUTRITION, mealsPerDay: MEALS_BY_PHASE[phase], ...stored, phase }
+  return { ...DEFAULT_NUTRITION, mealsPerDay: MEALS_BY_PHASE[phase], ...stored, phase, prices: resolvePrices(stored?.prices) }
+}
+
+/**
+ * Biaya satu porsi menu masak dari harga bahan + bumbu/minyak/gas, dibulatkan ke Rp100.
+ * Menu beli, atau menu masak yang bahannya ada yang belum berharga, memakai biaya yang diisi manual.
+ */
+export function menuCost(
+  menu: Pick<Menu, 'source' | 'ingredients' | 'costRp'>,
+  prices: IngredientPrice[],
+  overheadRp: number,
+): { cost: number; auto: boolean } {
+  if (menu.source !== 'masak' || !menu.ingredients.length) return { cost: menu.costRp, auto: false }
+  const map = new Map(prices.map((p) => [priceKey(p.name, p.unit), p.rpPerUnit]))
+  let total = overheadRp
+  for (const i of menu.ingredients) {
+    const price = map.get(priceKey(i.name, i.unit))
+    if (price === undefined) return { cost: menu.costRp, auto: false }
+    total += i.qty * price
+  }
+  return { cost: Math.round(total / 100) * 100, auto: true }
+}
+
+/** Menu dengan biaya terbaru dari harga bahan (dipakai penyusun, ringkasan, dan tampilan). */
+export function withComputedCosts(menus: Menu[], n: Pick<NutritionSettings, 'prices' | 'overheadRp'>): Menu[] {
+  return menus.map((m) => {
+    const { cost, auto } = menuCost(m, n.prices, n.overheadRp)
+    return auto ? { ...m, costRp: cost, costAuto: true } : m
+  })
+}
+
+/** Perkiraan harga satu baris daftar belanja; `null` bila bahan belum berharga. */
+export function ingredientCost(i: Ingredient, prices: IngredientPrice[]): number | null {
+  const p = prices.find((x) => priceKey(x.name, x.unit) === priceKey(i.name, i.unit))
+  return p ? Math.round((i.qty * p.rpPerUnit) / 100) * 100 : null
+}
+
+/** Berapa hari sejak harga diperbarui; harga bawaan dianggap perlu dicek. */
+export function pricesAge(updatedAt: number | null, nowMs: number = Date.now()): number | null {
+  return updatedAt == null ? null : Math.floor((nowMs - updatedAt) / 86_400_000)
+}
+
+/** Satuan tampilan yang lazim di pasar: g → kg, ml → liter. */
+export function displayUnit(unit: string): { label: string; factor: number } {
+  if (unit === 'g') return { label: 'kg', factor: 1000 }
+  if (unit === 'ml') return { label: 'liter', factor: 1000 }
+  return { label: unit, factor: 1 }
 }
 
 export function mealsForPhase(phase: FoodPhase): 3 | 4 | 5 {
