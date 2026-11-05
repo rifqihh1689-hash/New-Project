@@ -103,6 +103,16 @@ export function SettingsPage() {
           </div>
         </section>
 
+        <section className="card">
+          <h2 className="card-title">Impor jadwal</h2>
+          <p className="mb-3 text-[13px] text-muted">
+            Jadwal harian, program latihan, tugas, jadwal jaga, dan stase dari Google Sheets, CSV, atau balasan Claude (untuk screenshot,
+            PDF, catatan).
+          </p>
+          <a href="#/impor" className="btn-primary">
+            Buka Impor
+          </a>
+        </section>
         <StaseSettings />
         <RitmeSettings />
         <LifeStructure />

@@ -184,6 +184,8 @@ export interface Habit extends Stamped {
   kind: 'normal' | 'sleep' | 'workend'
   active: boolean
   order: number
+  /** Detail, mis. program latihan "Bench 3×5, row 3×8". */
+  note?: string
 }
 
 export interface HabitLog extends CloudFields {

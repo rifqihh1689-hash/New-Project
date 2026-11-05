@@ -9,7 +9,7 @@ export interface ParsedTask {
   important: boolean
 }
 
-interface RoleRef {
+export interface RoleRef {
   id: string
   name: string
   archived?: boolean
@@ -23,6 +23,25 @@ const ROLE_KEYWORDS: Record<string, RegExp> = {
   '#role:pulih': /\b(tidur|qailulah|olahraga|gym|lari|jalan kaki|stretching|makan sehat|latihan beban)\b/i,
   '#role:uang': /\b(bayar|transfer|tagihan|kos|belanja|utang|nabung|tabung|token listrik|pulsa)\b/i,
   '#role:koas': /\b(bangsal|follow ?up|fu|laporan|logbook|presentasi|referat|refleksi kasus|visite|poli|jaga|stase|lapsus|case report)\b/i,
+}
+
+/** Tebak peran dari kata kunci (hanya peran bawaan yang aktif). */
+export function guessRole(text: string, roles: RoleRef[]): string | null {
+  for (const [id, re] of Object.entries(ROLE_KEYWORDS)) if (re.test(text) && roles.some((r) => r.id === id && !r.archived)) return id
+  return null
+}
+
+/** Cocokkan nama/kunci peran yang diketik ("ukmppd", "Ortopedi", "#orto") dengan peran aktif. */
+export function matchRole(input: string, roles: RoleRef[]): string | null {
+  const key = normalize(input.replace(/^#/, ''))
+  if (!key) return null
+  const active = roles.filter((r) => !r.archived)
+  return (
+    active.find((r) => normalize(r.id.replace(/^#role:/, '')) === key)?.id ??
+    active.find((r) => normalize(r.name) === key)?.id ??
+    active.find((r) => normalize(r.name).startsWith(key))?.id ??
+    null
+  )
 }
 
 const DAY_WORDS = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu']
@@ -75,13 +94,6 @@ export function parseQuickTask(input: string, today: ISODate, roles: RoleRef[]):
   }
 
   const title = text.replace(/\s+/g, ' ').trim()
-  if (!roleId) {
-    for (const [id, re] of Object.entries(ROLE_KEYWORDS)) {
-      if (re.test(title) && active.some((r) => r.id === id)) {
-        roleId = id
-        break
-      }
-    }
-  }
+  if (!roleId) roleId = guessRole(title, roles)
   return { title: title.charAt(0).toUpperCase() + title.slice(1), date, roleId, important }
 }

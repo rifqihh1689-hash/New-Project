@@ -7,6 +7,7 @@ import { LoginDialog } from './features/auth/LoginDialog'
 import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
 import { HabitPage } from './features/habit/HabitPage'
+import { ImportPage } from './features/import/ImportPage'
 import { MuhasabahPage } from './features/muhasabah/MuhasabahPage'
 import { MobileTop } from './features/nav/MobileTop'
 import { MorePage } from './features/nav/MorePage'
@@ -31,6 +32,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <MuhasabahPage date={date} />
     case 'habit':
       return <HabitPage />
+    case 'impor':
+      return <ImportPage />
     case 'setelan':
       return <SettingsPage />
     case 'lainnya':
