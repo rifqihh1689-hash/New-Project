@@ -1,10 +1,11 @@
 import { isAllowedOnDayType } from '../domain/dayType'
 import { applyMinutes } from '../domain/habitGrid'
 import { detectPatientIdentity } from '../domain/phi'
+import { dayTentir } from '../domain/tentir'
 import { addDays, weekStart } from '../domain/time'
 import { computeDay, habitsForDay, isLocked, type DayInput, type DayItem } from '../domain/xp'
 import { createId, privateId } from '../lib/id'
-import type { Day, DayResult, DayType, Habit, HabitLog, ISODate, Role, Task, WorkEnd, XpRules, XpSize } from '../types'
+import type { Day, DayResult, DayType, Habit, HabitLog, ISODate, Role, Task, TentirSession, WorkEnd, XpRules, XpSize } from '../types'
 import { db } from './db'
 import { DEFAULT_ROLE_ID } from './defaults'
 import { loadHabits, loadProfile, loadRoles, rulesOf } from './structure'
@@ -189,7 +190,8 @@ export interface DailyRow {
   size: XpSize
   done: boolean
   recovery: boolean
-  habitKind?: Habit['kind']
+  /** `tentir` = quest bersyarat "Sesi tentir selesai ≤ 21.00", dinilai dari sesi hari itu. */
+  habitKind?: Habit['kind'] | 'tentir'
   important?: boolean
   task?: Task
   /** Quest mingguan (1× per minggu, di luar syarat lolos). */
@@ -227,6 +229,7 @@ export function dailyRows(
   habits: Habit[],
   logs: HabitLog[],
   roles: Role[],
+  sessions: Pick<TentirSession, 'date' | 'start' | 'hours'>[] = [],
 ): DailyRow[] {
   const recovery = new Set(roles.filter((r) => r.recovery).map((r) => r.id))
   const logMap = new Map(logs.filter((l) => l.date === date).map((l) => [l.habitId, l.done]))
@@ -256,8 +259,24 @@ export function dailyRows(
     const first = weeklyFirstDone(h.id, date, logs)
     return { ...row, weekly: true, done: row.done && first === date, doneOn: first && first !== date ? first : null }
   })
+  // Quest bersyarat ala MBAPPE OS: hanya muncul di hari non-jaga yang ada sesi tentirnya.
+  const today = sessions.filter((x) => x.date === date)
+  if (type && type !== 'jaga' && today.length) {
+    habitRows.push({
+      kind: 'habit',
+      id: `#tentir:${date}`,
+      title: 'Sesi tentir selesai ≤ 21.00',
+      roleId: TENTIR_ROLE_ID,
+      size: 'sedang',
+      done: dayTentir(today).ok === true,
+      recovery: recovery.has(TENTIR_ROLE_ID),
+      habitKind: 'tentir',
+    })
+  }
   return [...taskRows, ...habitRows]
 }
+
+const TENTIR_ROLE_ID = '#role:tentir'
 
 export function toDayInput(day: Day | null, prevType: DayType | null, rows: DailyRow[]): DayInput {
   const items: DayItem[] = rows.map((r) => ({
@@ -280,7 +299,7 @@ export function toDayInput(day: Day | null, prevType: DayType | null, rows: Dail
 
 /** Data satu hari lengkap dengan hasil XP-nya (hasil beku bila hari sudah terkunci). */
 export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<DaySnapshot & { rules: XpRules }> {
-  const [day, prev, tasks, habits, logs, roles, profile] = await Promise.all([
+  const [day, prev, tasks, habits, logs, roles, profile, sessions] = await Promise.all([
     db.days.get(privateId.day(date)),
     db.days.get(privateId.day(addDays(date, -1))),
     db.tasks.where('date').equals(date).toArray(),
@@ -291,9 +310,10 @@ export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<Da
       .toArray(),
     loadRoles(),
     loadProfile(),
+    db.tentirSessions.where('date').equals(date).toArray(),
   ])
   const rules = rulesOf(profile)
-  const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles)
+  const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles, sessions)
   const prevType = prev?.type ?? null
   const result = day?.frozen ?? computeDay(toDayInput(day ?? null, prevType, rows), rules, { final: isLocked(date, today, rules) })
   return { date, day: day ?? null, prevType, rows, result, frozen: !!day?.frozen, rules }
@@ -306,18 +326,20 @@ export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<Da
 export async function loadAllResults(
   today: ISODate,
 ): Promise<{ results: Map<ISODate, DayResult>; firstDate: ISODate | null; rules: XpRules }> {
-  const [days, tasks, habits, logs, roles, profile] = await Promise.all([
+  const [days, tasks, habits, logs, roles, profile, sessions] = await Promise.all([
     db.days.toArray(),
     db.tasks.toArray(),
     loadHabits(),
     db.habitLogs.toArray(),
     loadRoles(),
     loadProfile(),
+    db.tentirSessions.toArray(),
   ])
   const rules = rulesOf(profile)
   const byDate = new Map(days.map((d) => [d.date, d]))
   const tasksByDate = groupBy(tasks, (t) => t.date)
   const logsByWeek = groupBy(logs, (l) => weekStart(l.date))
+  const sessionsByDate = groupBy(sessions, (x) => x.date)
   const results = new Map<ISODate, DayResult>()
   for (const day of days) {
     if (day.date > today || !day.type) continue
@@ -326,7 +348,15 @@ export async function loadAllResults(
       continue
     }
     const prevType = byDate.get(addDays(day.date, -1))?.type ?? null
-    const rows = dailyRows(day.date, day.type, tasksByDate.get(day.date) ?? [], habits, logsByWeek.get(weekStart(day.date)) ?? [], roles)
+    const rows = dailyRows(
+      day.date,
+      day.type,
+      tasksByDate.get(day.date) ?? [],
+      habits,
+      logsByWeek.get(weekStart(day.date)) ?? [],
+      roles,
+      sessionsByDate.get(day.date) ?? [],
+    )
     results.set(day.date, computeDay(toDayInput(day, prevType, rows), rules, { final: isLocked(day.date, today, rules) }))
   }
   const dates = [...results.keys()].sort()

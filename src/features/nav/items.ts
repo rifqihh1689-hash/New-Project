@@ -38,12 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
     Icon: BookOpen,
     soon: { phase: 3, what: 'Bank soal per sistem organ, blok belajar, dan tryout.' },
   },
-  {
-    route: 'tentir',
-    label: 'Tentir',
-    Icon: Users,
-    soon: { phase: 2, what: 'Sesi tentir, jam vs kapasitas 9–15 j/minggu. Sesi tercatat otomatis jadi pemasukan.' },
-  },
+  { route: 'tentir', label: 'Tentir', Icon: Users },
   {
     route: 'uang',
     label: 'Uang',

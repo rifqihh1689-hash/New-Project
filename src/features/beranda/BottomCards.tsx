@@ -69,7 +69,7 @@ export function TentirCard({ data }: { data: BerandaData }) {
           <span className="text-[12.5px] text-muted tabular-nums">{formatRupiah(s.fee)}</span>
         </div>
       ))}
-      <p className="mt-2.5 text-xs text-faint">Sesi tercatat → otomatis jadi pemasukan di Uang.</p>
+      <p className="mt-2.5 text-xs text-faint">Sesi lunas → otomatis jadi pemasukan di Uang.</p>
     </div>
   )
 }

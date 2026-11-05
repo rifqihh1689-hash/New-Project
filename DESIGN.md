@@ -83,6 +83,10 @@ Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: 
 
 ### Tentir+
 
+Sudah ada (v1): sesi per murid (inisial saja), topik, tanggal, jam mulai, durasi, tarif (jam × tarif per jam, bawaan Rp85.000, bisa diubah manual untuk kelompok/paket), lunas. Jam per hari dan per minggu dibandingkan kuota 9–15 j, pemasukan, Rp per jam (minggu ini & rata-rata 4 minggu), daftar belum dibayar. Sesi lunas otomatis jadi transaksi pemasukan (kategori `#cat:tentir`). Hari non-jaga yang ada sesinya mendapat quest bersyarat **"Sesi tentir selesai ≤ 21.00"** (sedang, otomatis dari jam mulai + durasi, ala MBAPPE OS); sesi yang lewat 21.00 mencatat berhenti kerja lewat 21.00 (penalti −15). Catat cepat mode Tentir: "AB 2j anatomi 19.00 besok lunas".
+
+Rencana berikutnya:
+
 Data per murid (semester, blok), paket dan sisa sesi, status bayar, angka **Rp per jam**, slot kosong bulanan yang dihitung dari jadwal jaga (dikirim ke murid supaya jarang jadwal ulang), template pesan WA, dan perpustakaan materi per blok yang bisa dipakai ulang tahun berikutnya.
 
 - Arah strategi: kelompok kecil satu angkatan (contoh Rp60.000 per orang per jam: 2 orang = Rp120.000/jam, 3 orang = Rp180.000/jam, dibandingkan 1:1 Rp85.000/jam), paket per blok dibayar di muka, materi per blok jadi produk digital.
@@ -189,11 +193,11 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `rewards` / `claims` | hadiah (nama, biaya) dan klaimnya (token per naik level) | disiapkan |
 | `events` | agenda, jadwal jaga, jadwal stase | disiapkan |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
-| `tentirSessions` | inisial murid, topik, tanggal, jam, durasi, tarif, lunas. Otomatis membuat transaksi pemasukan. | disiapkan |
+| `tentirSessions` | inisial murid, topik, tanggal, jam mulai, durasi, tarif, lunas. Sesi lunas otomatis membuat transaksi pemasukan. | dipakai |
 | `students`, `tentirPackages`, `materials` | murid (inisial, semester), paket + sisa sesi, materi per blok | rencana |
 | `flashcards` | kartu, sistem organ, jadwal ulang berikutnya | rencana |
 | `documents` | berkas PPDS: nama, status, tenggat, catatan | rencana |
-| `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku | disiapkan |
+| `transactions`, `categories`, `budgets`, `recurring` | dari Dompetku. `transactions` sudah terisi pemasukan tentir; layarnya menyusul di modul Uang | disiapkan |
 | `savings`, `debts` | wishlist/tabungan per pos + setoran; utang + pembayaran | disiapkan |
 | `notes` | teks, peran, warna, sematkan | disiapkan |
 | `proposals` | usulan dari Claude: daftar operasi, status (menunggu/disetujui/ditolak) | disiapkan |
@@ -258,6 +262,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Makan & belanja: setelan gizi, menu bawaan ayam & telur, isi otomatis per tipe hari, daftar belanja → tugas, Makan hari ini, impor menu | selesai (v1) |
 | Impor MBAPPE OS (hari & XP beku, quest → habit, mutaba'ah, stase, Main Quest, Raid → Muhasabah, utang & dana jembatan) | selesai |
 | Latihan: log beban & lari, resep sesi berikutnya, deteksi stagnan + deload, rencana lari mingguan, perkiraan 5K | selesai (v1) |
+| Tentir v1: sesi, jam harian vs kuota, Rp/jam, belum dibayar, sesi lunas → pemasukan, quest ≤ 21.00, Catat cepat Tentir | selesai |
 | Connector + Usulan | Fase 1, belum |
 | Beranda HP fokus "Hari ini", gestur geser, dibuka bertahap, notifikasi | UX v2, belum |
 | Sistem game v2 (kampanye, 6 stat, quest pilihan, boss, koin, pencapaian, mode fokus) | belum; yang ada baru level, XP, streak, pengali, Raid |
@@ -268,6 +273,6 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 - Rumus XP: dipakai apa adanya dari MBAPPE OS (saat ini) atau disederhanakan.
 - Daftar mutaba'ah final.
 - Nama dan warna peran final.
-- Log latihan, hadiah & klaim, dan jam tentir harian dari MBAPPE OS belum ikut diimpor (XP-nya tetap terbawa lewat hari beku).
+- Log latihan, hadiah & klaim, dan jam tentir harian dari MBAPPE OS belum ikut diimpor (XP-nya tetap terbawa lewat hari beku). MBAPPE OS mencatat jam per hari tanpa murid/topik, jadi bila diimpor nanti jadi sesi tanpa inisial.
 - Tarif kelompok dan harga paket tentir.
 - Berat badan untuk target protein (diisi di halaman Menu).

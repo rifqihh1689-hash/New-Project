@@ -10,6 +10,7 @@ import { HabitPage } from './features/habit/HabitPage'
 import { ImportPage } from './features/import/ImportPage'
 import { LatihanPage } from './features/latihan/LatihanPage'
 import { MenuPage } from './features/menu/MenuPage'
+import { TentirPage } from './features/tentir/TentirPage'
 import { MuhasabahPage } from './features/muhasabah/MuhasabahPage'
 import { MobileTop } from './features/nav/MobileTop'
 import { MorePage } from './features/nav/MorePage'
@@ -38,6 +39,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <MenuPage date={date} />
     case 'latihan':
       return <LatihanPage />
+    case 'tentir':
+      return <TentirPage />
     case 'impor':
       return <ImportPage />
     case 'setelan':

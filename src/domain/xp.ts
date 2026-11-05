@@ -11,7 +11,7 @@ export interface DayItem {
   /** Milik peran pemulihan (Tubuh & pulih). */
   recovery: boolean
   /** `sleep` & `workend` dinilai otomatis, bukan dari centang. */
-  kind?: Habit['kind']
+  kind?: Habit['kind'] | 'tentir'
   /**
    * Quest mingguan: `done` hanya benar di hari pertama selesai minggu itu. XP-nya ditambahkan (ikut batas harian),
    * tetapi tidak masuk syarat lolos. Di pasca-jaga tidak dihitung.
