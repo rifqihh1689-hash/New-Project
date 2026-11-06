@@ -8,6 +8,7 @@ import type { ThemePreference } from '../../types'
 import { SyncDot } from '../nav/SyncBadge'
 import { useInstallPrompt } from '../pwa/install'
 import { LifeStructure } from './LifeStructure'
+import { NameSettings } from './NameSettings'
 import { RitmeSettings, StaseSettings } from './ScheduleSettings'
 import { BackfillSettings, WorkEndSettings } from './WorkEndSettings'
 import { useThemeContext } from './theme-context'
@@ -85,6 +86,8 @@ export function SettingsPage() {
             </p>
           )}
         </section>
+
+        <NameSettings />
 
         <section className="card">
           <h2 className="card-title">Tema</h2>
