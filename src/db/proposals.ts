@@ -3,6 +3,7 @@ import { createId } from '../lib/id'
 import type { ISODate, Proposal, Role } from '../types'
 import { db } from './db'
 import { applyImport, summaryText } from './importer'
+import { loadMoneyRefs, type MoneyRefs } from './money'
 import { loadRoles } from './structure'
 
 export async function loadProposals(): Promise<Proposal[]> {
@@ -10,8 +11,8 @@ export async function loadProposals(): Promise<Proposal[]> {
 }
 
 /** Baris pratinjau sebuah usulan (sama dengan pratinjau Impor). */
-export function previewProposal(p: Pick<Proposal, 'items'>, roles: Role[], today: ISODate): ImportRow[] {
-  return parseImport(JSON.stringify(p.items ?? []), { roles, today })
+export function previewProposal(p: Pick<Proposal, 'items'>, roles: Role[], today: ISODate, money?: MoneyRefs): ImportRow[] {
+  return parseImport(JSON.stringify(p.items ?? []), { roles, today, ...money })
 }
 
 /** Usulan yang dibuat di app (mis. tes); connector menulis langsung lewat REST dengan bentuk yang sama. */
@@ -38,7 +39,7 @@ export async function addProposal(summary: string, items: Record<string, unknown
 export async function approveProposal(id: string, today: ISODate, selected?: Set<number>): Promise<string> {
   const p = await db.proposals.get(id)
   if (!p || p.status !== 'menunggu') throw new Error('Usulan sudah diputuskan.')
-  const rows = previewProposal(p, await loadRoles(), today)
+  const rows = previewProposal(p, await loadRoles(), today, await loadMoneyRefs())
   const items = rows.filter((r, i) => r.item && !r.phi && (!selected || selected.has(i))).map((r) => r.item!)
   const result = items.length ? summaryText(await applyImport(items)) : 'Tidak ada item yang diterapkan.'
   await db.proposals.update(id, { status: 'disetujui', decidedAt: Date.now(), result, updatedAt: Date.now() })

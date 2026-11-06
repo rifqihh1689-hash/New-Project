@@ -5,7 +5,9 @@ import { PageTop } from '../../components/PageTop'
 import { useToast } from '../../components/toast-context'
 import { applyImport, summaryText } from '../../db/importer'
 import { roleLookup, useRoles } from '../../db/structure'
+import { useMoneyRefs } from '../../db/money'
 import { describeItem, IMPORT_KIND_LABELS, IMPORT_KINDS, parseImport, type ImportKind } from '../../domain/importer'
+import { categoryLookup, DEFAULT_CATEGORIES } from '../../domain/money'
 import { PHI_HINT } from '../../domain/phi'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
 import { parseDompetku } from '../../domain/dompetku'
@@ -38,17 +40,19 @@ function download(name: string, text: string, type: string) {
 export function ImportPage() {
   const today = useToday()
   const roles = useRoles()
+  const money = useMoneyRefs()
   const toast = useToast()
   const [text, setText] = useState('')
   const [defaultKind, setDefaultKind] = useState<ImportKind | ''>('')
   const [skipped, setSkipped] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const role = roleLookup(roles)
+  const cat = categoryLookup(money?.categories ?? DEFAULT_CATEGORIES)
   const mbappe = useMemo(() => (text.trim().startsWith('{') ? parseMbappe(text) : null), [text])
   const dompetku = useMemo(() => (text.trim().startsWith('{') ? parseDompetku(text) : null), [text])
   const rows = useMemo(
-    () => (mbappe || dompetku ? [] : parseImport(text, { roles: roles ?? [], today, defaultKind: defaultKind || undefined })),
-    [text, roles, today, defaultKind, mbappe, dompetku],
+    () => (mbappe || dompetku ? [] : parseImport(text, { roles: roles ?? [], today, defaultKind: defaultKind || undefined, ...money })),
+    [text, roles, today, defaultKind, mbappe, dompetku, money],
   )
   const valid = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.item && !r.phi)
   const chosen = valid.filter(({ i }) => !skipped.has(i))
@@ -244,7 +248,11 @@ export function ImportPage() {
                           />
                           <span className="flex-1">
                             {r.item!.kind === 'ritme' && <span className="text-muted">{DAY_TYPE_LABELS[r.item!.dayType]} · </span>}
-                            {describeItem(r.item!, (id) => role(id).name)}
+                            {describeItem(
+                              r.item!,
+                              (id) => role(id).name,
+                              (id) => cat(id).name,
+                            )}
                             {r.item!.kind === 'habit' && r.item!.note && <span className="block text-xs text-muted">{r.item!.note}</span>}
                           </span>
                         </label>

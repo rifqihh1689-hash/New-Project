@@ -1,14 +1,27 @@
-import type { Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSlot, XpSize } from '../types'
+import type { Category, Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSlot, TransactionType, XpSize } from '../types'
+import { DEFAULT_CATEGORIES, guessCategory, matchCategory, parseAmount } from './money'
 import { parseIngredients } from './menu'
 import { DAY_TYPES } from './dayType'
 import { detectPatientIdentity } from './phi'
 import { guessRole, matchRole, type RoleRef } from './quickCapture'
 import { normalizeClock } from './ritme'
-import { formatDateShort, isValidISODate, MONTH_NAMES } from './time'
+import { formatDateLong, formatDateShort, isValidISODate, MONTH_NAMES } from './time'
 
-export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu'
+export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu' | 'transaksi' | 'utang' | 'cicilan' | 'setoran'
 
-export const IMPORT_KINDS: ImportKind[] = ['ritme', 'habit', 'tugas', 'jaga', 'agenda', 'stase', 'menu']
+export const IMPORT_KINDS: ImportKind[] = [
+  'ritme',
+  'habit',
+  'tugas',
+  'jaga',
+  'agenda',
+  'stase',
+  'menu',
+  'transaksi',
+  'utang',
+  'cicilan',
+  'setoran',
+]
 
 export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   ritme: 'Ritme harian',
@@ -18,6 +31,10 @@ export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   agenda: 'Agenda',
   stase: 'Stase',
   menu: 'Menu makan',
+  transaksi: 'Pemasukan / pengeluaran',
+  utang: 'Utang baru',
+  cicilan: 'Cicilan utang',
+  setoran: 'Setoran tabungan',
 }
 
 export type ImportItem =
@@ -49,6 +66,11 @@ export type ImportItem =
       place?: string
       note?: string
     }
+  | { kind: 'transaksi'; type: TransactionType; amount: number; date: ISODate; categoryId: string; note: string }
+  | { kind: 'utang'; name: string; amount: number; targetDate: ISODate | null }
+  | { kind: 'cicilan'; name: string; amount: number; date: ISODate }
+  /** `amount` negatif = penarikan. */
+  | { kind: 'setoran'; name: string; amount: number; date: ISODate }
 
 export interface ImportRow {
   /** Nomor baris di teks asli (CSV) atau urutan item (JSON), mulai 1. */
@@ -64,6 +86,11 @@ export interface ImportContext {
   today: ISODate
   /** Jenis untuk baris tanpa kolom `jenis`. */
   defaultKind?: ImportKind
+  /** Kategori uang (bawaan + buatan sendiri). Kosong = kategori bawaan. */
+  categories?: Category[]
+  /** Nama utang & tabungan yang ada, untuk memeriksa cicilan/setoran sebelum disetujui. */
+  debts?: string[]
+  savings?: string[]
 }
 
 type Rec = Record<string, string>
@@ -73,7 +100,19 @@ type Rec = Record<string, string>
 const COLUMN_ALIASES: Record<string, string> = {
   jenis: 'jenis',
   tipe: 'jenis',
-  kategori: 'jenis',
+  kategori: 'kategori',
+  category: 'kategori',
+  jumlah: 'jumlah',
+  nominal: 'jumlah',
+  amount: 'jumlah',
+  total: 'jumlah',
+  rp: 'jumlah',
+  arah: 'arah',
+  arus: 'arah',
+  target: 'target',
+  target_lunas: 'target',
+  tenggat: 'target',
+  jatuh_tempo: 'target',
   tipe_hari: 'tipe_hari',
   tipehari: 'tipe_hari',
   day_type: 'tipe_hari',
@@ -154,7 +193,47 @@ const KIND_ALIASES: Record<string, ImportKind> = {
   menu: 'menu',
   makan: 'menu',
   makanan: 'menu',
+  transaksi: 'transaksi',
+  uang: 'transaksi',
+  keuangan: 'transaksi',
+  pemasukan: 'transaksi',
+  masuk: 'transaksi',
+  income: 'transaksi',
+  pengeluaran: 'transaksi',
+  keluar: 'transaksi',
+  expense: 'transaksi',
+  utang: 'utang',
+  hutang: 'utang',
+  pinjaman: 'utang',
+  debt: 'utang',
+  cicilan: 'cicilan',
+  angsuran: 'cicilan',
+  bayar_utang: 'cicilan',
+  bayar_hutang: 'cicilan',
+  pembayaran_utang: 'cicilan',
+  setoran: 'setoran',
+  tabungan: 'setoran',
+  nabung: 'setoran',
+  menabung: 'setoran',
+  penarikan: 'setoran',
+  tarik_tabungan: 'setoran',
 }
+
+const INCOME_KIND = /^(pemasukan|masuk|income)$/
+const EXPENSE_KIND = /^(pengeluaran|keluar|expense)$/
+
+/** Nominal: angka (500000) atau teks ("500rb", "1,5jt", "Rp150.000"). Tanda minus dicatat terpisah. */
+function amountOf(value: string | undefined): { amount: number; negative: boolean } | null {
+  const v = (value ?? '').trim()
+  if (!v) return null
+  const negative = /^[-−]/.test(v)
+  const plain = v.replace(/^[-+−]\s*/, '')
+  // Angka polos dari JSON/CSV dipakai apa adanya (bukan "25 = 25rb" seperti Catat cepat).
+  const amount = /^\d+$/.test(plain) ? Number(plain) : parseAmount(plain)
+  return amount && amount > 0 && Number.isSafeInteger(amount) ? { amount, negative } : null
+}
+
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
 
 const DAY_TYPE_ALIASES: Record<string, DayType> = {
   stase: 'stase',
@@ -442,6 +521,59 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       const weight = (['ringan', 'sedang', 'berat'] as const).find((w) => w === (r.bobot ?? '').trim().toLowerCase()) ?? 'sedang'
       return { items: [{ kind, name: title, start, end, weight, ...(masuk ? { masuk } : {}), ...(pulang ? { pulang } : {}) }] }
     }
+    case 'transaksi': {
+      const amt = amountOf(r.jumlah ?? r.biaya)
+      if (!amt) return { error: `Jumlah "${r.jumlah ?? ''}" tidak dikenali (contoh 500000 atau "500rb").` }
+      const jenis = normKey(r.jenis ?? '')
+      const arah = normKey(r.arah ?? '')
+      const type: TransactionType =
+        INCOME_KIND.test(jenis) ||
+        /^(masuk|pemasukan|income)/.test(arah) ||
+        (!EXPENSE_KIND.test(jenis) && /^\+/.test((r.jumlah ?? '').trim()))
+          ? 'income'
+          : 'expense'
+      const date = r.tanggal ? parseDate(r.tanggal, ctx.today) : ctx.today
+      if (!date) return { error: `Tanggal "${r.tanggal}" tidak dikenali (contoh 2026-11-12 atau 12/11).` }
+      const cats = ctx.categories ?? DEFAULT_CATEGORIES
+      const note = (r.catatan ?? title).trim()
+      let categoryId: string
+      if (r.kategori?.trim()) {
+        const found = matchCategory(r.kategori, type, cats)
+        if (!found) {
+          const names = cats.filter((c) => c.kind === type || c.kind === 'both').map((c) => c.name)
+          return {
+            error: `Kategori "${r.kategori}" tidak ada untuk ${type === 'income' ? 'pemasukan' : 'pengeluaran'} (pilih: ${names.join(', ')}).`,
+          }
+        }
+        categoryId = found
+      } else categoryId = guessCategory(note, type, cats)
+      return { items: [{ kind, type, amount: amt.amount, date, categoryId, note }] }
+    }
+    case 'utang': {
+      if (!title) return { error: 'Nama utang kosong (mis. "Pinjaman kakak").' }
+      const amt = amountOf(r.jumlah ?? r.biaya)
+      if (!amt) return { error: `Jumlah utang "${r.jumlah ?? ''}" tidak dikenali.` }
+      const targetDate = r.target ? parseDate(r.target, ctx.today) : null
+      if (r.target && !targetDate) return { error: `Target lunas "${r.target}" tidak dikenali (contoh 2027-06-30).` }
+      return { items: [{ kind, name: title, amount: amt.amount, targetDate }] }
+    }
+    case 'cicilan':
+    case 'setoran': {
+      const what = kind === 'cicilan' ? 'utang' : 'tabungan'
+      if (!title) return { error: `Nama ${what} kosong (sama dengan yang ada di Uang).` }
+      const known = kind === 'cicilan' ? ctx.debts : ctx.savings
+      const match = known?.find((n) => sameName(n, title))
+      if (known && !match)
+        return {
+          error: `${what === 'utang' ? 'Utang' : 'Tabungan'} "${title}" tidak ditemukan${known.length ? ` (yang ada: ${known.join(', ')})` : ` (belum ada ${what})`}.`,
+        }
+      const amt = amountOf(r.jumlah ?? r.biaya)
+      if (!amt) return { error: `Jumlah "${r.jumlah ?? ''}" tidak dikenali.` }
+      const date = r.tanggal ? parseDate(r.tanggal, ctx.today) : ctx.today
+      if (!date) return { error: `Tanggal "${r.tanggal}" tidak dikenali.` }
+      const withdraw = kind === 'setoran' && (amt.negative || /^(penarikan|tarik)/.test(normKey(r.jenis ?? '')))
+      return { items: [{ kind, name: match ?? title, amount: withdraw ? -amt.amount : amt.amount, date }] }
+    }
   }
 }
 
@@ -508,18 +640,34 @@ export function parseImport(text: string, ctx: ImportContext): ImportRow[] {
         return { line, rec }
       })
   }
+  // Utang yang dibuat di kiriman yang sama boleh langsung dicicil ("utang baru + cicilan pertama").
+  const newDebts = records
+    .filter(({ rec }) => (rec.jenis ? KIND_ALIASES[normKey(rec.jenis)] : ctx.defaultKind) === 'utang' && rec.judul?.trim())
+    .map(({ rec }) => rec.judul.trim())
+  const rowCtx = ctx.debts && newDebts.length ? { ...ctx, debts: [...ctx.debts, ...newDebts] } : ctx
   const out: ImportRow[] = []
   for (const { line, rec } of records) {
     const phi = detectPatientIdentity([rec.judul, rec.catatan].filter(Boolean).join(' · '))
-    const { items, error } = rowToItems(rec, ctx)
+    const { items, error } = rowToItems(rec, rowCtx)
     if (error || !items) out.push({ line, error: error ?? 'Baris tidak bisa dibaca.' })
     else for (const item of items) out.push({ line, item, ...(phi ? { phi } : {}) })
   }
   return out
 }
 
+/** Label jenis satu item: pemasukan/pengeluaran dan setoran/penarikan dibedakan. */
+export function itemLabel(item: ImportItem): string {
+  if (item.kind === 'transaksi') return item.type === 'income' ? 'Pemasukan' : 'Pengeluaran'
+  if (item.kind === 'setoran') return item.amount < 0 ? 'Penarikan tabungan' : 'Setoran tabungan'
+  return IMPORT_KIND_LABELS[item.kind]
+}
+
 /** Ringkasan satu item untuk pratinjau. */
-export function describeItem(item: ImportItem, roleName: (id: string | undefined) => string): string {
+export function describeItem(
+  item: ImportItem,
+  roleName: (id: string | undefined) => string,
+  categoryName: (id: string) => string = defaultCategoryName,
+): string {
   const days = (w: number[]) => (w.length ? w.map((d) => ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][d]).join(', ') : 'setiap hari')
   switch (item.kind) {
     case 'ritme':
@@ -536,5 +684,16 @@ export function describeItem(item: ImportItem, roleName: (id: string | undefined
       return `${item.name} · ${item.source} · ${item.proteinG} g · Rp${item.costRp.toLocaleString('id-ID')}`
     case 'stase':
       return `${item.name} · ${formatDateShort(item.start)} – ${formatDateShort(item.end)}${item.masuk || item.pulang ? ` · ${item.masuk ?? '?'}–${item.pulang ?? '?'}` : ''}`
+    case 'transaksi':
+      return `${formatDateShort(item.date)} · ${item.type === 'income' ? '+' : '−'}${rupiah(item.amount)} · ${categoryName(item.categoryId)}${item.note ? ` · ${item.note}` : ''}`
+    case 'utang':
+      return `${item.name} · ${rupiah(item.amount)}${item.targetDate ? ` · lunas ${formatDateLong(item.targetDate).replace(/^\S+ /, '')}` : ''}`
+    case 'cicilan':
+      return `${formatDateShort(item.date)} · ${item.name} · ${rupiah(item.amount)}`
+    case 'setoran':
+      return `${formatDateShort(item.date)} · ${item.name} · ${rupiah(Math.abs(item.amount))}`
   }
 }
+
+const rupiah = (n: number) => `Rp${n.toLocaleString('id-ID')}`
+const defaultCategoryName = (id: string) => DEFAULT_CATEGORIES.find((c) => c.id === id)?.name ?? id.replace(/^#cat:/, '')

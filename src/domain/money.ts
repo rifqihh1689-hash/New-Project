@@ -281,6 +281,31 @@ const KEYWORDS: [RegExp, string][] = [
   [/\b(kiriman|ortu|orang tua|gaji|uang saku|transfer)\b/i, '#cat:kiriman'],
 ]
 
+/** Tebak kategori dari catatan (kata kunci), hanya di antara kategori yang cocok jenisnya. */
+export function guessCategory(note: string, type: TransactionType, cats: Category[]): string {
+  const allowed = categoriesFor(type, cats)
+  const hit = KEYWORDS.find(([re, id]) => re.test(note) && allowed.some((c) => c.id === id))?.[1]
+  if (hit) return hit
+  if (type === 'income' && allowed.some((c) => c.id === '#cat:kiriman')) return '#cat:kiriman'
+  return allowed.some((c) => c.id === FALLBACK_CATEGORY_ID) ? FALLBACK_CATEGORY_ID : (allowed[0]?.id ?? FALLBACK_CATEGORY_ID)
+}
+
+/** Nama/ID kategori ("makan", "Kos & tagihan", "#cat:makan") → ID, hanya kategori yang cocok jenisnya. */
+export function matchCategory(text: string, type: TransactionType, cats: Category[]): string | null {
+  const key = text
+    .trim()
+    .toLowerCase()
+    .replace(/^#cat:/, '')
+  if (!key) return null
+  const allowed = categoriesFor(type, cats)
+  return (
+    allowed.find((c) => c.id === `#cat:${key}` || c.name.toLowerCase() === key)?.id ??
+    allowed.find((c) => c.name.toLowerCase().startsWith(key))?.id ??
+    allowed.find((c) => c.name.toLowerCase().includes(key))?.id ??
+    null
+  )
+}
+
 const INCOME_WORDS = /^\s*\+|\b(masuk|pemasukan|terima|dapat|kiriman|gaji|uang saku)\b/i
 const DAY_WORDS = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu']
 

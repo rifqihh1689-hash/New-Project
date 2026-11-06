@@ -19,6 +19,9 @@ const COLUMNS = [
   'masuk',
   'pulang',
   'bobot',
+  'jumlah',
+  'kategori',
+  'target',
 ]
 
 const EXAMPLES: Record<string, string>[] = [
@@ -56,6 +59,11 @@ const EXAMPLES: Record<string, string>[] = [
     biaya: '15000',
     tempat: 'warung dekat RS',
   },
+  { jenis: 'pemasukan', tanggal: '1/11', jumlah: '1500000', kategori: 'Kiriman & gaji', catatan: 'Kiriman ortu' },
+  { jenis: 'pengeluaran', tanggal: '5/11', jumlah: '25rb', kategori: 'Makan', catatan: 'Makan siang' },
+  { jenis: 'utang', judul: 'Pinjaman kakak', jumlah: '3000000', target: '30/6/2027' },
+  { jenis: 'cicilan', judul: 'Pinjaman kakak', tanggal: '5/11', jumlah: '500000' },
+  { jenis: 'setoran', judul: 'Dana jembatan', tanggal: '5/11', jumlah: '1000000' },
 ]
 
 /** Template untuk ditempel ke Google Sheets: tab memisahkan kolom, jadi langsung terbagi rapi. */
@@ -78,7 +86,7 @@ export function claudePrompt(today: string, roles: Role[]): string {
     .filter((r) => !r.archived)
     .map((r) => `${r.id.replace(/^#role:/, '')} (${r.name})`)
     .join(', ')
-  return `Tolong ubah jadwal/program di lampiran (screenshot, PDF, atau catatan) menjadi data untuk app Qawwam.
+  return `Tolong ubah jadwal, program, atau catatan keuangan di lampiran (screenshot, PDF, mutasi rekening, atau catatan) menjadi data untuk app Qawwam.
 
 Balas HANYA dengan satu blok \`\`\`json berisi {"items": [...]}. Hari ini ${today} (WIB). Tanggal pakai YYYY-MM-DD, jam pakai HH.MM.
 

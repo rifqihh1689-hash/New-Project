@@ -1,3 +1,4 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { dueOccurrences, FALLBACK_CATEGORY_ID, mergeCategories, recurringTransaction } from '../domain/money'
 import { isValidISODate, monthOf } from '../domain/time'
 import { createId, privateId } from '../lib/id'
@@ -10,6 +11,20 @@ export class MoneyError extends Error {}
 export async function loadCategories(): Promise<Category[]> {
   return mergeCategories(await db.categories.toArray())
 }
+
+/** Kategori, nama utang & tabungan: konteks pratinjau Impor/Usulan untuk item keuangan. */
+export interface MoneyRefs {
+  categories: Category[]
+  debts: string[]
+  savings: string[]
+}
+
+export async function loadMoneyRefs(): Promise<MoneyRefs> {
+  const [categories, debts, savings] = await Promise.all([loadCategories(), db.debts.toArray(), db.savings.toArray()])
+  return { categories, debts: debts.map((d) => d.name), savings: savings.map((s) => s.name) }
+}
+
+export const useMoneyRefs = () => useLiveQuery(loadMoneyRefs, [])
 
 export async function saveCategory(c: Category): Promise<void> {
   const name = c.name.trim()
