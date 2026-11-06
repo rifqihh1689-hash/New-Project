@@ -1,7 +1,7 @@
 import { dueOccurrences, FALLBACK_CATEGORY_ID, mergeCategories, recurringTransaction } from '../domain/money'
 import { isValidISODate, monthOf } from '../domain/time'
 import { createId, privateId } from '../lib/id'
-import type { Category, Debt, ISODate, MonthKey, RecurringRule, Saving, Transaction, TransactionType } from '../types'
+import type { Budget, Category, Debt, ISODate, MonthKey, RecurringRule, Saving, Transaction, TransactionType } from '../types'
 import { assertNoPatientIdentity } from './daily'
 import { db } from './db'
 
@@ -81,13 +81,40 @@ export const restoreTransaction = (tx: Transaction) => db.transactions.put(tx)
 // ---------- Anggaran ----------
 
 /** Satu anggaran per kategori per bulan (ID privat → tidak dobel antar perangkat). 0 = hapus. */
+export async function budgetsOf(month: MonthKey): Promise<Budget[]> {
+  return db.budgets.where('month').equals(month).toArray()
+}
+
 export async function setBudget(month: MonthKey, categoryId: string, amount: number): Promise<void> {
   const id = privateId.budget(month, categoryId)
   if (!(amount > 0)) await db.budgets.delete(id)
   else await db.budgets.put({ id, month, categoryId, amount: Math.round(amount) })
 }
 
-/** Salin anggaran bulan lalu ke bulan ini; kategori yang sudah diatur tidak ditimpa. Mengembalikan jumlah yang disalin. */
+/**
+ * Menyimpan banyak anggaran sekaligus (satu transaksi, satu sinkron). Hanya kategori yang berubah
+ * yang ditulis; 0 = hapus. Mengembalikan nilai sebelumnya untuk Urungkan (panggil lagi dengan nilai itu).
+ */
+export async function saveBudgets(month: MonthKey, amounts: Record<string, number>): Promise<Record<string, number>> {
+  return db.transaction('rw', db.budgets, async () => {
+    const current = new Map((await db.budgets.where('month').equals(month).toArray()).map((b) => [b.categoryId, b.amount]))
+    const before: Record<string, number> = {}
+    const put: Budget[] = []
+    const remove: string[] = []
+    for (const [categoryId, raw] of Object.entries(amounts)) {
+      const amount = Math.max(0, Math.round(raw) || 0)
+      const prev = current.get(categoryId) ?? 0
+      if (amount === prev) continue
+      before[categoryId] = prev
+      if (amount > 0) put.push({ id: privateId.budget(month, categoryId), month, categoryId, amount })
+      else remove.push(privateId.budget(month, categoryId))
+    }
+    if (put.length) await db.budgets.bulkPut(put)
+    if (remove.length) await db.budgets.bulkDelete(remove)
+    return before
+  })
+}
+
 /** Menyalin anggaran kategori yang belum ada di bulan tujuan. Mengembalikan ID yang dibuat (untuk Urungkan). */
 export async function copyBudgets(from: MonthKey, to: MonthKey): Promise<string[]> {
   const [src, dst] = await Promise.all([db.budgets.where('month').equals(from).toArray(), db.budgets.where('month').equals(to).toArray()])

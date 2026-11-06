@@ -90,7 +90,7 @@ Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: 
 
 Port Dompetku, disesuaikan untuk koas:
 - Kategori bawaan: Makan, Transportasi, Kos & tagihan, Belajar & buku, Kesehatan, Sedekah & infak, Belanja, Hiburan; pemasukan Tentir dan Kiriman & gaji. Bisa diganti nama/warna dan ditambah.
-- Anggaran per kategori per bulan, status aman / hampir habis (≥ 80%) / lewat; salin dari bulan lalu.
+- Anggaran per kategori per bulan, status aman / hampir habis (≥ 80%) / lewat; salin dari bulan lalu. Diisi sekaligus (terpakai bulan ini tampil di tiap kategori, total ikut berubah) lalu satu kali Simpan dengan Urungkan: tidak menulis/menyinkron tiap pindah kolom.
 - Transaksi berulang (kos, kuota, kiriman) dibuat otomatis saat jatuh tempo, mengejar bulan yang terlewat, dengan ID deterministik supaya dua perangkat tidak membuat dobel.
 - **Dana jembatan** (biaya hidup jeda koas → PPDS) dan tabungan lain: target, tanggal, setoran/penarikan, kebutuhan per bulan. Hadiah berbiaya terkunci sampai dana jembatan tercapai.
 - Utang: pembayaran, sisa, cicilan per bulan sampai target lunas.

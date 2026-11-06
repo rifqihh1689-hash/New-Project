@@ -38,8 +38,18 @@ function Tiles({ data }: { data: UangData }) {
   )
 }
 
+const TX_PAGE = 40
+
 function Transactions({ data, onEdit, onAdd }: { data: UangData; onEdit: (d: TxDraft) => void; onAdd: () => void }) {
-  const dates = [...new Set(data.txs.map((t) => t.date))]
+  // Bulan yang ramai bisa ratusan transaksi: yang terbaru dulu, sisanya bila diminta (halaman tetap ringan).
+  const [all, setAll] = useState(false)
+  const shown = all ? data.txs : data.txs.slice(0, TX_PAGE)
+  const groups: { date: string; list: typeof shown }[] = []
+  for (const t of shown) {
+    const last = groups[groups.length - 1]
+    if (last?.date === t.date) last.list.push(t)
+    else groups.push({ date: t.date, list: [t] })
+  }
   return (
     <section className="card">
       <h2 className="card-title">
@@ -48,44 +58,47 @@ function Transactions({ data, onEdit, onAdd }: { data: UangData; onEdit: (d: TxD
           <Plus size={15} aria-hidden="true" /> Transaksi
         </button>
       </h2>
-      {!dates.length && (
+      {!groups.length && (
         <p className="text-[13px] text-muted">Belum ada transaksi bulan ini. Catat cepat: “25rb makan siang”, “+500rb kiriman”.</p>
       )}
-      {dates.map((d) => (
-        <div key={d} className="mb-2">
-          <div className="text-xs font-medium tracking-wide text-faint uppercase">{formatDateShort(d)}</div>
+      {groups.map((g) => (
+        <div key={g.date} className="mb-2">
+          <div className="text-xs font-medium tracking-wide text-faint uppercase">{formatDateShort(g.date)}</div>
           <ul>
-            {data.txs
-              .filter((t) => t.date === d)
-              .map((t) => {
-                const c = data.cat(t.categoryId)
-                return (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      onClick={() => onEdit(t)}
-                      className="flex w-full items-center gap-2.5 border-t border-line py-2 text-left text-[13.5px] first:border-t-0"
-                    >
-                      <span className="dot" style={{ background: c.color }} aria-hidden="true" />
-                      <span className="flex-1">
-                        {t.note || c.name}
-                        <span className="block text-xs text-muted">
-                          {c.name}
-                          {t.recurringId ? ' · berulang' : ''}
-                          {t.tentirSessionId ? ' · dari Tentir' : ''}
-                        </span>
+            {g.list.map((t) => {
+              const c = data.cat(t.categoryId)
+              return (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    onClick={() => onEdit(t)}
+                    className="flex w-full items-center gap-2.5 border-t border-line py-2 text-left text-[13.5px] first:border-t-0"
+                  >
+                    <span className="dot" style={{ background: c.color }} aria-hidden="true" />
+                    <span className="flex-1">
+                      {t.note || c.name}
+                      <span className="block text-xs text-muted">
+                        {c.name}
+                        {t.recurringId ? ' · berulang' : ''}
+                        {t.tentirSessionId ? ' · dari Tentir' : ''}
                       </span>
-                      <span className={`tabular-nums ${t.type === 'income' ? 'text-ok' : ''}`}>
-                        {t.type === 'income' ? '+' : '−'}
-                        {formatRupiah(t.amount)}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
+                    </span>
+                    <span className={`tabular-nums ${t.type === 'income' ? 'text-ok' : ''}`}>
+                      {t.type === 'income' ? '+' : '−'}
+                      {formatRupiah(t.amount)}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </div>
       ))}
+      {data.txs.length > TX_PAGE && (
+        <button type="button" className="btn-ghost w-full border border-line" onClick={() => setAll(!all)}>
+          {all ? 'Tampilkan yang terbaru saja' : `Tampilkan semua (${data.txs.length})`}
+        </button>
+      )}
     </section>
   )
 }

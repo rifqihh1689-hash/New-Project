@@ -14,9 +14,15 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
   const titleId = useId()
   const panel = useRef<HTMLDivElement>(null)
   const vv = useVisualViewport()
+  // onClose biasanya fungsi baru tiap render. Disimpan di ref supaya efek fokus di bawah hanya jalan saat
+  // lembar dibuka: dulu tiap data dimuat ulang (simpan, sinkron), kursor melompat ke kolom pertama.
+  const close = useRef(onClose)
+  useEffect(() => {
+    close.current = onClose
+  })
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close.current()
     document.addEventListener('keydown', onKey)
     const previous = document.activeElement as HTMLElement | null
     panel.current?.querySelector<HTMLElement>('input, textarea, select, button:not([data-close])')?.focus()
@@ -24,12 +30,13 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
       document.removeEventListener('keydown', onKey)
       previous?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
   if (!open) return null
   return (
     <div
-      className="fixed inset-x-0 top-0 bottom-0 z-50 flex items-end justify-center md:items-center"
-      style={vv ? { top: vv.top, bottom: 'auto', height: vv.height } : undefined}
+      className="fixed inset-0 z-50 flex items-end justify-center md:items-center"
+      // Papan ketik terbuka: lembar duduk tepat di atasnya.
+      style={vv?.keyboard ? { bottom: vv.keyboard } : undefined}
       role="presentation"
     >
       <button type="button" aria-label="Tutup" className="animate-fade-in absolute inset-0 bg-black/45" onClick={onClose} data-close />

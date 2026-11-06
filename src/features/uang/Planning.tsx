@@ -5,6 +5,7 @@ import { useToast } from '../../components/toast-context'
 import {
   addDeposit,
   addPayment,
+  budgetsOf,
   copyBudgets,
   deleteGoal,
   deleteRecurring,
@@ -13,10 +14,10 @@ import {
   newSaving,
   removeBudgets,
   restoreGoal,
+  saveBudgets,
   saveDebt,
   saveRecurring,
   saveSaving,
-  setBudget,
 } from '../../db/money'
 import { categoriesFor, type BudgetLevel } from '../../domain/money'
 import { addMonths, formatDateShort, formatMonth, MONTH_NAMES } from '../../domain/time'
@@ -100,39 +101,102 @@ export function BudgetCard({ data }: { data: UangData }) {
         </>
       )}
       <Sheet open={open} title={`Anggaran ${formatMonth(data.month)}`} onClose={() => setOpen(false)}>
-        {open && <BudgetForm data={data} onCopy={() => void copy()} />}
+        {open && <BudgetForm data={data} onDone={() => setOpen(false)} />}
       </Sheet>
     </section>
   )
 }
 
-function BudgetForm({ data, onCopy }: { data: UangData; onCopy: () => void }) {
-  const current = new Map(data.budgets.map((b) => [b.categoryId, b.amount]))
+/**
+ * Anggaran per kategori: diketik dulu semua, disimpan sekali (satu tulis, satu sinkron). Dulu tiap
+ * pindah kolom langsung menyimpan dan memuat ulang halaman Uang, terasa tersendat di iPhone.
+ */
+function BudgetForm({ data, onDone }: { data: UangData; onDone: () => void }) {
+  const toast = useToast()
+  const cats = categoriesFor('expense', data.categories)
+  const initial = Object.fromEntries(cats.map((c) => [c.id, data.budgets.find((b) => b.categoryId === c.id)?.amount ?? 0]))
+  const [draft, setDraft] = useState<Record<string, number>>(initial)
+  const [saving, setSaving] = useState(false)
+  const total = Object.values(draft).reduce((a, b) => a + b, 0)
+  const changed = cats.filter((c) => (draft[c.id] ?? 0) !== (initial[c.id] ?? 0)).length
+  const spent = new Map(data.byCategory.map((s) => [s.category.id, s.total]))
+  // Mengisi kolom yang masih kosong dengan anggaran bulan lalu; baru tersimpan saat Simpan.
+  const copyEmpty = async () => {
+    const prev = await budgetsOf(addMonths(data.month, -1))
+    const filled = prev.filter((b) => !draft[b.categoryId]).length
+    setDraft((d) => ({ ...d, ...Object.fromEntries(prev.filter((b) => !d[b.categoryId]).map((b) => [b.categoryId, b.amount])) }))
+    toast({
+      message: filled ? `${filled} kolom diisi dari bulan lalu. Tekan Simpan untuk menyimpan.` : 'Semua kolom sudah terisi.',
+      tone: 'info',
+    })
+  }
+  const save = async () => {
+    setSaving(true)
+    try {
+      const before = await saveBudgets(data.month, draft)
+      onDone()
+      toast({
+        message: `Anggaran ${formatMonth(data.month)} tersimpan · total ${formatRupiah(total)}.`,
+        action: { label: 'Urungkan', onClick: () => void saveBudgets(data.month, before) },
+      })
+    } catch (e) {
+      setSaving(false)
+      toast({ message: (e as Error).message, tone: 'error' })
+    }
+  }
   return (
-    <div className="grid gap-3">
-      {categoriesFor('expense', data.categories).map((c) => (
-        <div key={c.id} className="grid grid-cols-[1fr_9rem] items-center gap-2 text-[13.5px]">
-          <span className="flex items-center gap-2">
-            <span className="dot" style={{ background: c.color }} aria-hidden="true" />
-            {c.name}
+    <form
+      className="grid gap-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void save()
+      }}
+    >
+      {cats.map((c) => (
+        <label key={c.id} className="grid grid-cols-[1fr_9.5rem] items-center gap-2 text-[13.5px]">
+          <span className="min-w-0">
+            <span className="flex items-center gap-2">
+              <span className="dot" style={{ background: c.color }} aria-hidden="true" />
+              <span className="truncate">{c.name}</span>
+            </span>
+            {spent.get(c.id) ? (
+              <span className="block pl-4 text-xs text-muted tabular-nums">terpakai {formatRupiahShort(spent.get(c.id) ?? 0)}</span>
+            ) : null}
           </span>
-          <input
-            className="field py-1.5 text-right tabular-nums"
-            inputMode="numeric"
-            aria-label={`Anggaran ${c.name}`}
-            placeholder="0"
-            defaultValue={current.get(c.id)?.toLocaleString('id-ID') ?? ''}
-            onBlur={(e) => void setBudget(data.month, c.id, Number(e.target.value.replace(/[^\d]/g, '')) || 0)}
-          />
-        </div>
+          <span className="relative">
+            <span aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-faint">
+              Rp
+            </span>
+            <input
+              className="field py-1.5 pl-8 text-right tabular-nums"
+              inputMode="numeric"
+              enterKeyHint="next"
+              autoComplete="off"
+              aria-label={`Anggaran ${c.name}`}
+              placeholder="0"
+              value={draft[c.id] ? draft[c.id].toLocaleString('id-ID') : ''}
+              onChange={(e) => {
+                const v = Number(e.target.value.replace(/[^\d]/g, '')) || 0
+                setDraft((d) => ({ ...d, [c.id]: v }))
+              }}
+            />
+          </span>
+        </label>
       ))}
+      <div className="flex items-baseline justify-between border-t border-line pt-3 text-[13.5px]">
+        <span className="text-muted">Total anggaran</span>
+        <b className="font-semibold tabular-nums">{formatRupiah(total)}</b>
+      </div>
+      <button type="submit" className="btn-primary py-3" disabled={saving || !changed}>
+        {changed ? `Simpan ${changed} perubahan` : 'Belum ada perubahan'}
+      </button>
       {data.prevBudgets > 0 && (
-        <button type="button" className="btn-ghost border border-line" onClick={onCopy}>
+        <button type="button" className="btn-ghost border border-line" onClick={() => void copyEmpty()}>
           Salin yang kosong dari bulan lalu
         </button>
       )}
-      <p className="text-xs text-faint">Tersimpan saat kolom ditinggalkan. Kosongkan untuk menghapus. Hampir habis = ≥ 80% terpakai.</p>
-    </div>
+      <p className="text-xs text-faint">Kosongkan untuk menghapus. Hampir habis = ≥ 80% terpakai.</p>
+    </form>
   )
 }
 

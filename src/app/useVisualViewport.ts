@@ -1,35 +1,47 @@
 import { useSyncExternalStore } from 'react'
 
 export interface ViewportBox {
-  top: number
+  /** Tinggi bagian layar yang terlihat (mengecil saat papan ketik terbuka). */
   height: number
+  /** Jarak dari bawah area terlihat ke bawah layout viewport: bagian yang tertutup papan ketik iOS. */
+  keyboard: number
 }
 
+/**
+ * Hanya mendengar `resize` (papan ketik muncul/hilang, layar diputar), bukan `scroll`. Mengikuti setiap
+ * geseran membuat lembar ikut bergerak tiap kali iOS menggeser layar, yang memicu geseran berikutnya:
+ * terasa tersendat di formulir dengan banyak kolom (mis. Anggaran). Perubahan digabung per frame.
+ */
 function subscribe(onChange: () => void): () => void {
   const vv = typeof window !== 'undefined' ? window.visualViewport : null
   if (!vv) return () => {}
-  vv.addEventListener('resize', onChange)
-  vv.addEventListener('scroll', onChange)
+  let frame = 0
+  const schedule = () => {
+    cancelAnimationFrame(frame)
+    frame = requestAnimationFrame(onChange)
+  }
+  vv.addEventListener('resize', schedule)
   return () => {
-    vv.removeEventListener('resize', onChange)
-    vv.removeEventListener('scroll', onChange)
+    cancelAnimationFrame(frame)
+    vv.removeEventListener('resize', schedule)
   }
 }
 
 // String supaya snapshot stabil selama nilainya sama (syarat useSyncExternalStore).
 const snapshot = () => {
   const vv = typeof window !== 'undefined' ? window.visualViewport : null
-  return vv ? `${Math.round(vv.offsetTop)}|${Math.round(vv.height)}` : ''
+  if (!vv) return ''
+  const keyboard = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+  return `${Math.round(vv.height)}|${Math.round(keyboard)}`
 }
 
 /**
- * Bagian layar yang benar-benar terlihat. Saat papan ketik iOS terbuka, layout viewport tidak
- * mengecil dan halaman digeser ke atas; lembar bawah yang mengikuti kotak ini tetap utuh di atas
- * papan ketik dan tidak naik ke bawah status bar.
+ * Area layar yang terlihat dan tinggi papan ketik. Lembar bawah duduk tepat di atas papan ketik dan
+ * tingginya dibatasi area terlihat, jadi tidak naik ke bawah jam/status bar.
  */
 export function useVisualViewport(): ViewportBox | null {
   const s = useSyncExternalStore(subscribe, snapshot, () => '')
   if (!s) return null
-  const [top, height] = s.split('|').map(Number)
-  return { top, height }
+  const [height, keyboard] = s.split('|').map(Number)
+  return { height, keyboard }
 }
