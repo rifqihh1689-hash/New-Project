@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import { TimeField } from '../../components/TimeField'
 import { useToast } from '../../components/toast-context'
 import { loadProfile, rulesOf, updateRules } from '../../db/structure'
 import { normalizeClock } from '../../domain/ritme'
@@ -21,7 +22,7 @@ function Body({ limit, penalty }: { limit: string | null; penalty: number }) {
   const saveTime = async () => {
     const t = normalizeClock(time)
     if (!t) {
-      toast({ message: 'Format jam: 21.00', tone: 'error' })
+      toast({ message: 'Jam belum dikenali. Ketik mis. 2100 → 21.00.', tone: 'error' })
       setTime(limit ?? '21.00')
       return
     }
@@ -56,12 +57,12 @@ function Body({ limit, penalty }: { limit: string | null; penalty: number }) {
         <div className="mt-3 grid grid-cols-2 gap-2">
           <label className="text-xs text-muted">
             Berhenti kerja paling lambat
-            <input
+            <TimeField
               className="field mt-1"
-              inputMode="numeric"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={setTime}
               onBlur={() => void saveTime()}
+              placeholder="21.00"
               aria-label="Jam batas kerja malam"
             />
           </label>

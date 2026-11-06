@@ -16,6 +16,8 @@ import {
   newDebt,
   newRecurring,
   newSaving,
+  removeBudgets,
+  restoreGoal,
   runRecurring,
   saveCategory,
   saveDebt,
@@ -54,9 +56,14 @@ describe('anggaran', () => {
     await setBudget('2026-11', '#cat:makan', 1_000_000)
     await setBudget('2026-11', '#cat:makan', 1_100_000)
     expect(await db.budgets.where('month').equals('2026-11').count()).toBe(1)
-    expect(await copyBudgets('2026-10', '2026-11')).toBe(1)
+    const copied = await copyBudgets('2026-10', '2026-11')
+    expect(copied).toHaveLength(1)
     const nov = await db.budgets.where('month').equals('2026-11').toArray()
     expect(nov.find((b) => b.categoryId === '#cat:makan')?.amount).toBe(1_100_000)
+    // Urungkan: hanya yang baru disalin yang hilang.
+    await removeBudgets(copied)
+    expect(await db.budgets.where('month').equals('2026-11').count()).toBe(1)
+    await copyBudgets('2026-10', '2026-11')
     await setBudget('2026-11', '#cat:transport', 0)
     expect(await db.budgets.where('month').equals('2026-11').count()).toBe(1)
   })
@@ -90,10 +97,16 @@ describe('kategori, tabungan, utang', () => {
     await saveSaving(s)
     await addDeposit(s.id, 1_000_000, TODAY)
     expect((await db.savings.get(s.id))?.deposits).toEqual([{ date: TODAY, amount: 1_000_000 }])
+    // Urungkan setoran kedua: kembali ke isi sebelumnya.
+    const before = await addDeposit(s.id, 250_000, TODAY)
+    await restoreGoal('savings', before)
+    expect((await db.savings.get(s.id))?.deposits).toHaveLength(1)
     const d = { ...newDebt(), name: 'Pinjaman kakak', initial: 3_000_000 }
     await saveDebt(d)
-    await addPayment(d.id, 500_000, TODAY)
+    const noPayments = await addPayment(d.id, 500_000, TODAY)
     expect((await db.debts.get(d.id))?.payments).toHaveLength(1)
+    await restoreGoal('debts', noPayments)
+    expect((await db.debts.get(d.id))?.payments).toHaveLength(0)
     await expect(saveSaving({ ...newSaving(), name: 'x', target: 0 })).rejects.toBeInstanceOf(MoneyError)
   })
 })

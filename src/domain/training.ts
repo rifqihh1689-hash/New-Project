@@ -204,6 +204,20 @@ export function formatDuration(sec: number): string {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`
 }
 
+/**
+ * Format durasi saat diketik di papan angka HP (tanpa titik dua), diisi dari kanan seperti
+ * microwave: "3120" → "31:20", "312" → "3:12", "13045" → "1:30:45". Angka ≤ 2 digit = menit.
+ */
+export function typeDuration(raw: string): string {
+  const d = raw
+    .replace(/\D/g, '')
+    .replace(/^0+(?=\d{3})/, '')
+    .slice(0, 6)
+  if (d.length <= 2) return d
+  if (d.length <= 4) return `${d.slice(0, -2)}:${d.slice(-2)}`
+  return `${d.slice(0, -4)}:${d.slice(-4, -2)}:${d.slice(-2)}`
+}
+
 export function parseDuration(text: string): number | null {
   const parts = text.trim().replace(/\./g, ':').split(':').filter(Boolean).map(Number)
   if (!parts.length || parts.length > 3 || parts.some((p) => Number.isNaN(p) || p < 0)) return null

@@ -8,7 +8,7 @@ export function MobileTop() {
   const [theme, setTheme] = useThemeContext()
   const dark = resolveTheme(theme) === 'dark'
   return (
-    <div className="flex items-center gap-2.5 px-4 pt-[calc(14px+env(safe-area-inset-top))] md:hidden">
+    <div className="flex items-center gap-2.5 px-4 pt-[calc(14px+var(--safe-top))] md:hidden">
       <Brand className="mr-auto text-xl" />
       <SyncBadge compact />
       <button

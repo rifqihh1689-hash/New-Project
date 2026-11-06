@@ -36,16 +36,34 @@ export async function saveReviewText(monday: ISODate, changes: ReviewText): Prom
  * Menyelesaikan Muhasabah: menyimpan angka minggu itu dan memberi XP sekali.
  * Hanya di jendela Sabtu–Selasa; minimal satu prioritas minggu depan terisi.
  */
-export async function completeReview(monday: ISODate, today: ISODate, numbers: WeekNumbers, xp: number): Promise<void> {
+export async function completeReview(monday: ISODate, today: ISODate, numbers: WeekNumbers, xp: number): Promise<Review> {
   if (reviewWindow(monday, today) !== 'buka')
     throw new Error('Muhasabah minggu ini bisa diselesaikan mulai Sabtu sampai Selasa berikutnya.')
   const id = privateId.weeklyReview(monday)
-  await db.transaction('rw', db.reviews, async () => {
+  return db.transaction('rw', db.reviews, async () => {
     const current = (await db.reviews.get(id)) ?? emptyReview(monday)
-    if (current.completedAt) return
+    if (current.completedAt) return current
     if (!current.priorities.some((p) => p.trim())) throw new Error('Isi minimal satu prioritas minggu depan dulu.')
     const nums: Record<string, number | null> = { ...numbers }
     await db.reviews.put({ ...current, numbers: nums, completedAt: Date.now(), xp, updatedAt: Date.now() })
+    return current
+  })
+}
+
+/**
+ * Urungkan "Selesaikan": Muhasabah kembali ke isi sebelum diselesaikan (XP-nya ikut batal).
+ * Refleksi yang diketik setelahnya tetap dipertahankan.
+ */
+export async function restoreReview(before: Review): Promise<void> {
+  await db.transaction('rw', db.reviews, async () => {
+    const current = await db.reviews.get(before.id)
+    await db.reviews.put({
+      ...(current ?? before),
+      numbers: before.numbers,
+      completedAt: before.completedAt,
+      xp: before.xp,
+      updatedAt: Date.now(),
+    })
   })
 }
 
@@ -69,10 +87,10 @@ export async function saveMonthReviewText(month: MonthKey, changes: ReviewText):
  * Menyelesaikan Muhasabah bulanan: angka bulan itu disimpan (dibaca Claude lewat connector).
  * Tanpa XP (XP tetap dari Muhasabah mingguan). Bisa mulai tanggal 25.
  */
-export async function completeMonthReview(month: MonthKey, today: ISODate, numbers: WeekNumbers): Promise<void> {
+export async function completeMonthReview(month: MonthKey, today: ISODate, numbers: WeekNumbers): Promise<Review> {
   if (today < `${month}-25`) throw new Error('Muhasabah bulanan bisa diselesaikan mulai tanggal 25.')
   const id = privateId.monthlyReview(month)
-  await db.transaction('rw', db.reviews, async () => {
+  return db.transaction('rw', db.reviews, async () => {
     const current = (await db.reviews.get(id)) ?? emptyMonthReview(month)
     if (!current.priorities.some((p) => p.trim())) throw new Error('Isi minimal satu prioritas bulan depan dulu.')
     await db.reviews.put({
@@ -82,5 +100,6 @@ export async function completeMonthReview(month: MonthKey, today: ISODate, numbe
       xp: 0,
       updatedAt: Date.now(),
     })
+    return current
   })
 }

@@ -26,7 +26,7 @@ export function TabBar({ active, onCapture }: { active: RouteName; onCapture: ()
   return (
     <nav
       aria-label="Navigasi utama"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-line bg-side/90 px-1.5 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-center border-t border-line bg-side/90 px-1.5 pt-2 pb-[calc(8px+var(--safe-bottom))] backdrop-blur-md md:hidden"
     >
       {tab('beranda', 'Beranda', House, active === 'beranda')}
       {tab('tugas', 'Tugas', SquareCheck, active === 'tugas')}

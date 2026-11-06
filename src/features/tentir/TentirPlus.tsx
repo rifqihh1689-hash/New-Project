@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, ClipboardCopy, ExternalLink, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Sheet } from '../../components/Sheet'
+import { TimeField } from '../../components/TimeField'
 import { useToast } from '../../components/toast-context'
 import { db } from '../../db/db'
 import {
@@ -15,6 +16,7 @@ import {
   saveStudent,
 } from '../../db/tentirPlus'
 import { detectPatientIdentity } from '../../domain/phi'
+import { normalizeClock } from '../../domain/ritme'
 import { sessionEnd, summarize } from '../../domain/tentir'
 import { fillTemplate, freeSlots, longDate, MESSAGE_TEMPLATES, packageUsage, slotsMessage } from '../../domain/tentirPlus'
 import { addMonths, formatMonth, monthOf } from '../../domain/time'
@@ -398,7 +400,8 @@ export function SlotsTab({ data, today }: { data: TentirPageData; today: string 
   const days = useLiveQuery(() => db.days.where('date').between(`${month}-01`, `${month}-31`, true, true).toArray(), [month])
   if (!days) return null
   const types = new Map(days.map((d) => [d.date, d.type]))
-  const opts = { start, end }
+  // "20" saat masih diketik sudah dibaca 20.00.
+  const opts = { start: normalizeClock(start) ?? '19.00', end: normalizeClock(end) ?? data.limit ?? '21.00' }
   const slots = freeSlots(month, today, (d) => types.get(d) ?? null, data.allSessions, opts)
   const text = slotsMessage(month, slots, opts)
   const jaga = days.filter((d) => d.type === 'jaga').length
@@ -418,23 +421,11 @@ export function SlotsTab({ data, today }: { data: TentirPageData; today: string 
         <div className="mt-2 grid grid-cols-2 gap-2">
           <label className="text-xs text-muted">
             Mulai
-            <input
-              className="field mt-1"
-              inputMode="numeric"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-              aria-label="Jam mulai slot"
-            />
+            <TimeField className="field mt-1" value={start} onChange={setStart} aria-label="Jam mulai slot" />
           </label>
           <label className="text-xs text-muted">
             Selesai
-            <input
-              className="field mt-1"
-              inputMode="numeric"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-              aria-label="Jam selesai slot"
-            />
+            <TimeField className="field mt-1" value={end} onChange={setEnd} placeholder="21.00" aria-label="Jam selesai slot" />
           </label>
         </div>
         <p className="mt-3 text-[13px] text-muted">

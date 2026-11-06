@@ -2,9 +2,9 @@ import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/toast-context'
-import { saveWorkout } from '../../db/training'
+import { saveWorkout, undoWorkout } from '../../db/training'
 import { detectPatientIdentity } from '../../domain/phi'
-import { FEEL_LABELS, formatDuration, parseDuration, type Prescription } from '../../domain/training'
+import { FEEL_LABELS, formatDuration, parseDuration, typeDuration, type Prescription } from '../../domain/training'
 import { isValidISODate } from '../../domain/time'
 import type { Exercise, Feel, RunType, StrengthEntry, StrengthSet } from '../../types'
 
@@ -87,7 +87,7 @@ function StrengthBody({
       sets: r.sets.filter((s) => s.kg > 0 && s.reps > 0),
       feel: r.feel,
     }))
-    const { habit } = await saveWorkout({
+    const saved = await saveWorkout({
       date: isValidISODate(date) ? date : today,
       kind: 'beban',
       ...(day ? { day } : {}),
@@ -95,7 +95,10 @@ function StrengthBody({
       run: null,
       note: note.trim(),
     })
-    toast({ message: `Sesi beban tersimpan${habit ? ` · habit "${habit}" dicentang` : ''}.` })
+    toast({
+      message: `Sesi beban tersimpan${saved.habit ? ` · habit "${saved.habit}" dicentang` : ''}.`,
+      action: { label: 'Urungkan', onClick: () => void undoWorkout(saved) },
+    })
     onClose()
   }
   const num = (v: string) => Number(v.replace(',', '.')) || 0
@@ -224,14 +227,17 @@ function RunBody({ onClose, today }: { onClose: () => void; today: string }) {
   const valid = kmNum > 0 && kmNum < 100 && !!sec
   const save = async () => {
     if (!valid) return
-    const { habit } = await saveWorkout({
+    const saved = await saveWorkout({
       date: isValidISODate(date) ? date : today,
       kind: 'lari',
       entries: [],
       run: { km: kmNum, sec: sec!, type, feel },
       note: '',
     })
-    toast({ message: `Lari ${kmNum} km tersimpan${habit ? ` · habit "${habit}" dicentang` : ''}.` })
+    toast({
+      message: `Lari ${String(kmNum).replace('.', ',')} km tersimpan${saved.habit ? ` · habit "${saved.habit}" dicentang` : ''}.`,
+      action: { label: 'Urungkan', onClick: () => void undoWorkout(saved) },
+    })
     onClose()
   }
   return (
@@ -247,10 +253,19 @@ function RunBody({ onClose, today }: { onClose: () => void; today: string }) {
         </label>
         <label className="text-xs text-muted">
           Waktu
-          <input className="field mt-1" inputMode="numeric" value={time} onChange={(e) => setTime(e.target.value)} placeholder="31:00" />
+          <input
+            className="field mt-1 tabular-nums"
+            inputMode="numeric"
+            value={time}
+            onChange={(e) => setTime(typeDuration(e.target.value))}
+            placeholder="31:00"
+            aria-describedby="run-time-hint"
+          />
         </label>
       </div>
-      {valid && <p className="text-[13px] text-muted">Pace {formatDuration(sec! / kmNum)}/km</p>}
+      <p id="run-time-hint" className="-mt-2 text-xs text-faint">
+        Waktu cukup diketik angkanya: 3120 → 31:20.{valid ? ` Pace ${formatDuration(sec! / kmNum)}/km.` : ''}
+      </p>
       <div role="radiogroup" aria-label="Jenis lari" className="flex rounded-full bg-surface-2 p-[3px]">
         {RUN_TYPES.map((t) => (
           <button

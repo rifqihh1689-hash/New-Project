@@ -6,6 +6,9 @@
 :root {
   color-scheme: light;
   -webkit-tap-highlight-color: transparent;
+  /* Area aman iPhone (poni/status bar & garis home). Lewat variabel supaya bisa disimulasikan di tes. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   --bg: #f5f4f0;
   --side: #efede8;
   --surface: #ffffff;
@@ -193,6 +196,27 @@
 
 body {
   @apply bg-bg font-sans text-[14px] leading-[1.45] text-text antialiased;
+}
+
+/*
+ * iOS Safari: input tanggal/bulan/jam punya lebar minimum bawaan yang mengabaikan width: 100%,
+ * sehingga meluber ke kolom sebelah. Tampilan bawaan dimatikan (pemilih tanggal tetap muncul).
+ */
+@supports (-webkit-touch-callout: none) {
+  input[type='date'],
+  input[type='month'],
+  input[type='time'],
+  input[type='datetime-local'] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input::-webkit-date-and-time-value {
+    min-height: 1.5em;
+    text-align: left;
+  }
 }
 
 /*

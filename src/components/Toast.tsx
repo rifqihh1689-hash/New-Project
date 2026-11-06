@@ -14,14 +14,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const dismiss = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), [])
   const show = useCallback((options: ToastOptions) => {
     const id = nextId.current++
-    setToasts((list) => [...list.slice(-2), { ...options, id }])
+    // Satu toast saja: tombol Urungkan yang terlihat selalu milik aksi terakhir, bukan aksi sebelumnya.
+    setToasts([{ ...options, id }])
   }, [])
 
   return (
     <ToastContext.Provider value={show}>
       {children}
       <div
-        className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 px-4 pt-[calc(0.75rem+var(--safe-top))]"
         aria-live="polite"
         role="status"
       >
@@ -37,9 +38,10 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
   const tone = toast.tone ?? 'success'
   const Icon = ICONS[tone]
   useEffect(() => {
-    const timer = window.setTimeout(() => onDismiss(toast.id), toast.duration ?? 3500)
+    // Toast dengan tombol (mis. Urungkan) tampil lebih lama supaya sempat ditekan.
+    const timer = window.setTimeout(() => onDismiss(toast.id), toast.duration ?? (toast.action ? 6000 : 3500))
     return () => window.clearTimeout(timer)
-  }, [toast.id, toast.duration, onDismiss])
+  }, [toast.id, toast.duration, toast.action, onDismiss])
 
   return (
     <div
@@ -52,7 +54,7 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
       {toast.action && (
         <button
           type="button"
-          className="shrink-0 rounded-lg px-2 py-1 font-semibold underline underline-offset-2"
+          className="-my-1 shrink-0 rounded-lg px-2.5 py-2 font-semibold underline underline-offset-2"
           onClick={() => {
             toast.action?.onClick()
             onDismiss(toast.id)

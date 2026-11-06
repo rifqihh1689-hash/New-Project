@@ -88,14 +88,19 @@ export async function setBudget(month: MonthKey, categoryId: string, amount: num
 }
 
 /** Salin anggaran bulan lalu ke bulan ini; kategori yang sudah diatur tidak ditimpa. Mengembalikan jumlah yang disalin. */
-export async function copyBudgets(from: MonthKey, to: MonthKey): Promise<number> {
+/** Menyalin anggaran kategori yang belum ada di bulan tujuan. Mengembalikan ID yang dibuat (untuk Urungkan). */
+export async function copyBudgets(from: MonthKey, to: MonthKey): Promise<string[]> {
   const [src, dst] = await Promise.all([db.budgets.where('month').equals(from).toArray(), db.budgets.where('month').equals(to).toArray()])
   const have = new Set(dst.map((b) => b.categoryId))
-  const add = src.filter((b) => !have.has(b.categoryId))
-  await db.budgets.bulkPut(
-    add.map((b) => ({ id: privateId.budget(to, b.categoryId), month: to, categoryId: b.categoryId, amount: b.amount })),
-  )
-  return add.length
+  const add = src
+    .filter((b) => !have.has(b.categoryId))
+    .map((b) => ({ id: privateId.budget(to, b.categoryId), month: to, categoryId: b.categoryId, amount: b.amount }))
+  await db.budgets.bulkPut(add)
+  return add.map((b) => b.id)
+}
+
+export async function removeBudgets(ids: string[]): Promise<void> {
+  await db.budgets.bulkDelete(ids)
 }
 
 // ---------- Berulang ----------
@@ -170,11 +175,13 @@ export async function saveSaving(s: Saving): Promise<void> {
 }
 
 /** Setoran (positif) atau penarikan (negatif). */
-export async function addDeposit(id: string, amount: number, date: ISODate): Promise<void> {
+/** Setoran (positif) atau penarikan (negatif). Mengembalikan isi sebelumnya untuk Urungkan (`restoreGoal`). */
+export async function addDeposit(id: string, amount: number, date: ISODate): Promise<Saving> {
   const s = await db.savings.get(id)
   if (!s) throw new MoneyError('Tabungan tidak ditemukan.')
   if (!Number.isSafeInteger(amount) || amount === 0) throw new MoneyError('Nominal tidak valid.')
   await db.savings.update(id, { deposits: [...s.deposits, { date, amount }], updatedAt: Date.now() })
+  return s
 }
 
 export function newDebt(): Debt {
@@ -189,11 +196,13 @@ export async function saveDebt(d: Debt): Promise<void> {
   await db.debts.put({ ...d, name: d.name.trim(), updatedAt: Date.now() })
 }
 
-export async function addPayment(id: string, amount: number, date: ISODate): Promise<void> {
+/** Pembayaran utang. Mengembalikan isi sebelumnya untuk Urungkan (`restoreGoal`). */
+export async function addPayment(id: string, amount: number, date: ISODate): Promise<Debt> {
   const d = await db.debts.get(id)
   if (!d) throw new MoneyError('Utang tidak ditemukan.')
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new MoneyError('Nominal tidak valid.')
   await db.debts.update(id, { payments: [...d.payments, { date, amount }], updatedAt: Date.now() })
+  return d
 }
 
 export async function deleteGoal(table: 'savings' | 'debts', id: string): Promise<Saving | Debt | undefined> {
