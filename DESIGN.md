@@ -13,6 +13,8 @@ Kerabatnya, **qawāmā** di QS Al-Furqan 25:67, berarti pertengahan dalam membel
 
 Fitur review mingguan dan bulanan bernama **Muhasabah**.
 
+**Logo:** cincin krem di ubin hijau tua dengan titik emas. Cincin = siklus satu hari (hari Qawwam berganti 03.00), titik = "sekarang", sekaligus membentuk ekor huruf Q. Sumbernya `public/favicon.svg` (ikon PWA/iPhone dibuat dari situ) dan `BrandMark` di app.
+
 ## Konteks pengguna
 
 - Koas FK UB / RSSA Malang. Koas selesai Des 2027 → UKMPPD Feb 2028 → target PPDS Ortopedi.
@@ -137,6 +139,8 @@ Tanggal gaya Indonesia (`12/11`, `3 Des`), hari (`Sen, Rab, Jum`, `Senin-Jumat`,
 ## UX
 
 - **Peran perangkat.** HP = **Hari ini** (mengerjakan: centang, catat, cek jadwal). iPad/laptop = **Rencana & Muhasabah** (merencanakan minggu, statistik, review). Beranda penuh kartu hanya di layar lebar; di HP layar utamanya fokus ke hari ini.
+- **Pembuka Beranda.** Sapaan menurut jam WIB + nama panggilan (Setelan), satu kalimat arahan yang berubah sepanjang hari (pagi: jam pulang; setelah pulang: qailulah; malam: hitung mundur batas kerja, lalu tutup hari), kotak **Sekarang** & **Berikutnya** dari ritme (dengan sisa waktu), pita 24 jam 03.00–03.00 berwarna peran dengan penanda sekarang, dan tipe hari dalam satu baris yang selalu muat. Warna latarnya mengikuti tipe hari.
+- **Sidebar bisa diciutkan** (laptop & iPad) jadi rel ikon, seperti app Claude: tombol di samping logo atau `Ctrl+\` / `⌘\`; diingat per perangkat.
 - **Satu jempol.** 4 tab di bawah + tombol Catat besar di tengah. Aksi utama di jangkauan jempol.
 - **Gestur.** Geser kanan = selesai, geser kiri = pindah ke besok, tahan = detail. Selalu ada Urungkan, bukan dialog konfirmasi.
 - **Gerak.** Animasi pendek yang memberi rasa selesai: centang "pop" + garis tergambar + riak, "+XP" melayang, kartu masuk bertahap, bar progres tumbuh, perayaan naik level sekali per level per perangkat. Semua mati otomatis bila iPhone memakai *Kurangi Gerakan*. Animasi masuk memakai fill-mode `backwards` supaya Sheet/dialog di dalam kartu tidak ikut terkurung.
@@ -295,6 +299,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Connector Claude (Cloudflare Worker, 5 tool, diuji ke Dexie Cloud asli) | aktif di `qawwam-connector.rifqiyiyi.workers.dev` (URL lengkap berisi kunci, disimpan pengguna) |
 | UX v2: animasi (centang, +XP melayang, transisi halaman, kartu bertahap, bar tumbuh, tab aktif), perayaan naik level, gestur geser (kanan selesai, kiri besok) di Beranda & Tugas, Beranda HP fokus "Hari ini" + "Ringkasan lain" | selesai |
 | Rapi di HP: kolom jam cukup diketik angka (titik otomatis, mis. 2000 → 20.00; waktu lari 3120 → 31:20), lembar bawah mengikuti papan ketik & tidak naik ke bawah status bar, latar status bar saat menggulir, input tanggal iOS tidak meluber; **Urungkan** untuk aksi sekali ketuk (Lunas/belum, simpan sesi tentir, catat latihan, setoran/penarikan/cicilan, salin anggaran, selesaikan Muhasabah), satu toast sekaligus supaya Urungkan selalu milik aksi terakhir | selesai |
+| Identitas & pembuka: logo & ikon baru, pembuka Beranda yang hidup (sapaan, sekarang/berikutnya, pita 24 jam, kalimat menurut jam), nama panggilan di Setelan, sidebar bisa diciutkan (`Ctrl+\`) | selesai |
 | Kalender & jadwal jaga: bulan dengan warna tipe hari, mode atur jaga (besoknya otomatis pasca bila kosong, batal ikut mengosongkan pasca), hitungan jaga + peringatan berurutan/minggu berat, agenda per hari, agenda hari ini di Beranda, kalender mini di layar lebar, impor/usulan jenis `agenda` | selesai |
 | Catatan: kartu warna (grid), cari semua kata, filter per peran, sematkan, jadikan tugas, cek identitas pasien, Catat cepat menebak peran | selesai |
 | Muhasabah bulanan: XP/lolos/tidur/jaga (dibanding bulan lalu bila bulan selesai), tren per minggu + tidur vs minggu berat jaga, per bidang (peran, habit, mutaba'ah, tentir, uang, dana jembatan, utang, latihan), refleksi + 3 prioritas bulan depan (tampil di Beranda), salin ringkasan untuk Claude, selesai mulai tgl 25 tanpa XP | selesai |

@@ -3,14 +3,11 @@ import { useState } from 'react'
 import { useMediaQuery } from '../../app/useMediaQuery'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
-import { dayTypeLabel } from '../../domain/dayType'
-import { headline } from '../../domain/headline'
-import { formatDateLong } from '../../domain/time'
 import { MoneyCard, TentirCard, WeekCard } from './BottomCards'
 import { CloseDayCard } from './CloseDayCard'
 import { useBeranda } from './data'
-import { DayTypePicker } from './DayTypePicker'
 import { GameStrip } from './GameStrip'
+import { Hero } from './Hero'
 import { LevelUp } from './LevelUp'
 import { MealsCard } from './MealsCard'
 import { MiniCalendar } from './MiniCalendar'
@@ -33,31 +30,11 @@ export function BerandaPage() {
     localStorage.setItem(MORE_KEY, v ? '1' : '0')
   }
   if (!data) return <PageTop title="Beranda" />
-  const type = data.snap.day?.type ?? null
   const isPasca = data.snap.result.effType === 'pasca'
-  const context = [data.phase?.name, data.chapter ? `${data.chapter.name} minggu ke-${data.chapterWeek}` : null].filter(Boolean).join(' · ')
   return (
     <>
       <PageTop title="Beranda" />
-      <section className="mt-4 mb-3.5 flex flex-wrap items-end gap-x-5 gap-y-3 md:mt-[26px] md:mb-[18px]">
-        <div className="min-w-0">
-          <div className="mb-1.5 text-[13px] text-muted">
-            {formatDateLong(today)}
-            {context && ` · ${context}`}
-          </div>
-          <h2 className="max-w-[640px] font-serif text-[22px] leading-tight font-normal md:text-[27px]">
-            {headline({
-              type,
-              suggested: data.suggested,
-              invalidPasca: data.snap.result.invalidPasca,
-              hasTentir: data.tentir.today,
-              workLabel: dayTypeLabel('stase', data.phase),
-              pulang: data.pulang,
-            })}
-          </h2>
-        </div>
-        <DayTypePicker date={today} value={type} suggested={data.suggested} phase={data.phase} className="w-full lg:ml-auto lg:w-auto" />
-      </section>
+      <Hero data={data} />
 
       {data.pendingProposals > 0 && (
         <a
