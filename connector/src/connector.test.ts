@@ -257,6 +257,62 @@ describe('propose', () => {
     expect(String(c.posted[0].rows[0].id)).toMatch(/^prp_/)
   })
 
+  it('keuangan: pemasukan, pengeluaran (kategori sendiri), utang baru, cicilan & setoran ke yang sudah ada', async () => {
+    const c = fakeCloud({
+      categories: [
+        { id: 'cat_kopi', name: 'Kopi', icon: 'tag', color: '#7c4a2d', kind: 'expense', builtIn: false, createdAt: 1, updatedAt: 1 },
+      ],
+      debts: [{ id: 'dbt_1', name: 'Pinjaman kakak', initial: 3_000_000, targetDate: null, payments: [], createdAt: 1, updatedAt: 1 }],
+      savings: [
+        {
+          id: 'sav_1',
+          name: 'Dana jembatan',
+          kind: 'jembatan',
+          target: 15_000_000,
+          targetDate: null,
+          deposits: [],
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    })
+    const r = await call(c, 'propose', {
+      summary: 'Keuangan minggu ini',
+      items: [
+        { jenis: 'pemasukan', jumlah: 1_500_000, tanggal: '2026-11-01', catatan: 'kiriman ortu' },
+        { jenis: 'pengeluaran', jumlah: '18rb', kategori: 'kopi', catatan: 'kopi pagi' },
+        { jenis: 'utang', judul: 'Cicilan laptop', jumlah: 6_000_000, target: '2027-06-30' },
+        { jenis: 'cicilan', judul: 'pinjaman kakak', jumlah: 500_000, tanggal: '2026-11-05' },
+        { jenis: 'setoran', judul: 'Dana jembatan', jumlah: 1_000_000 },
+      ],
+    })
+    expect(r.isError).toBeUndefined()
+    const text = r.content[0].text as string
+    expect(text).toMatch(/tersimpan \(5 item\)/)
+    expect(text).toMatch(/Pemasukan: Min, 1 Nov · \+Rp1\.500\.000 · Kiriman & gaji · kiriman ortu/)
+    expect(text).toMatch(/Pengeluaran: .*−Rp18\.000 · Kopi · kopi pagi/)
+    expect(text).toMatch(/Utang baru: Cicilan laptop · Rp6\.000\.000 · lunas 30 Juni 2027/)
+    expect(text).toMatch(/Cicilan utang: .*Pinjaman kakak · Rp500\.000/)
+    expect(text).toMatch(/Setoran tabungan: .*Dana jembatan · Rp1\.000\.000/)
+  })
+
+  it('keuangan: utang tidak dikenal atau kategori salah → ditolak dengan daftar yang ada', async () => {
+    const c = fakeCloud({
+      debts: [{ id: 'dbt_1', name: 'Pinjaman kakak', initial: 3_000_000, targetDate: null, payments: [], createdAt: 1, updatedAt: 1 }],
+    })
+    const r = await call(c, 'propose', {
+      summary: 'Bayar',
+      items: [
+        { jenis: 'cicilan', judul: 'Pinjaman teman', jumlah: 200_000 },
+        { jenis: 'pengeluaran', jumlah: 50_000, kategori: 'Skincare' },
+      ],
+    })
+    expect(r.isError).toBe(true)
+    expect(r.content[0].text).toMatch(/item 1: Utang "Pinjaman teman" tidak ditemukan \(yang ada: Pinjaman kakak\)/)
+    expect(r.content[0].text).toMatch(/item 2: Kategori "Skincare" tidak ada untuk pengeluaran \(pilih: Makan/)
+    expect(c.posted).toHaveLength(0)
+  })
+
   it('item bermasalah atau mirip identitas pasien → tidak ada yang disimpan, Claude diberi tahu', async () => {
     const c = sample()
     const r = await call(c, 'propose', {

@@ -133,6 +133,10 @@ Sumber jadwal beragam: Google Sheets, screenshot, PDF dari RS, catatan program l
 | `jaga` | Tipe hari Jaga di tanggal itu | tanggal |
 | `stase` | Stase + jam masuk/pulang; nama + mulai sama = diperbarui | judul, mulai, selesai, masuk, pulang, bobot |
 | `menu` | Daftar menu; nama sama = diperbarui | judul, sumber, waktu, protein, biaya, bahan, tempat, bekal |
+| `pemasukan` / `pengeluaran` | Transaksi; kategori dicocokkan dari nama (kosong = ditebak dari catatan); yang sama persis dilewati | tanggal, jumlah, kategori, catatan |
+| `utang` | Utang baru; nama sama = jumlah & target diperbarui | judul, jumlah, target |
+| `cicilan` | Pembayaran ke utang yang ada (nama harus sama); yang sama persis dilewati | judul, jumlah, tanggal |
+| `setoran` / `penarikan` | Setoran/penarikan tabungan yang ada (mis. dana jembatan) | judul, jumlah, tanggal |
 
 Tanggal gaya Indonesia (`12/11`, `3 Des`), hari (`Sen, Rab, Jum`, `Senin-Jumat`, `setiap hari`), dan jam (`6`, `06:30`, `1400`) dikenali. Impor aman diulang.
 
@@ -257,11 +261,11 @@ Folder `connector/`: Cloudflare Worker yang berbicara MCP (Streamable HTTP) dan 
 
 | Tool | Fungsi |
 |---|---|
-| `get_overview` | konteks: hari ini & tipe hari, fase, stase, level/XP/streak, peran, habit, mutaba'ah, Main Quest, aturan XP, tentir, makan, target latihan, dana jembatan, usulan menunggu |
+| `get_overview` | konteks: hari ini & tipe hari, fase, stase, level/XP/streak, peran, habit, mutaba'ah, Main Quest, aturan XP, tentir, makan, target latihan, dana jembatan, uang (kategori, utang & sisa, tabungan), usulan menunggu |
 | `get_summary(from, to)` | ringkasan per hari + total: tidur, XP, lolos, tugas per peran, habit, mutaba'ah, tentir, latihan, lembur |
 | `list_records(table, from, to)` | data mentah satu tabel |
 | `get_training_plan` | resep sesi beban berikutnya, proyeksi bench, rencana lari minggu ini |
-| `propose(summary, items)` | tugas, jadwal jaga, habit, stase, ritme, menu → **Usulan**. Format sama dengan JSON impor (`src/domain/importGuide.ts`) |
+| `propose(summary, items)` | tugas, jadwal jaga, agenda, habit, stase, ritme, menu, dan keuangan (pemasukan, pengeluaran, utang baru, cicilan, setoran/penarikan) → **Usulan**. Format sama dengan JSON impor (`src/domain/importGuide.ts`). Cicilan/setoran ke nama yang tidak ada dan kategori yang salah ditolak dengan daftar yang tersedia |
 
 - Hitungan memakai kode domain yang sama dengan app (`src/domain/dayRows.ts`, `xp.ts`, `training.ts`, …), jadi hasilnya identik.
 - Tidak ada tool yang mengubah atau menghapus data; `propose` hanya menulis baris `proposals` (status menunggu). Disetujui di app, item per item, lewat jalur Impor.
@@ -300,6 +304,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | UX v2: animasi (centang, +XP melayang, transisi halaman, kartu bertahap, bar tumbuh, tab aktif), perayaan naik level, gestur geser (kanan selesai, kiri besok) di Beranda & Tugas, Beranda HP fokus "Hari ini" + "Ringkasan lain" | selesai |
 | Rapi di HP: kolom jam cukup diketik angka (titik otomatis, mis. 2000 → 20.00; waktu lari 3120 → 31:20), lembar bawah mengikuti papan ketik & tidak naik ke bawah status bar, latar status bar saat menggulir, input tanggal iOS tidak meluber; **Urungkan** untuk aksi sekali ketuk (Lunas/belum, simpan sesi tentir, catat latihan, setoran/penarikan/cicilan, salin anggaran, selesaikan Muhasabah), satu toast sekaligus supaya Urungkan selalu milik aksi terakhir | selesai |
 | Identitas & pembuka: logo & ikon baru, pembuka Beranda yang hidup (sapaan, sekarang/berikutnya, pita 24 jam, kalimat menurut jam), nama panggilan di Setelan, sidebar bisa diciutkan (`Ctrl+\`) | selesai |
+| Keuangan lewat connector/Impor: pemasukan, pengeluaran, utang baru, cicilan, setoran/penarikan → Usulan → disetujui; aman diulang (tidak dobel) | selesai |
 | Kalender & jadwal jaga: bulan dengan warna tipe hari, mode atur jaga (besoknya otomatis pasca bila kosong, batal ikut mengosongkan pasca), hitungan jaga + peringatan berurutan/minggu berat, agenda per hari, agenda hari ini di Beranda, kalender mini di layar lebar, impor/usulan jenis `agenda` | selesai |
 | Catatan: kartu warna (grid), cari semua kata, filter per peran, sematkan, jadikan tugas, cek identitas pasien, Catat cepat menebak peran | selesai |
 | Muhasabah bulanan: XP/lolos/tidur/jaga (dibanding bulan lalu bila bulan selesai), tren per minggu + tidur vs minggu berat jaga, per bidang (peran, habit, mutaba'ah, tentir, uang, dana jembatan, utang, latihan), refleksi + 3 prioritas bulan depan (tampil di Beranda), salin ringkasan untuk Claude, selesai mulai tgl 25 tanpa XP | selesai |

@@ -5,19 +5,22 @@ import { routeHref } from '../../app/router'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { useToast } from '../../components/toast-context'
+import { useMoneyRefs, type MoneyRefs } from '../../db/money'
 import { approveProposal, loadProposals, previewProposal, rejectProposal, reopenProposal } from '../../db/proposals'
 import { roleLookup, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
-import { describeItem, IMPORT_KIND_LABELS } from '../../domain/importer'
+import { describeItem, itemLabel } from '../../domain/importer'
+import { categoryLookup } from '../../domain/money'
 import type { Proposal, Role } from '../../types'
 
 const when = (ms: number) =>
   new Date(ms).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-function Pending({ p, roles, today }: { p: Proposal; roles: Role[]; today: string }) {
+function Pending({ p, roles, money, today }: { p: Proposal; roles: Role[]; money: MoneyRefs; today: string }) {
   const toast = useToast()
   const role = roleLookup(roles)
-  const rows = previewProposal(p, roles, today)
+  const cat = categoryLookup(money.categories)
+  const rows = previewProposal(p, roles, today, money)
   const [skipped, setSkipped] = useState<Set<number>>(new Set())
   const usable = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.item && !r.phi)
   const chosen = usable.filter(({ i }) => !skipped.has(i))
@@ -58,9 +61,13 @@ function Pending({ p, roles, today }: { p: Proposal; roles: Role[]; today: strin
                   }
                 />
                 <span className="flex-1">
-                  <span className="text-muted">{IMPORT_KIND_LABELS[r.item.kind]} · </span>
+                  <span className="text-muted">{itemLabel(r.item)} · </span>
                   {r.item.kind === 'ritme' && <span className="text-muted">{DAY_TYPE_LABELS[r.item.dayType]} · </span>}
-                  {describeItem(r.item, (id) => role(id).name)}
+                  {describeItem(
+                    r.item,
+                    (id) => role(id).name,
+                    (id) => cat(id).name,
+                  )}
                   {r.item.kind === 'habit' && r.item.note && <span className="block text-xs text-muted">{r.item.note}</span>}
                 </span>
               </label>
@@ -87,6 +94,7 @@ function Pending({ p, roles, today }: { p: Proposal; roles: Role[]; today: strin
 export function UsulanPage() {
   const today = useToday()
   const roles = useRoles()
+  const money = useMoneyRefs()
   const list = useLiveQuery(loadProposals)
   const pending = list?.filter((p) => p.status === 'menunggu') ?? []
   const decided = list?.filter((p) => p.status !== 'menunggu') ?? []
@@ -98,10 +106,10 @@ export function UsulanPage() {
         Semua yang ditulis Claude lewat connector masuk ke sini dulu. Pilih item yang mau dipakai, lalu setujui. Tidak ada usulan yang
         menghapus data, dan item yang mirip identitas pasien tidak pernah ditulis.
       </p>
-      {list && roles && (
+      {list && roles && money && (
         <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
           {pending.map((p) => (
-            <Pending key={p.id} p={p} roles={roles} today={today} />
+            <Pending key={p.id} p={p} roles={roles} money={money} today={today} />
           ))}
           {!pending.length && (
             <section className="card">

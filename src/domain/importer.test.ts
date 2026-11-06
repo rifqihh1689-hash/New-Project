@@ -127,3 +127,65 @@ describe('impor menu', () => {
     })
   })
 })
+
+describe('keuangan', () => {
+  const money = { ...ctx, debts: ['Pinjaman kakak'], savings: ['Dana jembatan'] }
+  const one = (o: Record<string, unknown>, c = money) => parseImport(JSON.stringify([o]), c)[0]
+
+  it('pemasukan & pengeluaran: jumlah angka atau teks, kategori dicocokkan atau ditebak', () => {
+    expect(one({ jenis: 'pemasukan', jumlah: 1_500_000, catatan: 'kiriman ortu' }).item).toEqual({
+      kind: 'transaksi',
+      type: 'income',
+      amount: 1_500_000,
+      date: '2026-11-05',
+      categoryId: '#cat:kiriman',
+      note: 'kiriman ortu',
+    })
+    expect(one({ jenis: 'pengeluaran', jumlah: '1,5jt', kategori: 'kos', tanggal: '1/11' }).item).toMatchObject({
+      type: 'expense',
+      amount: 1_500_000,
+      categoryId: '#cat:tagihan',
+      date: '2026-11-01',
+    })
+    expect(one({ jenis: 'pengeluaran', jumlah: '25rb', catatan: 'makan siang warteg' }).item).toMatchObject({ categoryId: '#cat:makan' })
+    // Angka polos dari JSON dipakai apa adanya (25 ≠ 25rb di sini).
+    expect(one({ jenis: 'pengeluaran', jumlah: 25 }).item).toMatchObject({ amount: 25 })
+    expect(one({ jenis: 'pengeluaran', jumlah: 'banyak' }).error).toMatch(/Jumlah/)
+    expect(one({ jenis: 'pengeluaran', jumlah: 50_000, kategori: 'Tentir' }).error).toMatch(/tidak ada untuk pengeluaran/)
+  })
+
+  it('utang baru dengan target lunas', () => {
+    expect(one({ jenis: 'hutang', judul: 'Cicilan laptop', jumlah: 6_000_000, target: '30/6/2027' }).item).toEqual({
+      kind: 'utang',
+      name: 'Cicilan laptop',
+      amount: 6_000_000,
+      targetDate: '2027-06-30',
+    })
+  })
+
+  it('cicilan & setoran ke yang sudah ada (nama tanpa beda huruf besar); penarikan negatif', () => {
+    expect(one({ jenis: 'cicilan', judul: 'pinjaman KAKAK', jumlah: 500_000 }).item).toMatchObject({
+      name: 'Pinjaman kakak',
+      amount: 500_000,
+    })
+    expect(one({ jenis: 'cicilan', judul: 'Pinjaman teman', jumlah: 1 }).error).toMatch(/tidak ditemukan \(yang ada: Pinjaman kakak\)/)
+    expect(one({ jenis: 'penarikan', judul: 'Dana jembatan', jumlah: 200_000 }).item).toMatchObject({ kind: 'setoran', amount: -200_000 })
+    expect(one({ jenis: 'setoran', judul: 'Dana jembatan', jumlah: '-200rb' }).item).toMatchObject({ amount: -200_000 })
+  })
+
+  it('utang baru dan cicilan pertamanya dalam satu kiriman', () => {
+    const rows = parseImport(
+      JSON.stringify([
+        { jenis: 'utang', judul: 'Cicilan laptop', jumlah: 6_000_000 },
+        { jenis: 'cicilan', judul: 'cicilan laptop', jumlah: 500_000 },
+      ]),
+      money,
+    )
+    expect(rows.map((r) => r.error)).toEqual([undefined, undefined])
+    expect(rows[1].item).toMatchObject({ kind: 'cicilan', name: 'Cicilan laptop', amount: 500_000 })
+  })
+
+  it('catatan uang juga dicek identitas pasien', () => {
+    expect(one({ jenis: 'pengeluaran', jumlah: 50_000, catatan: 'obat untuk Tn. Budi' }).phi).toBeTruthy()
+  })
+})

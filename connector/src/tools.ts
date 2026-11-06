@@ -16,8 +16,8 @@ import {
 import { computeResults, dailyRows } from '../../src/domain/dayRows'
 import { inDay, muscleOf, nextDay, SPLITS } from '../../src/domain/exerciseCatalog'
 import { IMPORT_ITEM_GUIDE } from '../../src/domain/importGuide'
-import { describeItem, parseImport } from '../../src/domain/importer'
-import { categoryLookup, mergeCategories, summarize as summarizeMoney } from '../../src/domain/money'
+import { describeItem, itemLabel, parseImport } from '../../src/domain/importer'
+import { categoriesFor, categoryLookup, mergeCategories, summarize as summarizeMoney } from '../../src/domain/money'
 import { currentPhase } from '../../src/domain/phase'
 import { detectPatientIdentity } from '../../src/domain/phi'
 import { computeStreak, dayStatus, levelFromXp } from '../../src/domain/progress'
@@ -137,12 +137,12 @@ const getOverview: ToolDef = {
   name: 'get_overview',
   title: 'Ringkasan Qawwam',
   description:
-    "Konteks pengguna saat ini: tanggal hari Qawwam (WIB, berganti 03.00), tipe hari ini, fase hidup, stase berjalan & berikutnya, level/XP/streak, peran, habit aktif, mutaba'ah, Main Quest aktif, aturan XP, kuota & tarif tentir, setelan makan, target latihan, dana jembatan, jumlah usulan menunggu. Panggil ini dulu sebelum alat lain.",
+    "Konteks pengguna saat ini: tanggal hari Qawwam (WIB, berganti 03.00), tipe hari ini, fase hidup, stase berjalan & berikutnya, level/XP/streak, peran, habit aktif, mutaba'ah, Main Quest aktif, aturan XP, kuota & tarif tentir, setelan makan, target latihan, dana jembatan, uang (kategori, utang & sisanya, tabungan), jumlah usulan menunggu. Panggil ini dulu sebelum alat lain.",
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   readOnly: true,
   async run(_args, { store, now }) {
     const today = dayKey(now)
-    const [base, d, chapters, quests, savings, debts, claims, proposals] = await Promise.all([
+    const [base, d, chapters, quests, savings, debts, claims, proposals, storedCats] = await Promise.all([
       loadBase(store),
       loadDays(store),
       store.all<Chapter>('chapters'),
@@ -151,7 +151,9 @@ const getOverview: ToolDef = {
       store.all<Debt>('debts'),
       store.all<Claim>('claims'),
       store.all<Proposal>('proposals'),
+      store.all<Category>('categories'),
     ])
+    const categories = mergeCategories(storedCats)
     const results = computeResults({ ...d, habits: base.habits, roles: base.roles }, today, base.rules)
     const totalXp = [...results.values()].reduce((a, r) => a + r.xp, 0) + reviewXpTotal(d.reviews, base.rules)
     const level = levelFromXp(totalXp, base.rules)
@@ -200,6 +202,18 @@ const getOverview: ToolDef = {
       trainingTargets: { ...DEFAULT_TARGETS, ...base.profile.trainingTargets },
       bridgeFund: bridge.target == null ? null : { target: bridge.target, saved: bridge.saved },
       debtLeft: debts.reduce((a, x) => a + x.initial - x.payments.reduce((p, y) => p + y.amount, 0), 0),
+      // Nama yang dipakai item keuangan di propose (kategori, utang untuk cicilan, tabungan untuk setoran).
+      uang: {
+        kategoriPengeluaran: categoriesFor('expense', categories).map((c) => c.name),
+        kategoriPemasukan: categoriesFor('income', categories).map((c) => c.name),
+        utang: debts.map((x) => ({ nama: x.name, sisa: x.initial - x.payments.reduce((p, y) => p + y.amount, 0), target: x.targetDate })),
+        tabungan: savings.map((x) => ({
+          nama: x.name,
+          jenis: x.kind,
+          terkumpul: x.deposits.reduce((p, y) => p + y.amount, 0),
+          target: x.target,
+        })),
+      },
       pendingProposals: proposals.filter((p) => p.status === 'menunggu').length,
     }
   },
@@ -438,7 +452,7 @@ const getTrainingPlan: ToolDef = {
 const propose: ToolDef = {
   name: 'propose',
   title: 'Kirim usulan',
-  description: `Kirim usulan ke Qawwam. TIDAK langsung ditulis: masuk halaman Usulan dan pengguna memilih item mana yang disetujui. Tidak bisa menghapus apa pun. Satu usulan = satu topik (mis. "Tugas belajar minggu ini"). Tanggal YYYY-MM-DD, jam HH.MM. Dilarang menulis identitas pasien (nama, No. RM, tanggal lahir); item seperti itu ditolak.
+  description: `Kirim usulan ke Qawwam: jadwal, tugas, habit, menu, dan juga keuangan (pemasukan, pengeluaran, utang baru, cicilan utang, setoran/penarikan tabungan). TIDAK langsung ditulis: masuk halaman Usulan dan pengguna memilih item mana yang disetujui. Tidak bisa menghapus apa pun. Satu usulan = satu topik (mis. "Pengeluaran minggu ini"). Tanggal YYYY-MM-DD, jam HH.MM. Dilarang menulis identitas pasien (nama, No. RM, tanggal lahir); item seperti itu ditolak. Untuk cicilan/setoran, nama utang/tabungan harus sama dengan yang ada (lihat "uang" di get_overview).
 
 Format item:
 ${IMPORT_ITEM_GUIDE}
@@ -465,13 +479,26 @@ Pakai id peran tanpa "#role:" (mis. "ukmppd", "orto", "koas", "tentir", "pulih",
     const phiSummary = detectPatientIdentity(summary)
     if (phiSummary) throw new ToolError(`summary mirip identitas pasien (${phiSummary}).`)
     const today = dayKey(now)
-    const { roles } = await loadBase(store)
-    const rows = parseImport(JSON.stringify(items), { roles, today })
+    const [{ roles }, storedCats, debts, savings] = await Promise.all([
+      loadBase(store),
+      store.all<Category>('categories'),
+      store.all<Debt>('debts'),
+      store.all<Saving>('savings'),
+    ])
+    const categories = mergeCategories(storedCats)
+    const rows = parseImport(JSON.stringify(items), {
+      roles,
+      today,
+      categories,
+      debts: debts.map((d) => d.name),
+      savings: savings.map((s) => s.name),
+    })
     const problems = rows
       .filter((r) => r.error || r.phi)
       .map((r) => `item ${r.line}: ${r.phi ? `mirip identitas pasien (${r.phi})` : r.error}`)
     if (problems.length) throw new ToolError(`Usulan tidak disimpan. Perbaiki lalu kirim ulang:\n${problems.join('\n')}`)
     const roleName = (id: string | undefined) => roles.find((r) => r.id === id)?.name ?? 'Koas'
+    const categoryName = (id: string) => categoryLookup(categories)(id).name
     const proposal: Proposal = {
       id: createId('prp'),
       summary,
@@ -484,7 +511,7 @@ Pakai id peran tanpa "#role:" (mis. "ukmppd", "orto", "koas", "tentir", "pulih",
     }
     await store.put('proposals', [proposal as unknown as Record<string, unknown>])
     return `Usulan "${summary}" tersimpan (${rows.length} item). Minta pengguna membuka Qawwam → Usulan untuk menyetujui:\n${rows
-      .map((r) => `- ${describeItem(r.item!, roleName)}`)
+      .map((r) => `- ${itemLabel(r.item!)}: ${describeItem(r.item!, roleName, categoryName)}`)
       .join('\n')}`
   },
 }
@@ -495,5 +522,6 @@ export const INSTRUCTIONS = `Qawwam adalah app pengatur hidup pribadi seorang ko
 - Hari Qawwam memakai WIB dan berganti pukul 03.00. Tipe hari: stase, jaga, pasca (pasca-jaga: hanya pemulihan), libur.
 - XP ala MBAPPE OS: Σ XP selesai (maks. 100) × pengali tidur 24 jam; lolos bila ≥ 60% isi hari selesai; jaga/pasca tidak memutus streak. Mutaba'ah tanpa skor.
 - Prinsip: hadiah untuk pemulihan, bukan volume; maksimal 3 Main Quest aktif; kuota sampingan (tentir dll.) 9–15 jam/minggu.
+- Catatan uang dari percakapan ("tadi beli buku 150rb", "dapat kiriman 1,5jt", "bayar utang kakak 500rb", "nabung 1jt ke dana jembatan") dikirim lewat propose sebagai pemasukan/pengeluaran/cicilan/setoran, juga utang baru. Nama utang & tabungan ada di get_overview → uang.
 - JANGAN pernah menulis identitas pasien (nama, No. RM, tanggal lahir, "Tn./Ny. + nama").
 Mulai dengan get_overview.`

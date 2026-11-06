@@ -6,6 +6,7 @@ import { setJaga, saveEvent } from './calendar'
 import { addTask } from './daily'
 import { db } from './db'
 import { loadMenus, newMenu, saveMenu } from './menu'
+import { addDeposit, addPayment, newDebt, saveDebt, saveTransaction } from './money'
 import { loadHabits, saveChapter, saveHabit, saveRitme } from './structure'
 
 export interface ImportSummary {
@@ -19,6 +20,13 @@ export interface ImportSummary {
   staseNew: number
   staseUpdated: number
   menu: number
+  transaksi: number
+  utangNew: number
+  utangUpdated: number
+  cicilan: number
+  setoran: number
+  /** Transaksi/cicilan/setoran yang sudah tercatat, atau utang/tabungan yang tidak ditemukan. */
+  uangSkipped: number
 }
 
 /**
@@ -38,6 +46,12 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     staseNew: 0,
     staseUpdated: 0,
     menu: 0,
+    transaksi: 0,
+    utangNew: 0,
+    utangUpdated: 0,
+    cicilan: 0,
+    setoran: 0,
+    uangSkipped: 0,
   }
   const now = Date.now()
 
@@ -139,6 +153,59 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     await saveMenu(existing ? { ...existing, ...fields, archived: false } : { ...newMenu(), ...fields })
     sum.menu++
   }
+
+  // Uang. Transaksi yang sama persis (tanggal, jenis, jumlah, kategori, catatan) dilewati supaya aman diulang.
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
+  for (const it of items) {
+    if (it.kind !== 'transaksi') continue
+    const dup = await db.transactions
+      .where('date')
+      .equals(it.date)
+      .filter((t) => t.type === it.type && t.amount === it.amount && t.categoryId === it.categoryId && same(t.note, it.note))
+      .count()
+    if (dup) {
+      sum.uangSkipped++
+      continue
+    }
+    await saveTransaction({ amount: it.amount, type: it.type, categoryId: it.categoryId, date: it.date, note: it.note })
+    sum.transaksi++
+  }
+  // Utang baru; nama sama = jumlah awal & target diperbarui, pembayaran tetap.
+  const debts = await db.debts.toArray()
+  for (const it of items) {
+    if (it.kind !== 'utang') continue
+    const existing = debts.find((d) => same(d.name, it.name))
+    if (existing) {
+      await saveDebt({ ...existing, initial: it.amount, targetDate: it.targetDate ?? existing.targetDate })
+      sum.utangUpdated++
+    } else {
+      const d = { ...newDebt(), name: it.name, initial: it.amount, targetDate: it.targetDate }
+      await saveDebt(d)
+      debts.push(d)
+      sum.utangNew++
+    }
+  }
+  // Cicilan & setoran ke utang/tabungan yang ada (nama tanpa beda huruf besar); yang sama persis dilewati.
+  for (const it of items) {
+    if (it.kind !== 'cicilan') continue
+    const d = (await db.debts.toArray()).find((x) => same(x.name, it.name))
+    if (!d || d.payments.some((p) => p.date === it.date && p.amount === it.amount)) {
+      sum.uangSkipped++
+      continue
+    }
+    await addPayment(d.id, it.amount, it.date)
+    sum.cicilan++
+  }
+  for (const it of items) {
+    if (it.kind !== 'setoran') continue
+    const s = (await db.savings.toArray()).find((x) => same(x.name, it.name))
+    if (!s || s.deposits.some((p) => p.date === it.date && p.amount === it.amount)) {
+      sum.uangSkipped++
+      continue
+    }
+    await addDeposit(s.id, it.amount, it.date)
+    sum.setoran++
+  }
   return sum
 }
 
@@ -154,6 +221,12 @@ export function summaryText(s: ImportSummary): string {
     s.staseNew && `${s.staseNew} stase baru`,
     s.staseUpdated && `${s.staseUpdated} stase diperbarui`,
     s.menu && `${s.menu} menu`,
+    s.transaksi && `${s.transaksi} transaksi`,
+    s.utangNew && `${s.utangNew} utang baru`,
+    s.utangUpdated && `${s.utangUpdated} utang diperbarui`,
+    s.cicilan && `${s.cicilan} cicilan`,
+    s.setoran && `${s.setoran} setoran/penarikan`,
+    s.uangSkipped && `${s.uangSkipped} catatan uang dilewati (sudah ada / utang-tabungan tidak ditemukan)`,
   ].filter(Boolean)
   return parts.length ? `Diimpor: ${parts.join(', ')}.` : 'Tidak ada yang diimpor.'
 }

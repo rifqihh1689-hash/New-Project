@@ -48,3 +48,44 @@ describe('impor ke database', () => {
     expect((await loadHabits()).filter((h) => h.name === 'Latihan beban')).toHaveLength(1)
   })
 })
+
+describe('impor keuangan', () => {
+  const ctx = { roles: DEFAULT_ROLES, today: '2026-11-05' }
+  const parse = (o: Record<string, unknown>[]) =>
+    parseImport(JSON.stringify(o), ctx)
+      .map((r) => r.item!)
+      .filter(Boolean)
+
+  it('transaksi, utang baru, lalu cicilan & setoran; aman diulang', async () => {
+    await db.savings.put({
+      id: 'sav_1',
+      name: 'Dana jembatan',
+      kind: 'jembatan',
+      target: 15_000_000,
+      targetDate: null,
+      deposits: [],
+      createdAt: 1,
+      updatedAt: 1,
+    })
+    const items = parse([
+      { jenis: 'pemasukan', jumlah: 1_500_000, catatan: 'kiriman ortu' },
+      { jenis: 'pengeluaran', jumlah: 25_000, kategori: 'Makan', catatan: 'makan siang' },
+      { jenis: 'utang', judul: 'Pinjaman kakak', jumlah: 3_000_000 },
+      { jenis: 'cicilan', judul: 'Pinjaman kakak', jumlah: 500_000 },
+      { jenis: 'setoran', judul: 'dana jembatan', jumlah: 1_000_000 },
+      { jenis: 'cicilan', judul: 'Pinjaman teman', jumlah: 100_000 },
+    ])
+    const first = await applyImport(items)
+    expect(first).toMatchObject({ transaksi: 2, utangNew: 1, cicilan: 1, setoran: 1, uangSkipped: 1 })
+    expect(await db.transactions.count()).toBe(2)
+    const debt = (await db.debts.toArray())[0]
+    expect(debt).toMatchObject({ name: 'Pinjaman kakak', initial: 3_000_000, payments: [{ date: '2026-11-05', amount: 500_000 }] })
+    expect((await db.savings.get('sav_1'))?.deposits).toEqual([{ date: '2026-11-05', amount: 1_000_000 }])
+
+    // Disetujui dua kali: tidak ada yang dobel; utang dengan nama sama diperbarui.
+    const again = await applyImport(items)
+    expect(again).toMatchObject({ transaksi: 0, utangNew: 0, utangUpdated: 1, cicilan: 0, setoran: 0, uangSkipped: 5 })
+    expect(await db.transactions.count()).toBe(2)
+    expect((await db.debts.toArray())[0].payments).toHaveLength(1)
+  })
+})
