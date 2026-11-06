@@ -17,6 +17,7 @@ import {
   newRecurring,
   newSaving,
   removeBudgets,
+  saveBudgets,
   restoreGoal,
   runRecurring,
   saveCategory,
@@ -50,6 +51,22 @@ describe('transaksi', () => {
 })
 
 describe('anggaran', () => {
+  it('disimpan sekaligus: hanya yang berubah ditulis, 0 = hapus, bisa diurungkan', async () => {
+    await setBudget('2026-11', '#cat:makan', 1_000_000)
+    await setBudget('2026-11', '#cat:transport', 200_000)
+    const before = await saveBudgets('2026-11', {
+      '#cat:makan': 1_000_000, // tidak berubah
+      '#cat:transport': 0, // dihapus
+      '#cat:belajar': 300_000, // baru
+    })
+    expect(before).toEqual({ '#cat:transport': 200_000, '#cat:belajar': 0 })
+    const nov = await db.budgets.where('month').equals('2026-11').toArray()
+    expect(Object.fromEntries(nov.map((b) => [b.categoryId, b.amount]))).toEqual({ '#cat:makan': 1_000_000, '#cat:belajar': 300_000 })
+    await saveBudgets('2026-11', before)
+    const undone = await db.budgets.where('month').equals('2026-11').toArray()
+    expect(Object.fromEntries(undone.map((b) => [b.categoryId, b.amount]))).toEqual({ '#cat:makan': 1_000_000, '#cat:transport': 200_000 })
+  })
+
   it('satu per kategori per bulan; 0 = hapus; salin dari bulan lalu tanpa menimpa', async () => {
     await setBudget('2026-10', '#cat:makan', 1_200_000)
     await setBudget('2026-10', '#cat:transport', 200_000)
