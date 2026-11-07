@@ -314,6 +314,22 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Fase 2 | selesai (semua modul di atas) |
 | Fase 3 (Belajar UKMPPD, Target & PPDS, logbook, produk digital, Buku) | belum |
 
+## Backlog untuk Senin
+
+Dicatat dulu, dikerjakan saat limit Claude sudah reset. Urutan kasar dari yang paling terasa:
+
+- **Riwayat usulan**: sembunyikan usulan yang sudah diputuskan (disetujui/ditolak) di balik satu tombol "Riwayat", dan batasi jumlah yang tampil supaya daftar tidak panjang.
+- **Daftar panjang secara umum**: batasi tampilan awal (mis. 5–10 item) dengan tombol "Tampilkan semua" di Uang, Tugas, Catatan, dan Usulan.
+- **Rekap bulanan Tentir**: total jam bulan itu, dibandingkan kuota 9–15 j, plus pemasukan bulan itu.
+- **Pendapatan bulan itu**: total pemasukan bulan itu di kartu Uang (sekarang hanya pengeluaran).
+- **Tabungan & utang bisa diminimize**: kartu dilipat dengan progres persentase (terkumpul/target, terbayar/utang awal). Utang boleh disembunyikan sesekali supaya tidak membebani.
+- **Rekomendasi belanja**: daftar bahan belanja yang disarankan (dari menu & bahan yang sering dipakai) yang bisa langsung masuk ke daftar belanja di Menu.
+- **Muat lebih cepat**:
+  - Penyebab: penyimpanan app yang dipasang di layar utama iPhone terpisah dari Safari, sehingga data mulai dari kosong dan harus ditarik dari Dexie Cloud; bundle utama sekitar 975 KB (290 KB gzip).
+  - Pilihan: pecah kode per halaman, dan tampilkan kerangka saat data belum siap.
+  - Perlu dipastikan dulu: lambat hanya saat pertama dibuka setelah dipasang, atau setiap kali dibuka.
+- **Catatan**: dibantu lagi saat Senin.
+
 ## Belum diputuskan
 
 - Rumus XP: dipakai apa adanya dari MBAPPE OS (saat ini) atau disederhanakan.
