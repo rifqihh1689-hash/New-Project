@@ -21,4 +21,11 @@ describe('useStoredFlag', () => {
     act(() => result.current[1](false))
     expect(renderHook(() => useStoredFlag('buka', true)).result.current[0]).toBe(false)
   })
+
+  it('dua komponen dengan kunci yang sama ikut berubah bersamaan', () => {
+    const a = renderHook(() => useStoredFlag('bersama', false))
+    const b = renderHook(() => useStoredFlag('bersama', false))
+    act(() => a.result.current[1](true))
+    expect(b.result.current[0]).toBe(true)
+  })
 })

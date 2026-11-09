@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { BarChart } from '../../components/BarChart'
 import { Limited } from '../../components/Limited'
 import { db } from '../../db/db'
+import { cashPlan } from '../../domain/cashflow'
 import { debtSchedule, monthlyFlow, savingSeries } from '../../domain/moneyHistory'
 import { addMonths, formatDateShort, formatMonth, monthOf, MONTH_NAMES } from '../../domain/time'
 import { formatRupiah, formatRupiahShort } from '../../lib/format'
@@ -208,6 +209,117 @@ export function DebtDetail({ data }: { data: UangData }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+const signed = (n: number) => `${n < 0 ? '−' : ''}${formatRupiahShort(Math.abs(n))}`
+
+/**
+ * Rencana uang: perkiraan akhir bulan ini, 6 bulan ke depan, dan bola salju tabungan.
+ * Saat utang disembunyikan, tagihan tetap tampil sebagai satu baris netral dan bola salju tidak ditampilkan.
+ */
+export function PlanDetail({ data, hideDebt }: { data: UangData; hideDebt: boolean }) {
+  const from = addMonths(data.month, -3)
+  const txs = useLiveQuery(
+    () => db.transactions.where('date').between(`${from}-01`, `${data.month}-31`, true, true).toArray(),
+    [from, data.month],
+  )
+  const unpaid = useLiveQuery(
+    () =>
+      db.tentirSessions
+        .where('date')
+        .between(`${data.month}-01`, `${data.month}-31`, true, true)
+        .filter((s) => !s.paid)
+        .toArray(),
+    [data.month],
+  )
+  const exam = useLiveQuery(async () => (await db.profile.get('#profile'))?.study?.examDate ?? null, [])
+  if (!txs || !unpaid || exam === undefined) return null
+  const bridge = data.savings.find((x) => x.s.kind === 'jembatan')?.s ?? null
+  const plan = cashPlan({
+    txs,
+    today: data.today,
+    debts: data.debts.map((x) => x.d),
+    budget: data.budgetTotal.limit,
+    incomeExpected: unpaid.reduce((a, s) => a + s.fee, 0),
+    saving: bridge,
+    until: exam,
+  })
+  const t = plan.thisMonth
+  const fixedLabel = hideDebt ? 'Tagihan tetap' : 'Cicilan utang'
+  const row = (label: string, value: string, tone = '') => (
+    <div className="flex justify-between border-t border-line py-1.5 text-[13.5px] first:border-t-0">
+      <span className="text-muted">{label}</span>
+      <b className={`font-semibold tabular-nums ${tone}`}>{value}</b>
+    </div>
+  )
+  const sb = plan.snowball
+  return (
+    <div className="grid gap-4">
+      <section>
+        <div className="text-xs text-muted">Perkiraan sisa akhir {formatMonth(t.month)}</div>
+        <div className={`text-[22px] font-semibold tabular-nums ${t.net < 0 ? 'text-danger' : ''}`}>{formatRupiah(t.net)}</div>
+        <p className="text-xs text-muted">
+          {t.net < 0 ? 'Kurang. Tunda pengeluaran non-wajib atau tambah sesi tentir.' : 'Aman bila pengeluaran sesuai perkiraan.'}
+        </p>
+        <div className="mt-2">
+          {row('Pemasukan sejauh ini', formatRupiah(t.incomeSoFar))}
+          {unpaid.length > 0 && row('Tentir belum lunas bulan ini', `+${formatRupiah(t.incomeEnd - t.incomeSoFar)}`)}
+          {row('Pengeluaran (perkiraan akhir bulan)', `−${formatRupiah(t.expenseEnd)}`)}
+          {row(fixedLabel, `−${formatRupiah(t.fixed)}`)}
+          {t.fixedPaid > 0 && row('· sudah dibayar', formatRupiah(t.fixedPaid))}
+        </div>
+        <p className="mt-1 text-xs text-faint">
+          Pengeluaran:{' '}
+          {data.budgetTotal.limit > 0 ? 'anggaran bulan ini (atau realisasi bila lebih besar)' : 'laju bulan ini × jumlah hari'}.
+        </p>
+      </section>
+      <section>
+        <h3 className="mb-1 text-[13px] font-semibold">6 bulan ke depan</h3>
+        <table className="w-full text-[13px] tabular-nums">
+          <thead className="text-xs text-faint">
+            <tr>
+              <th className="py-1 text-left font-medium">Bulan</th>
+              <th className="py-1 text-right font-medium">Masuk</th>
+              <th className="py-1 text-right font-medium">Keluar</th>
+              <th className="py-1 text-right font-medium">{hideDebt ? 'Tagihan' : 'Cicilan'}</th>
+              <th className="py-1 text-right font-medium">Sisa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {plan.months.map((m) => (
+              <tr key={m.month} className="border-t border-line">
+                <td className="py-1.5">{shortYear(m.month)}</td>
+                <td className="py-1.5 text-right">{formatRupiahShort(m.income)}</td>
+                <td className="py-1.5 text-right">{formatRupiahShort(m.expense)}</td>
+                <td className="py-1.5 text-right">{formatRupiahShort(m.fixed)}</td>
+                <td className={`py-1.5 text-right font-medium ${m.net < 0 ? 'text-danger' : ''}`}>{signed(m.net)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-1 text-xs text-faint">Masuk & keluar = rata-rata bulan-bulan penuh sebelumnya; hanya perkiraan.</p>
+      </section>
+      {sb && !hideDebt && sb.drops.length > 0 && (
+        <section>
+          <h3 className="mb-1 text-[13px] font-semibold">Bola salju ke {bridge?.name ?? 'dana jembatan'}</h3>
+          <p className="text-[13px] text-muted">
+            Tiap cicilan turun atau selesai, selisihnya dialihkan jadi setoran. Sampai {formatMonth(sb.until)}, terkumpul tambahan sekitar{' '}
+            <b className="font-semibold text-text">{formatRupiah(sb.projected)}</b>
+            {bridge ? ` (sekarang ${formatRupiah(sb.current)})` : ''}.
+          </p>
+          <ul className="mt-2 text-[13px]">
+            {sb.drops.map((d) => (
+              <li key={d.month} className="flex justify-between border-t border-line py-1.5 first:border-t-0">
+                <span>{formatMonth(d.month)}</span>
+                <span className="tabular-nums text-ok">turun {formatRupiah(d.freed)}/bln</span>
+              </li>
+            ))}
+          </ul>
+          {!bridge && <p className="mt-1 text-xs text-faint">Buat dana jembatan di bagian Tabungan supaya setoran ini punya tujuan.</p>}
+        </section>
+      )}
     </div>
   )
 }

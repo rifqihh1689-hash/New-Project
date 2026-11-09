@@ -52,6 +52,8 @@ export interface InsightInput {
     nextDoc: { name: string; due: ISODate } | null
   } | null
   energy: { lowRun: number; pattern: { low: { label: string; avg: number }; high: { label: string; avg: number } } | null } | null
+  /** Perkiraan sisa akhir bulan (pemasukan − pengeluaran − tagihan tetap); `null` bila belum ada data. */
+  cash: { net: number } | null
   /** Muhasabah minggu lalu bisa diisi dan belum selesai. */
   reviewOpen: boolean
 }
@@ -189,6 +191,17 @@ export function pickInsights(i: InsightInput): Insight[] {
       tone: 'info',
       href: '#/tentir',
       priority: 50,
+    })
+
+  // Arus kas: proyeksi akhir bulan negatif (tanpa menyebut sumber tagihan).
+  if (i.cash && i.cash.net < 0 && Number(i.today.slice(8)) >= 8)
+    add({
+      id: 'arus-kas-kurang',
+      title: `Perkiraan akhir bulan kurang ${formatRupiahShort(-i.cash.net)}.`,
+      detail: 'Tunda pengeluaran non-wajib atau tambah satu sesi tentir. Rinciannya di Uang → Rencana bulan ini.',
+      tone: 'warn',
+      href: '#/uang',
+      priority: 63,
     })
 
   // Laju belanja bulan ini terhadap anggaran.
