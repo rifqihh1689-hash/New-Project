@@ -413,6 +413,8 @@ export interface NutritionSettings {
   pricesUpdatedAt: number | null
   /** Bumbu, minyak & gas per porsi menu masak (Rupiah). */
   overheadRp: number
+  /** Bahan tambahan di daftar belanja (dari saran belanja), berlaku untuk satu minggu (`week` = Senin). */
+  shoppingExtras?: { week: ISODate; items: Ingredient[] }
 }
 
 export interface IngredientPrice {
