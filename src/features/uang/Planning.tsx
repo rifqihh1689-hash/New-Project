@@ -1,5 +1,6 @@
-import { Plus } from 'lucide-react'
+import { ChevronDown, Eye, EyeOff, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { HIDE_DEBT_KEY, useStoredFlag } from '../../app/useStoredFlag'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/toast-context'
 import {
@@ -37,6 +38,40 @@ const Bar = ({ pct, className }: { pct: number; className: string }) => (
     <div className={`h-full rounded-full ${className} bar-anim`} style={{ width: `${Math.max(0, Math.min(100, pct * 100))}%` }} />
   </div>
 )
+
+const pctText = (pct: number) => `${Math.round(Math.max(0, Math.min(1, pct)) * 100)}%`
+const MASK = '•••••'
+
+/** Bagian yang bisa dilipat: judul + ringkasan satu baris tetap terlihat saat tertutup. */
+function Fold({
+  title,
+  summary,
+  open,
+  onToggle,
+  extra,
+  children,
+}: {
+  title: string
+  summary: string
+  open: boolean
+  onToggle: () => void
+  extra?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+      <div className="flex items-center gap-1">
+        <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={open} onClick={onToggle}>
+          <ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-faint transition-transform ${open ? '' : '-rotate-90'}`} />
+          <span className="text-[14px] font-semibold">{title}</span>
+          <span className="ml-auto truncate text-xs text-muted tabular-nums">{summary}</span>
+        </button>
+        {extra}
+      </div>
+      {open && <div className="mt-3">{children}</div>}
+    </div>
+  )
+}
 
 const monthYear = (d: string) => `${MONTH_NAMES[Number(d.slice(5, 7)) - 1].slice(0, 3)} ${d.slice(0, 4)}`
 
@@ -210,6 +245,22 @@ export function GoalsCard({ data }: { data: UangData }) {
   const [editing, setEditing] = useState<Editing>(null)
   const [topup, setTopup] = useState<Topup>(null)
   const hasBridge = data.savings.some((x) => x.s.kind === 'jembatan')
+  const [savingsOpen, setSavingsOpen] = useStoredFlag('qawwam:uang-tabungan-buka', true)
+  const [debtsOpen, setDebtsOpen] = useStoredFlag('qawwam:uang-utang-buka', true)
+  const [hideDebt, setHideDebt] = useStoredFlag(HIDE_DEBT_KEY, false)
+  const savingTotal = data.savings.reduce((a, x) => ({ done: a.done + x.plan.done, target: a.target + x.plan.target }), {
+    done: 0,
+    target: 0,
+  })
+  const debtTotal = data.debts.reduce((a, x) => ({ left: a.left + x.plan.left, target: a.target + x.plan.target }), { left: 0, target: 0 })
+  const savingsSummary = data.savings.length
+    ? `${formatRupiahShort(savingTotal.done)} / ${formatRupiahShort(savingTotal.target)} · ${pctText(savingTotal.target ? savingTotal.done / savingTotal.target : 0)}`
+    : 'belum ada'
+  const debtsSummary = !data.debts.length
+    ? 'belum ada'
+    : hideDebt
+      ? 'disembunyikan'
+      : `sisa ${formatRupiahShort(debtTotal.left)} · ${pctText(debtTotal.target ? 1 - debtTotal.left / debtTotal.target : 0)} lunas`
   const remove = async (table: 'savings' | 'debts', id: string) => {
     const row = await deleteGoal(table, id)
     setEditing(null)
@@ -224,66 +275,109 @@ export function GoalsCard({ data }: { data: UangData }) {
           setelah targetnya tercapai.
         </p>
       )}
-      <ul className="grid gap-3">
-        {data.savings.map(({ s, plan }) => (
-          <li key={s.id} className="text-[13.5px]">
-            <div className="flex items-baseline gap-2">
-              <button type="button" className="flex-1 text-left font-medium" onClick={() => setEditing({ kind: 'saving', row: s })}>
-                {s.name}
-                {s.kind === 'jembatan' && s.name.toLowerCase() !== 'dana jembatan' && (
-                  <span className="ml-1.5 text-[11px] font-normal text-tentir">dana jembatan</span>
-                )}
+      <div className="grid gap-3">
+        <Fold title="Tabungan" summary={savingsSummary} open={savingsOpen} onToggle={() => setSavingsOpen(!savingsOpen)}>
+          <ul className="grid gap-3">
+            {data.savings.map(({ s, plan }) => (
+              <li key={s.id} className="text-[13.5px]">
+                <div className="flex items-baseline gap-2">
+                  <button type="button" className="flex-1 text-left font-medium" onClick={() => setEditing({ kind: 'saving', row: s })}>
+                    {s.name}
+                    {s.kind === 'jembatan' && s.name.toLowerCase() !== 'dana jembatan' && (
+                      <span className="ml-1.5 text-[11px] font-normal text-tentir">dana jembatan</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost py-1 text-xs"
+                    onClick={() => setTopup({ kind: 'saving', id: s.id, name: s.name })}
+                  >
+                    + Setor
+                  </button>
+                </div>
+                <div className="text-xs text-muted tabular-nums">
+                  {formatRupiah(plan.done)} / {formatRupiah(plan.target)} · {pctText(plan.pct)}
+                  {plan.left === 0
+                    ? ' · tercapai'
+                    : plan.perMonth
+                      ? ` · ${formatRupiahShort(plan.perMonth)}/bln sampai ${monthYear(s.targetDate!)}`
+                      : ` · kurang ${formatRupiahShort(plan.left)}`}
+                </div>
+                <Bar pct={plan.pct} className={s.kind === 'jembatan' ? 'bg-tentir' : 'bg-ok'} />
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="btn-ghost mt-3 border border-line py-1.5"
+            onClick={() => setEditing({ kind: 'saving', row: newSaving(hasBridge ? 'wishlist' : 'jembatan') })}
+          >
+            <Plus size={14} aria-hidden="true" /> Tabungan
+          </button>
+        </Fold>
+        <Fold
+          title="Utang"
+          summary={debtsSummary}
+          open={debtsOpen}
+          onToggle={() => setDebtsOpen(!debtsOpen)}
+          extra={
+            data.debts.length > 0 && (
+              <button
+                type="button"
+                className="btn-ghost p-1.5"
+                aria-pressed={hideDebt}
+                aria-label={hideDebt ? 'Tampilkan progres utang' : 'Sembunyikan progres utang'}
+                title={hideDebt ? 'Tampilkan progres utang' : 'Sembunyikan progres utang'}
+                onClick={() => setHideDebt(!hideDebt)}
+              >
+                {hideDebt ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
-              <button type="button" className="btn-ghost py-1 text-xs" onClick={() => setTopup({ kind: 'saving', id: s.id, name: s.name })}>
-                + Setor
-              </button>
-            </div>
-            <div className="text-xs text-muted tabular-nums">
-              {formatRupiah(plan.done)} / {formatRupiah(plan.target)}
-              {plan.left === 0
-                ? ' · tercapai'
-                : plan.perMonth
-                  ? ` · ${formatRupiahShort(plan.perMonth)}/bln sampai ${monthYear(s.targetDate!)}`
-                  : ` · kurang ${formatRupiahShort(plan.left)}`}
-            </div>
-            <Bar pct={plan.pct} className={s.kind === 'jembatan' ? 'bg-tentir' : 'bg-ok'} />
-          </li>
-        ))}
-        {data.debts.map(({ d, plan }) => (
-          <li key={d.id} className="text-[13.5px]">
-            <div className="flex items-baseline gap-2">
-              <button type="button" className="flex-1 text-left font-medium" onClick={() => setEditing({ kind: 'debt', row: d })}>
-                {d.name} <span className="ml-1 text-[11px] font-normal text-uang">utang</span>
-              </button>
-              {plan.left > 0 && (
-                <button type="button" className="btn-ghost py-1 text-xs" onClick={() => setTopup({ kind: 'debt', id: d.id, name: d.name })}>
-                  + Bayar
-                </button>
-              )}
-            </div>
-            <div className="text-xs text-muted tabular-nums">
-              sisa {formatRupiah(plan.left)} dari {formatRupiah(plan.target)}
-              {plan.left === 0
-                ? ' · lunas'
-                : plan.perMonth
-                  ? ` · ${formatRupiahShort(plan.perMonth)}/bln sampai ${monthYear(d.targetDate!)}`
-                  : ''}
-            </div>
-            <Bar pct={plan.pct} className="bg-uang" />
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn-ghost border border-line py-1.5"
-          onClick={() => setEditing({ kind: 'saving', row: newSaving(hasBridge ? 'wishlist' : 'jembatan') })}
+            )
+          }
         >
-          <Plus size={14} aria-hidden="true" /> Tabungan
-        </button>
-        <button type="button" className="btn-ghost border border-line py-1.5" onClick={() => setEditing({ kind: 'debt', row: newDebt() })}>
-          <Plus size={14} aria-hidden="true" /> Utang
-        </button>
+          <ul className="grid gap-3">
+            {data.debts.map(({ d, plan }) => (
+              <li key={d.id} className="text-[13.5px]">
+                <div className="flex items-baseline gap-2">
+                  <button type="button" className="flex-1 text-left font-medium" onClick={() => setEditing({ kind: 'debt', row: d })}>
+                    {d.name}
+                  </button>
+                  {plan.left > 0 && (
+                    <button
+                      type="button"
+                      className="btn-ghost py-1 text-xs"
+                      onClick={() => setTopup({ kind: 'debt', id: d.id, name: d.name })}
+                    >
+                      + Bayar
+                    </button>
+                  )}
+                </div>
+                {hideDebt ? (
+                  <div className="text-xs text-muted">{MASK}</div>
+                ) : (
+                  <>
+                    <div className="text-xs text-muted tabular-nums">
+                      sisa {formatRupiah(plan.left)} dari {formatRupiah(plan.target)} · {pctText(plan.pct)} lunas
+                      {plan.left === 0
+                        ? ' · lunas'
+                        : plan.perMonth
+                          ? ` · ${formatRupiahShort(plan.perMonth)}/bln sampai ${monthYear(d.targetDate!)}`
+                          : ''}
+                    </div>
+                    <Bar pct={plan.pct} className="bg-uang" />
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="btn-ghost mt-3 border border-line py-1.5"
+            onClick={() => setEditing({ kind: 'debt', row: newDebt() })}
+          >
+            <Plus size={14} aria-hidden="true" /> Utang
+          </button>
+        </Fold>
       </div>
       <Sheet open={!!editing} title={editing?.kind === 'debt' ? 'Utang' : 'Tabungan'} onClose={() => setEditing(null)}>
         {editing && <GoalForm key={editing.row.id} editing={editing} onClose={() => setEditing(null)} onDelete={remove} />}
