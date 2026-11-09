@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useState, type CSSProperties } from 'react'
 import { useRoute, type RouteName } from './app/router'
 import { useToday } from './app/useToday'
 import { ToastProvider } from './components/Toast'
@@ -7,17 +7,6 @@ import { runRecurring } from './db/money'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { BerandaPage } from './features/beranda/BerandaPage'
 import { CaptureSheet } from './features/capture/QuickCapture'
-import { HabitPage } from './features/habit/HabitPage'
-import { ImportPage } from './features/import/ImportPage'
-import { CatatanPage } from './features/catatan/CatatanPage'
-import { HadiahPage } from './features/hadiah/HadiahPage'
-import { KalenderPage } from './features/kalender/KalenderPage'
-import { LatihanPage } from './features/latihan/LatihanPage'
-import { MenuPage } from './features/menu/MenuPage'
-import { TentirPage } from './features/tentir/TentirPage'
-import { UangPage } from './features/uang/UangPage'
-import { UsulanPage } from './features/usulan/UsulanPage'
-import { MuhasabahPage } from './features/muhasabah/MuhasabahPage'
 import { MobileTop } from './features/nav/MobileTop'
 import { MorePage } from './features/nav/MorePage'
 import { Sidebar } from './features/nav/Sidebar'
@@ -25,12 +14,25 @@ import { useSidebar } from './features/nav/useSidebar'
 import { SoonPage } from './features/nav/SoonPage'
 import { TabBar } from './features/nav/TabBar'
 import { PwaUpdater } from './features/pwa/PwaUpdater'
-import { SettingsPage } from './features/settings/SettingsPage'
 import { useTheme } from './features/settings/theme'
 import { ThemeContext } from './features/settings/theme-context'
-import { TugasPage } from './features/tugas/TugasPage'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
+
+// Beranda ikut bundel awal (halaman pertama); halaman lain dimuat saat dibuka, tetap ter-cache untuk offline.
+const HabitPage = lazy(() => import('./features/habit/HabitPage').then((m) => ({ default: m.HabitPage })))
+const ImportPage = lazy(() => import('./features/import/ImportPage').then((m) => ({ default: m.ImportPage })))
+const CatatanPage = lazy(() => import('./features/catatan/CatatanPage').then((m) => ({ default: m.CatatanPage })))
+const HadiahPage = lazy(() => import('./features/hadiah/HadiahPage').then((m) => ({ default: m.HadiahPage })))
+const KalenderPage = lazy(() => import('./features/kalender/KalenderPage').then((m) => ({ default: m.KalenderPage })))
+const LatihanPage = lazy(() => import('./features/latihan/LatihanPage').then((m) => ({ default: m.LatihanPage })))
+const MenuPage = lazy(() => import('./features/menu/MenuPage').then((m) => ({ default: m.MenuPage })))
+const TentirPage = lazy(() => import('./features/tentir/TentirPage').then((m) => ({ default: m.TentirPage })))
+const UangPage = lazy(() => import('./features/uang/UangPage').then((m) => ({ default: m.UangPage })))
+const UsulanPage = lazy(() => import('./features/usulan/UsulanPage').then((m) => ({ default: m.UsulanPage })))
+const MuhasabahPage = lazy(() => import('./features/muhasabah/MuhasabahPage').then((m) => ({ default: m.MuhasabahPage })))
+const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const TugasPage = lazy(() => import('./features/tugas/TugasPage').then((m) => ({ default: m.TugasPage })))
 
 function Page({ name, date }: { name: RouteName; date: string | null }) {
   switch (name) {
@@ -108,7 +110,9 @@ function Shell() {
         <main className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(110px+var(--safe-bottom))] md:px-8 md:pt-[22px] md:pb-12">
           {/* Kunci per rute: setiap pindah halaman, isinya masuk dengan animasi halus. */}
           <div key={route.name} className="animate-page-in">
-            <Page name={route.name} date={route.date} />
+            <Suspense fallback={null}>
+              <Page name={route.name} date={route.date} />
+            </Suspense>
           </div>
         </main>
       </div>
