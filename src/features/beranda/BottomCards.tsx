@@ -97,6 +97,7 @@ export function MoneyCard({ data }: { data: BerandaData }) {
           Buka →
         </a>
       </h3>
+      {line('Masuk bulan ini', formatRupiah(money.income))}
       {line(
         'Keluar bulan ini',
         money.budget ? `${formatRupiahShort(money.expense)} / ${formatRupiahShort(money.budget)}` : formatRupiah(money.expense),

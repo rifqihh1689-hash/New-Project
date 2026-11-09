@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { capacityState, dayTentir, hoursByDay, isLate, parseTentir, sessionRange, summarize } from './tentir'
+import { capacityState, monthRecap, dayTentir, hoursByDay, isLate, parseTentir, sessionRange, summarize } from './tentir'
 
 const s = (start: string | null, hours: number, fee = 85_000 * hours, paid = false, date = '2026-11-05') => ({
   start,
@@ -54,5 +54,16 @@ describe('tentir', () => {
       paid: false,
     })
     expect(parseTentir('90m blok 12 kardio', '2026-11-05')).toMatchObject({ student: '', hours: 1.5, topic: 'Blok 12 kardio' })
+  })
+
+  it('rekap bulanan: hanya sesi bulan itu, kuota diskalakan per hari dalam bulan', () => {
+    const r = monthRecap(
+      [s('19.00', 2, 170_000, true, '2026-11-03'), s('19.00', 1, 85_000, false, '2026-11-28'), s('19.00', 5, 425_000, true, '2026-10-30')],
+      '2026-11',
+      { min: 9, max: 15 },
+    )
+    expect(r).toMatchObject({ hours: 3, fee: 255_000, paid: 170_000, count: 2, state: 'kurang' })
+    expect(r.quota).toEqual({ min: 38.6, max: 64.3 }) // 30 hari = 4,2857 minggu
+    expect(monthRecap([], '2026-11', { min: 9, max: 15 }).state).toBe('kosong')
   })
 })

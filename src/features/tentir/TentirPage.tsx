@@ -4,8 +4,8 @@ import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { useToast } from '../../components/toast-context'
 import { saveTentirSettings, setPaid } from '../../db/tentir'
-import { isLate, sessionRange, type CapacityState } from '../../domain/tentir'
-import { addDays, DAY_SHORT, formatDateShort, MONTH_NAMES, weekday, weekStart } from '../../domain/time'
+import { isLate, monthRecap, sessionRange, type CapacityState } from '../../domain/tentir'
+import { addDays, addMonths, DAY_SHORT, formatDateShort, formatMonth, monthOf, MONTH_NAMES, weekday, weekStart } from '../../domain/time'
 import { formatNumber, formatRupiah } from '../../lib/format'
 import type { TentirSession } from '../../types'
 import { useTentirPage, type TentirPageData } from './data'
@@ -66,6 +66,63 @@ function Tiles({ data }: { data: TentirPageData }) {
         </p>
       </div>
     </section>
+  )
+}
+
+const MONTH_TEXT: Record<CapacityState, string> = {
+  kosong: 'Belum ada sesi bulan ini.',
+  kurang: 'Di bawah kuota minimum bulan ini.',
+  pas: 'Dalam kuota sampingan.',
+  lewat: 'Lewat kapasitas bulan ini.',
+}
+
+/** Rekap bulanan: total jam dibanding kuota (9–15 j/minggu diskalakan ke jumlah hari bulan itu) + pemasukannya. */
+function MonthCard({ data, today }: { data: TentirPageData; today: string }) {
+  const [month, setMonth] = useState(() => monthOf(today))
+  const r = monthRecap(data.allSessions, month, data.capacity, data.limit)
+  const { quota } = r
+  return (
+    <div className="card">
+      <h3 className="card-title">
+        Rekap bulan
+        <span className="ml-auto flex items-center gap-1">
+          <button type="button" className="btn-ghost p-1.5" onClick={() => setMonth(addMonths(month, -1))} aria-label="Bulan sebelumnya">
+            <ChevronLeft size={16} aria-hidden="true" />
+          </button>
+          <span className="min-w-[110px] text-center text-[13px] font-medium">{formatMonth(month)}</span>
+          <button type="button" className="btn-ghost p-1.5" onClick={() => setMonth(addMonths(month, 1))} aria-label="Bulan berikutnya">
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </span>
+      </h3>
+      <div className="text-[22px] font-semibold tabular-nums">
+        {hrs(r.hours)}
+        <span className="text-[13px] font-normal text-faint">
+          {' '}
+          / {formatNumber(quota.min, 0)}–{formatNumber(quota.max, 0)} j
+        </span>
+      </div>
+      <div className="relative my-2.5 h-1.5 rounded-full bg-track" aria-hidden="true">
+        <div
+          className="absolute inset-y-0 right-0 rounded-full"
+          style={{ left: `${(quota.min / quota.max) * 100}%`, background: 'color-mix(in srgb, var(--color-tentir) 22%, transparent)' }}
+        />
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full ${r.state === 'lewat' ? 'bg-danger' : 'bg-tentir'}`}
+          style={{ width: `${Math.min(100, (r.hours / quota.max) * 100)}%` }}
+        />
+      </div>
+      <p className={`text-xs ${r.state === 'lewat' ? 'text-danger' : 'text-muted'}`}>{MONTH_TEXT[r.state]}</p>
+      <div className="mt-3 flex justify-between border-t border-line pt-3 text-[13px] text-muted">
+        <span>Pemasukan · {r.count} sesi</span>
+        <b className="font-semibold text-text tabular-nums">{formatRupiah(r.fee)}</b>
+      </div>
+      <p className="mt-1 text-xs text-muted">
+        Lunas {formatRupiah(r.paid)}
+        {r.fee > r.paid ? ` · belum ${formatRupiah(r.fee - r.paid)}` : ''}
+        {r.perHour ? ` · ${formatRupiah(r.perHour)}/jam` : ''}
+      </p>
+    </div>
   )
 }
 
@@ -300,6 +357,9 @@ export function TentirPage() {
           {data && (
             <>
               <Tiles data={data} />
+              <div className="mt-3">
+                <MonthCard data={data} today={today} />
+              </div>
               <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
                 <Days data={data} today={today} onAdd={newOn} />
                 <Sessions data={data} onEdit={setEditing} onAdd={() => newOn(thisWeek ? today : monday)} />
