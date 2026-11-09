@@ -86,6 +86,8 @@ export interface Profile extends CloudFields {
   nutrition?: Partial<NutritionSettings>
   /** Tarif tentir per jam (Rupiah). */
   tentirRate?: number
+  /** Target belajar UKMPPD: tanggal ujian & soal per minggu. */
+  study?: StudyTarget
   /** Target latihan: e1RM bench (kg), 5K & 10K (detik). */
   trainingTargets?: Partial<TrainingTargets>
   /** Program latihan beban; bawaan full body (semua gerakan tiap sesi). */
@@ -540,3 +542,41 @@ export interface Claim extends Stamped {
 }
 
 export type ThemePreference = 'light' | 'dark' | 'system'
+
+// ---------- Belajar UKMPPD ----------
+
+export interface StudyTarget {
+  /** Tanggal UKMPPD; `null` = belum diisi. */
+  examDate: ISODate | null
+  /** Target soal per minggu. */
+  weeklyQuestions: number
+}
+
+/** Satu sesi latihan soal atau tryout untuk satu sistem. */
+export interface StudyLog extends Stamped {
+  date: ISODate
+  /** Sistem/bidang, mis. "Kardiovaskular" (daftar di `domain/study.ts`). */
+  system: string
+  kind: 'soal' | 'tryout'
+  total: number
+  correct: number
+  note?: string
+}
+
+/** Kartu ulasan dengan pengulangan berjarak (gaya SM-2 sederhana). */
+export interface Flashcard extends Stamped {
+  front: string
+  back: string
+  /** Sistem/bidang UKMPPD (opsional). */
+  system?: string
+  /** Dari mana kartu berasal: ditulis sendiri, dari soal yang salah, atau dari usulan Claude. */
+  source: 'manual' | 'salah' | 'claude'
+  /** Tanggal ulasan berikutnya. */
+  due: ISODate
+  /** Jarak ulasan sekarang (hari); 0 = kartu baru. */
+  interval: number
+  ease: number
+  reps: number
+  lapses: number
+  lastReviewed?: ISODate
+}

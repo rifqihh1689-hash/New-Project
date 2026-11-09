@@ -33,7 +33,6 @@ export const NAV_ITEMS: NavItem[] = [
     route: 'belajar',
     label: 'Belajar UKMPPD',
     Icon: BookOpen,
-    soon: { phase: 3, what: 'Bank soal per sistem organ, blok belajar, dan tryout.' },
   },
   { route: 'tentir', label: 'Tentir', Icon: Users },
   { route: 'uang', label: 'Uang', Icon: Wallet },
