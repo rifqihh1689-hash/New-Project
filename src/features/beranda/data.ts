@@ -10,6 +10,7 @@ import { proteinTarget, resolveNutrition, slotsFor } from '../../domain/menu'
 import { loadMenus } from '../../db/menu'
 import { previousMonday, reviewWindow, reviewXpTotal } from '../../domain/weekly'
 import { savingPlan } from '../../domain/money'
+import { DEFAULT_STUDY_WEEKLY, systemStats, weakestSystem, weekProgress } from '../../domain/study'
 import { diffDays } from '../../domain/time'
 import { privateId } from '../../lib/id'
 import { db } from '../../db/db'
@@ -39,7 +40,7 @@ export async function loadBeranda(today: ISODate) {
       db.mainQuests.where('status').equals('aktif').toArray(),
       db.chapters.where('end').aboveOrEqual(today).toArray(),
     ])
-  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda, lastMonthReview, recentDays, strength] =
+  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda, lastMonthReview, recentDays, strength, studyLogs] =
     await Promise.all([
       db.reviews.where('period').equals('minggu').toArray(),
       db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
@@ -52,6 +53,7 @@ export async function loadBeranda(today: ISODate) {
       db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
       db.days.where('date').between(addDays(today, -2), today, true, true).toArray(),
       db.workouts.where('kind').equals('beban').toArray(),
+      db.studyLogs.toArray(),
     ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
@@ -96,14 +98,27 @@ export async function loadBeranda(today: ISODate) {
       ])
       .filter((x): x is { name: string; date: string } => !!x)
       .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null
+  const studyTarget = profile.study
+  const weakest = weakestSystem(systemStats(studyLogs))
+  const studyWeek = weekProgress(studyLogs, today, studyTarget?.weeklyQuestions ?? DEFAULT_STUDY_WEEKLY)
+  // Tanggal UKMPPD dari Belajar ikut jadi tanggal penting bila lebih dekat dari yang di fase hidup.
+  const exam = studyTarget?.examDate && studyTarget.examDate > today ? { name: 'UKMPPD', date: studyTarget.examDate } : null
   const insightBase = {
+    study: {
+      weekDone: studyWeek.done,
+      weekTarget: studyWeek.target,
+      behind: studyWeek.behind,
+      perDayLeft: studyWeek.perDayLeft,
+      weakest: weakest && weakest.accuracy != null ? { system: weakest.system, accuracy: weakest.accuracy } : null,
+      examDateSet: !!studyTarget?.examDate,
+    },
     sleep: [0, 1, 2].map((n) => {
       const d = recentDays.find((x) => x.date === addDays(today, -n))
       return d ? sleepTotal(d.sleepNight, d.nap, rules) : null
     }),
     daysSinceStrength: lastStrength ? diffDays(today, lastStrength) : null,
     nextChapter: chapters.filter((c) => c.start > today).sort((a, b) => a.start.localeCompare(b.start))[0] ?? null,
-    milestone,
+    milestone: exam && (!milestone || exam.date <= milestone.date) ? exam : milestone,
     reviewOpen: reviewWindow(previousMonday(weekStart(today)), today) === 'buka' && !lastReview?.completedAt,
     savings: savings.map((s) => {
       const plan = savingPlan(s, today)

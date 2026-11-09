@@ -35,6 +35,14 @@ export interface InsightInput {
   nextChapter: { name: string; start: ISODate; weight: 'ringan' | 'sedang' | 'berat' } | null
   /** Tanggal penting berikutnya dari fase hidup (mis. UKMPPD). */
   milestone: { name: string; date: ISODate } | null
+  study: {
+    weekDone: number
+    weekTarget: number
+    behind: boolean
+    perDayLeft: number
+    weakest: { system: string; accuracy: number } | null
+    examDateSet: boolean
+  } | null
   /** Muhasabah minggu lalu bisa diisi dan belum selesai. */
   reviewOpen: boolean
 }
@@ -234,6 +242,47 @@ export function pickInsights(i: InsightInput): Insight[] {
       tone: 'info',
       priority: 32,
     })
+
+  // Belajar UKMPPD.
+  if (i.study) {
+    const st = i.study
+    if (st.behind)
+      add({
+        id: 'belajar-tertinggal',
+        title: `Soal minggu ini ${st.weekDone} dari ${st.weekTarget}.`,
+        detail: `Agak tertinggal. ${st.perDayLeft} soal/hari sampai Minggu cukup mengejar.`,
+        tone: 'warn',
+        href: '#/belajar',
+        priority: 66,
+      })
+    else if (st.weekDone >= st.weekTarget && st.weekTarget > 0)
+      add({
+        id: 'belajar-tercapai',
+        title: `Target soal minggu ini tercapai (${st.weekDone}).`,
+        detail: 'Sisanya bonus; jaga tidur.',
+        tone: 'good',
+        href: '#/belajar',
+        priority: 42,
+      })
+    if (st.weakest)
+      add({
+        id: 'belajar-lemah',
+        title: `${st.weakest.system} sistem terlemahmu (${Math.round(st.weakest.accuracy * 100)}%).`,
+        detail: 'Satu blok soal di sini hari ini paling berdampak.',
+        tone: 'info',
+        href: '#/belajar',
+        priority: 38,
+      })
+    if (!st.examDateSet)
+      add({
+        id: 'belajar-tanggal',
+        title: 'Tanggal UKMPPD belum diisi.',
+        detail: 'Isi di Belajar UKMPPD untuk hitung mundur.',
+        tone: 'info',
+        href: '#/belajar',
+        priority: 31,
+      })
+  }
 
   // Latihan beban.
   if (i.daysSinceStrength != null && i.daysSinceStrength >= 6)

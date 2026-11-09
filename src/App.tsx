@@ -20,6 +20,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db/db'
 
 // Beranda ikut bundel awal (halaman pertama); halaman lain dimuat saat dibuka, tetap ter-cache untuk offline.
+const BelajarPage = lazy(() => import('./features/belajar/BelajarPage').then((m) => ({ default: m.BelajarPage })))
 const HabitPage = lazy(() => import('./features/habit/HabitPage').then((m) => ({ default: m.HabitPage })))
 const ImportPage = lazy(() => import('./features/import/ImportPage').then((m) => ({ default: m.ImportPage })))
 const CatatanPage = lazy(() => import('./features/catatan/CatatanPage').then((m) => ({ default: m.CatatanPage })))
@@ -42,6 +43,8 @@ function Page({ name, date }: { name: RouteName; date: string | null }) {
       return <TugasPage date={date} />
     case 'muhasabah':
       return <MuhasabahPage date={date} />
+    case 'belajar':
+      return <BelajarPage />
     case 'habit':
       return <HabitPage />
     case 'menu':

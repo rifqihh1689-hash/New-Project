@@ -17,6 +17,7 @@ const base: InsightInput = {
   daysSinceStrength: 2,
   nextChapter: null,
   milestone: null,
+  study: null,
   reviewOpen: false,
 }
 
@@ -73,5 +74,20 @@ describe('pickInsights', () => {
     const r = pickInsights({ ...base, milestone: { name: 'UKMPPD', date: '2028-02-01' } }).find((i) => i.id === 'milestone')
     expect(r?.title).toBe('UKMPPD 64 minggu lagi.')
     expect(r?.detail).toBe('1 Februari 2028')
+  })
+
+  it('belajar: tertinggal, terlemah, dan tanggal ujian belum diisi', () => {
+    const study = {
+      weekDone: 20,
+      weekTarget: 150,
+      behind: true,
+      perDayLeft: 26,
+      weakest: { system: 'Saraf', accuracy: 0.5 },
+      examDateSet: false,
+    }
+    const r = pickInsights({ ...base, study })
+    expect(r.map((x) => x.id)).toEqual(expect.arrayContaining(['belajar-tertinggal', 'belajar-lemah', 'belajar-tanggal']))
+    expect(r.find((x) => x.id === 'belajar-lemah')?.title).toBe('Saraf sistem terlemahmu (50%).')
+    expect(ids({ study: { ...study, behind: false, weekDone: 150 } })).toContain('belajar-tercapai')
   })
 })
