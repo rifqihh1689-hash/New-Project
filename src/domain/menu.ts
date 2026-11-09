@@ -263,3 +263,98 @@ export function parseIngredients(text: string): Ingredient[] | null {
 export function ingredientsText(list: Ingredient[]): string {
   return list.map((i) => `${i.name} ${i.qty} ${i.unit}`).join('; ')
 }
+
+/** Bahan sumber protein yang disarankan: protein per satuan, kelipatan beli, dan batas wajar per minggu. */
+export const PROTEIN_STAPLES: { name: string; unit: string; proteinPer: number; step: number; max: number }[] = [
+  { name: 'Telur', unit: 'butir', proteinPer: 6.3, step: 6, max: 21 },
+  { name: 'Dada ayam', unit: 'g', proteinPer: 0.23, step: 250, max: 1500 },
+  { name: 'Paha ayam fillet', unit: 'g', proteinPer: 0.19, step: 250, max: 1000 },
+  { name: 'Tempe', unit: 'g', proteinPer: 0.19, step: 200, max: 1000 },
+  { name: 'Tahu', unit: 'g', proteinPer: 0.08, step: 250, max: 1000 },
+  { name: 'Susu UHT', unit: 'ml', proteinPer: 0.033, step: 1000, max: 4000 },
+  { name: 'Oat', unit: 'g', proteinPer: 0.13, step: 250, max: 1000 },
+]
+
+const stapleOf = (i: Pick<Ingredient, 'name' | 'unit'>) =>
+  PROTEIN_STAPLES.find((s) => priceKey(s.name, s.unit) === priceKey(i.name, i.unit))
+
+/** Perkiraan gram protein dari sebuah bahan (0 bila bukan sumber protein yang dikenal). */
+export function ingredientProtein(i: Ingredient): number {
+  return Math.round(i.qty * (stapleOf(i)?.proteinPer ?? 0))
+}
+
+/** Jumlahkan bahan per nama + satuan. */
+export function mergeIngredients(...lists: Ingredient[][]): Ingredient[] {
+  const total = new Map<string, Ingredient>()
+  for (const i of lists.flat()) {
+    const key = priceKey(i.name, i.unit)
+    const prev = total.get(key)
+    total.set(key, { name: prev?.name ?? i.name.trim(), unit: i.unit.trim(), qty: (prev?.qty ?? 0) + i.qty })
+  }
+  return [...total.values()].sort((a, b) => a.name.localeCompare(b.name, 'id'))
+}
+
+export interface ShoppingRec {
+  item: Ingredient
+  cost: number
+  proteinG: number
+}
+
+export interface ShoppingAdvice {
+  /** Kekurangan protein seminggu (g) setelah menu terencana + bahan tambahan. */
+  gapG: number
+  recs: ShoppingRec[]
+  /** Sisa anggaran makan minggu ini setelah daftar belanja sekarang (Rupiah). */
+  budgetLeft: number
+}
+
+/**
+ * Saran bahan untuk menutup kekurangan protein seminggu, dalam anggaran.
+ * Dibagi merata ke beberapa bahan (urut dari yang paling murah per gram protein), kelipatan beli dan batas per minggu mengikuti
+ * `PROTEIN_STAPLES`; bahan yang belum berharga tidak disarankan.
+ */
+export function adviseShopping(input: {
+  /** Target protein seminggu (g); `null` = berat badan belum diisi. */
+  weeklyProtein: number | null
+  plannedProtein: number
+  shopping: Ingredient[]
+  extras: Ingredient[]
+  prices: IngredientPrice[]
+  weeklyBudget: number
+}): ShoppingAdvice {
+  const { prices, shopping, extras } = input
+  const cost = (i: Ingredient) => ingredientCost(i, prices) ?? 0
+  const budgetLeft = Math.max(0, input.weeklyBudget - shopping.reduce((a, i) => a + cost(i), 0))
+  if (input.weeklyProtein == null) return { gapG: 0, recs: [], budgetLeft }
+  let gap = input.weeklyProtein - input.plannedProtein - extras.reduce((a, i) => a + ingredientProtein(i), 0)
+  const gapG = Math.max(0, Math.round(gap))
+  const have = new Map(shopping.map((i) => [priceKey(i.name, i.unit), i.qty]))
+  const priceOf = new Map(prices.map((p) => [priceKey(p.name, p.unit), p.rpPerUnit]))
+  const ranked = PROTEIN_STAPLES.filter((s) => priceOf.has(priceKey(s.name, s.unit))).sort(
+    (a, b) => priceOf.get(priceKey(a.name, a.unit))! / a.proteinPer - priceOf.get(priceKey(b.name, b.unit))! / b.proteinPer,
+  )
+  const added = new Map<string, number>()
+  let left = budgetLeft
+  let progress = gap > 0
+  while (gap > 0 && progress) {
+    progress = false
+    for (const s of ranked) {
+      if (gap <= 0) break
+      const key = priceKey(s.name, s.unit)
+      const qty = added.get(key) ?? 0
+      const stepCost = Math.round((s.step * priceOf.get(key)!) / 100) * 100
+      if ((have.get(key) ?? 0) + qty + s.step > s.max || stepCost > left) continue
+      added.set(key, qty + s.step)
+      left -= stepCost
+      gap -= s.step * s.proteinPer
+      progress = true
+    }
+  }
+  const recs = ranked
+    .filter((s) => added.has(priceKey(s.name, s.unit)))
+    .map((s) => {
+      const item = { name: s.name, unit: s.unit, qty: added.get(priceKey(s.name, s.unit))! }
+      return { item, cost: cost(item), proteinG: ingredientProtein(item) }
+    })
+  return { gapG, recs, budgetLeft }
+}

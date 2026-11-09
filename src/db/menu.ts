@@ -104,3 +104,8 @@ export async function shoppingTask(list: Ingredient[], date: ISODate, format: (i
   await updateTask(task.id, { subtasks: list.map((i, n) => ({ id: `sub_${n}`, title: `${i.name} ${format(i)}`, done: false })) })
   return task.id
 }
+
+/** Mengganti bahan tambahan daftar belanja minggu itu (dipakai untuk tambah, hapus, dan urungkan). */
+export async function setShoppingExtras(week: ISODate, items: Ingredient[]): Promise<void> {
+  await updateNutrition({ shoppingExtras: { week, items } })
+}

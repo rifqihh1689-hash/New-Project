@@ -1,6 +1,6 @@
-import type { ISODate, TentirSession } from '../types'
+import type { ISODate, MonthKey, TentirSession } from '../types'
 import { parseQuickTask } from './quickCapture'
-import { addDays, parseClock } from './time'
+import { addDays, daysInMonth, monthOf, parseClock } from './time'
 
 /** Tarif 1:1 bawaan (Rp per jam), bisa diubah di halaman Tentir. */
 export const DEFAULT_TENTIR_RATE = 85_000
@@ -144,4 +144,26 @@ export function parseTentir(input: string, today: ISODate): ParsedTentir {
     hours,
     paid,
   }
+}
+
+export interface MonthRecap extends TentirSummary {
+  /** Kuota bulan itu = kuota mingguan × (hari dalam bulan ÷ 7). */
+  quota: { min: number; max: number }
+  state: CapacityState
+}
+
+/** Rekap sebulan: total jam, pemasukan, dan posisinya terhadap kuota sampingan yang diskalakan ke bulan itu. */
+export function monthRecap(
+  sessions: Pick<TentirSession, 'date' | 'start' | 'hours' | 'fee' | 'paid'>[],
+  month: MonthKey,
+  cap: { min: number; max: number },
+  limit: string | null = DEFAULT_LIMIT,
+): MonthRecap {
+  const summary = summarize(
+    sessions.filter((s) => monthOf(s.date) === month),
+    limit,
+  )
+  const weeks = daysInMonth(month) / 7
+  const quota = { min: round1(cap.min * weeks), max: round1(cap.max * weeks) }
+  return { ...summary, quota, state: capacityState(summary.hours, quota) }
 }

@@ -1,4 +1,6 @@
+import { Eye, EyeOff } from 'lucide-react'
 import { routeHref } from '../../app/router'
+import { HIDE_DEBT_KEY, useStoredFlag } from '../../app/useStoredFlag'
 import { DAY_SHORT, weekday } from '../../domain/time'
 import { formatHours } from '../../domain/time'
 import { formatRupiah, formatRupiahShort } from '../../lib/format'
@@ -76,6 +78,7 @@ export function TentirCard({ data }: { data: BerandaData }) {
 
 export function MoneyCard({ data }: { data: BerandaData }) {
   const { money } = data
+  const [hideDebt, setHideDebt] = useStoredFlag(HIDE_DEBT_KEY, false)
   const line = (label: string, value: string) => (
     <div className="mt-3 flex justify-between text-[13px] text-muted">
       <span>{label}</span>
@@ -87,29 +90,62 @@ export function MoneyCard({ data }: { data: BerandaData }) {
       <i className="block h-full rounded-full bar-anim" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color }} />
     </div>
   )
+  const debtPct = money.debtInitial ? Math.round(((money.debtInitial - money.debtLeft) / money.debtInitial) * 100) : 0
   const bridgeTarget = money.bridge.reduce((s, b) => s + b.target, 0)
   const bridgeNow = money.bridge.reduce((s, b) => s + b.deposits.reduce((p, d) => p + d.amount, 0), 0)
   return (
     <div className="card">
       <h3 className="card-title">
         Uang
-        <a href={routeHref('uang')} className="ml-auto text-[13px] font-normal text-faint hover:text-text">
+        {hideDebt && money.hasDebt && (
+          // Tanpa teks: saat disembunyikan, kata "utang" tidak boleh terlihat.
+          <button
+            type="button"
+            className="btn-ghost ml-auto p-1 text-faint"
+            aria-label="Tampilkan bagian tersembunyi"
+            onClick={() => setHideDebt(false)}
+          >
+            <EyeOff size={14} aria-hidden="true" />
+          </button>
+        )}
+        <a
+          href={routeHref('uang')}
+          className={`${hideDebt && money.hasDebt ? '' : 'ml-auto '}text-[13px] font-normal text-faint hover:text-text`}
+        >
           Buka →
         </a>
       </h3>
+      {line('Masuk bulan ini', formatRupiah(money.income))}
       {line(
         'Keluar bulan ini',
         money.budget ? `${formatRupiahShort(money.expense)} / ${formatRupiahShort(money.budget)}` : formatRupiah(money.expense),
       )}
       {money.budget > 0 && bar((money.expense / money.budget) * 100, money.expense > money.budget ? 'var(--danger)' : 'var(--ok)')}
-      {!money.hasDebt && !money.bridge.length && money.tentirIncome === 0 ? (
-        <p className="mt-3 text-xs text-faint">Atur dana jembatan, utang, dan anggaran di halaman Uang.</p>
+      {(!money.hasDebt || hideDebt) && !money.bridge.length && money.tentirIncome === 0 ? (
+        <p className="mt-3 text-xs text-faint">
+          {hideDebt ? 'Atur dana jembatan dan anggaran di halaman Uang.' : 'Atur dana jembatan, utang, dan anggaran di halaman Uang.'}
+        </p>
       ) : (
         <>
-          {money.hasDebt && (
+          {money.hasDebt && !hideDebt && (
             <>
-              {line('Sisa utang', formatRupiah(money.debtLeft))}
-              {bar(money.debtInitial ? ((money.debtInitial - money.debtLeft) / money.debtInitial) * 100 : 0, 'var(--color-uang)')}
+              <div className="mt-3 flex items-center justify-between text-[13px] text-muted">
+                <span>Sisa utang</span>
+                <span className="flex items-center gap-1">
+                  <b className="font-semibold text-text tabular-nums">
+                    {formatRupiah(money.debtLeft)} · {debtPct}% lunas
+                  </b>
+                  <button
+                    type="button"
+                    className="btn-ghost p-1"
+                    aria-label="Sembunyikan utang dari layar"
+                    onClick={() => setHideDebt(true)}
+                  >
+                    <Eye size={14} aria-hidden="true" />
+                  </button>
+                </span>
+              </div>
+              {bar(debtPct, 'var(--color-uang)')}
             </>
           )}
           {money.bridge.length > 0 && (

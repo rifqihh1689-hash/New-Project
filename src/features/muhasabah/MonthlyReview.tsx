@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, ClipboardCopy } from 'lucide-react'
 import { useState } from 'react'
+import { HIDE_DEBT_KEY, useStoredFlag } from '../../app/useStoredFlag'
 import { useToday } from '../../app/useToday'
 import { useToast } from '../../components/toast-context'
 import { completeMonthReview, restoreReview, saveMonthReviewText } from '../../db/review'
@@ -111,6 +112,7 @@ function Weeks({ data }: { data: MonthlyData }) {
 }
 
 function Areas({ data }: { data: MonthlyData }) {
+  const [hideDebt] = useStoredFlag(HIDE_DEBT_KEY, false)
   const x = data.extras
   const n = data.numbers
   const habitPct = n.habitApplicable ? Math.round((n.habitDone / n.habitApplicable) * 100) : null
@@ -136,7 +138,7 @@ function Areas({ data }: { data: MonthlyData }) {
           `masuk ${formatRupiah(x.money.income)} · keluar ${formatRupiah(x.money.expense)}${x.money.budget ? ` / ${formatRupiah(x.money.budget)}` : ''}`,
         )}
         {x.money.bridge && row('Dana jembatan', `${formatRupiah(x.money.bridge.saved)} / ${formatRupiah(x.money.bridge.target)}`)}
-        {x.money.debtLeft > 0 && row('Sisa utang', formatRupiah(x.money.debtLeft))}
+        {x.money.debtLeft > 0 && !hideDebt && row('Sisa utang', formatRupiah(x.money.debtLeft))}
         {row(
           'Latihan',
           `${x.training.strength} sesi beban · ${formatNumber(x.training.runKm, 1)} km lari${x.training.benchEnd != null ? ` · bench ${formatNumber(x.training.benchStart ?? 0, 1)} → ${formatNumber(x.training.benchEnd, 1)} kg` : ''}`,

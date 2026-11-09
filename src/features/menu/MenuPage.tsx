@@ -1,16 +1,16 @@
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, ShoppingBasket, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lightbulb, Plus, RefreshCw, ShoppingBasket, Sparkles, X } from 'lucide-react'
 import { useState } from 'react'
 import { navigate, routeHref } from '../../app/router'
 import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { Sheet } from '../../components/Sheet'
 import { useToast } from '../../components/toast-context'
-import { autoPlan, restorePlan, setMeal, shoppingTask, updateNutrition } from '../../db/menu'
+import { autoPlan, restorePlan, setMeal, setShoppingExtras, shoppingTask, updateNutrition } from '../../db/menu'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
-import { formatQty, ingredientCost, mealsForPhase, PHASE_LABELS, pricesAge, SLOT_LABELS } from '../../domain/menu'
+import { formatQty, ingredientCost, mealsForPhase, mergeIngredients, PHASE_LABELS, pricesAge, SLOT_LABELS } from '../../domain/menu'
 import { addDays, DAY_NAMES, MONTH_NAMES, weekday, weekStart } from '../../domain/time'
-import { formatRupiah } from '../../lib/format'
-import type { FoodPhase, MealSlot, Menu } from '../../types'
+import { formatNumber, formatRupiah } from '../../lib/format'
+import type { FoodPhase, Ingredient, MealSlot, Menu } from '../../types'
 import { DAY_TYPE_COLORS } from '../beranda/dayTypeColors'
 import { useMenuPage, type MenuPageData } from './data'
 import { MenuEditor, type MenuDraft } from './MenuEditor'
@@ -282,7 +282,10 @@ function WeekPlan({ data, today }: { data: MenuPageData; today: string }) {
 
 function Shopping({ data, today }: { data: MenuPageData; today: string }) {
   const toast = useToast()
-  if (!data.shopping.length) return null
+  const { advice, extras } = data
+  if (!data.shopping.length && !advice.recs.length) return null
+  const week = data.dates[0]
+  const extraKeys = new Set(extras.map((i) => `${i.name}|${i.unit}`))
   // Belanja di hari libur pertama minggu ini yang belum lewat, atau hari ini.
   const shopDate =
     data.dates.find((d) => d >= today && data.dayTypes.get(d) === 'libur') ??
@@ -294,32 +297,95 @@ function Shopping({ data, today }: { data: MenuPageData; today: string }) {
       action: { label: 'Lihat', onClick: () => navigate('tugas', shopDate) },
     })
   }
+  const change = async (next: Ingredient[], message: string) => {
+    const prev = extras
+    await setShoppingExtras(week, next)
+    toast({ message, action: { label: 'Urungkan', onClick: () => void setShoppingExtras(week, prev) } })
+  }
+  const add = (items: Ingredient[]) =>
+    change(
+      mergeIngredients(extras, items),
+      items.length === 1 ? `${items[0].name} ${formatQty(items[0])} masuk daftar belanja.` : `${items.length} bahan masuk daftar belanja.`,
+    )
+  const remove = (i: Ingredient) =>
+    change(
+      extras.filter((x) => !(x.name === i.name && x.unit === i.unit)),
+      `${i.name} dikeluarkan dari tambahan.`,
+    )
   return (
     <section className="card mt-3">
       <h2 className="card-title">
         <ShoppingBasket size={17} className="text-muted" aria-hidden="true" />
         Daftar belanja <span className="text-[13px] font-medium text-faint">dari menu masak minggu ini</span>
       </h2>
+      {!data.shopping.length && <p className="text-[13px] text-muted">Belum ada menu masak minggu ini. Tambahkan saran di bawah.</p>}
       <ul className="grid gap-x-6 gap-y-1 text-[13.5px] sm:grid-cols-2">
-        {data.shopping.map((i) => (
-          <li key={`${i.name}|${i.unit}`} className="flex justify-between border-b border-line py-1.5">
-            <span>{i.name}</span>
-            <span className="text-muted tabular-nums">
-              {formatQty(i)}
-              {ingredientCost(i, data.nutrition.prices) != null && (
-                <span className="ml-2 text-faint">{formatRupiah(ingredientCost(i, data.nutrition.prices)!)}</span>
-              )}
-            </span>
-          </li>
-        ))}
+        {data.shopping.map((i) => {
+          const extra = extraKeys.has(`${i.name}|${i.unit}`) ? extras.find((x) => x.name === i.name && x.unit === i.unit) : undefined
+          return (
+            <li key={`${i.name}|${i.unit}`} className="flex items-center justify-between gap-2 border-b border-line py-1.5">
+              <span>
+                {i.name}
+                {extra && <span className="ml-1.5 text-[11px] text-tentir">+ saran</span>}
+              </span>
+              <span className="flex items-center gap-1 text-muted tabular-nums">
+                {formatQty(i)}
+                {ingredientCost(i, data.nutrition.prices) != null && (
+                  <span className="ml-1 text-faint">{formatRupiah(ingredientCost(i, data.nutrition.prices)!)}</span>
+                )}
+                {extra && (
+                  <button
+                    type="button"
+                    className="btn-ghost p-1"
+                    aria-label={`Keluarkan ${i.name} dari tambahan`}
+                    onClick={() => void remove(extra)}
+                  >
+                    <X size={13} aria-hidden="true" />
+                  </button>
+                )}
+              </span>
+            </li>
+          )
+        })}
       </ul>
       <p className="mt-2 text-right text-[13px] text-muted">
         Perkiraan belanja bahan{' '}
         <b className="text-text">{formatRupiah(data.shopping.reduce((a, i) => a + (ingredientCost(i, data.nutrition.prices) ?? 0), 0))}</b>
       </p>
-      <button type="button" className="btn-ghost mt-3 border border-line" onClick={() => void make()}>
-        Jadikan tugas belanja ({DAY_NAMES[weekday(shopDate)]})
-      </button>
+      {advice.recs.length > 0 && (
+        <div className="mt-3 border-t border-line pt-3">
+          <h3 className="flex items-center gap-1.5 text-[14px] font-semibold">
+            <Lightbulb size={15} className="text-tentir" aria-hidden="true" /> Saran belanja
+            <button type="button" className="btn-ghost ml-auto py-1 text-xs" onClick={() => void add(advice.recs.map((r) => r.item))}>
+              Tambah semua
+            </button>
+          </h3>
+          <p className="mt-0.5 text-xs text-muted">
+            Protein minggu ini kurang ±{formatNumber(advice.gapG, 0)} g dari target. Dipilih yang paling murah per gram protein, dalam sisa
+            anggaran {formatRupiah(advice.budgetLeft)}.
+          </p>
+          <ul className="mt-2 text-[13.5px]">
+            {advice.recs.map(({ item, cost, proteinG }) => (
+              <li key={`${item.name}|${item.unit}`} className="flex items-center gap-2 border-t border-line py-1.5 first:border-t-0">
+                <span className="flex-1">
+                  {item.name} <span className="text-muted tabular-nums">{formatQty(item)}</span>
+                  <span className="block text-xs text-muted tabular-nums">
+                    +{proteinG} g protein · ±{formatRupiah(cost)}
+                  </span>
+                </span>
+                <button type="button" className="btn-ghost border border-line py-1 text-xs" onClick={() => void add([item])}>
+                  <Plus size={13} aria-hidden="true" /> Tambah
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {data.shopping.length > 0 && (
+        <button type="button" className="btn-ghost mt-3 border border-line" onClick={() => void make()}>
+          Jadikan tugas belanja ({DAY_NAMES[weekday(shopDate)]})
+        </button>
+      )}
     </section>
   )
 }

@@ -76,6 +76,7 @@ export async function loadBeranda(today: ISODate) {
   const chapter = chapters.filter((c) => c.start <= today).sort((a, b) => b.start.localeCompare(a.start))[0] ?? null
   const weekTypes = new Map(weekDays.map((d) => [d.date, d.type]))
   const expense = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const income = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const budget = budgets.reduce((s, b) => s + b.amount, 0)
   const debtLeft = debts.reduce((s, d) => s + d.initial - d.payments.reduce((p, x) => p + x.amount, 0), 0)
   const debtInitial = debts.reduce((s, d) => s + d.initial, 0)
@@ -110,7 +111,7 @@ export async function loadBeranda(today: ISODate) {
       today: tentir.some((t) => t.date === today),
       capacity: profile.tentirCapacity,
     },
-    money: { expense, budget, debtLeft, debtInitial, hasDebt: debts.length > 0, bridge, tentirIncome },
+    money: { income, expense, budget, debtLeft, debtInitial, hasDebt: debts.length > 0, bridge, tentirIncome },
     mainQuests: mainQuests.slice(0, 3),
     priorities: (lastReview?.priorities ?? []).filter((p) => p.trim()),
     monthPriorities: (lastMonthReview?.priorities ?? []).filter((p) => p.trim()),

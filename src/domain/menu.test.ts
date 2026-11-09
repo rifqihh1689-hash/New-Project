@@ -3,6 +3,9 @@ import { DEFAULT_MENUS } from '../db/defaults'
 import type { DayType } from '../types'
 import { weekDates } from './time'
 import {
+  adviseShopping,
+  DEFAULT_PRICES,
+  mergeIngredients,
   formatQty,
   generateWeekPlan,
   ingredientCost,
@@ -153,5 +156,48 @@ describe('harga bahan', () => {
     expect(ingredientCost({ name: 'Udang', qty: 100, unit: 'g' }, prices)).toBeNull()
     expect(pricesAge(null)).toBeNull()
     expect(pricesAge(Date.parse('2026-10-01'), Date.parse('2026-11-05'))).toBe(35)
+  })
+
+  describe('saran belanja', () => {
+    const prices = DEFAULT_PRICES
+    const base = { plannedProtein: 0, shopping: [], extras: [], prices, weeklyBudget: 350_000 }
+
+    it('menutup kekurangan protein dengan bahan paling murah per gram dulu, dalam anggaran', () => {
+      const a = adviseShopping({ ...base, weeklyProtein: 749, plannedProtein: 400 })
+      expect(a.gapG).toBe(349)
+      const protein = a.recs.reduce((x, r) => x + r.proteinG, 0)
+      expect(protein).toBeGreaterThanOrEqual(349 - 60) // kelipatan beli membuat hasil mendekati, bukan tepat
+      expect(a.recs.reduce((x, r) => x + r.cost, 0)).toBeLessThanOrEqual(a.budgetLeft)
+      expect(a.recs[0].item.name).toBe('Tempe') // paling murah per gram protein
+    })
+
+    it('tidak menyarankan bila target sudah tercapai atau berat badan belum diisi', () => {
+      expect(adviseShopping({ ...base, weeklyProtein: 700, plannedProtein: 800 }).recs).toEqual([])
+      expect(adviseShopping({ ...base, weeklyProtein: null }).recs).toEqual([])
+    })
+
+    it('anggaran habis → tidak ada saran; bahan tambahan ikut dihitung dan batas per minggu dihormati', () => {
+      const shopping = [{ name: 'Dada ayam', unit: 'g', qty: 8000 }]
+      expect(adviseShopping({ ...base, shopping, weeklyProtein: 900 }).recs).toEqual([])
+      const extras = [{ name: 'Tempe', unit: 'g', qty: 1000 }]
+      const a = adviseShopping({ ...base, shopping: extras, extras, weeklyProtein: 900 })
+      expect(a.gapG).toBe(710) // 900 − 190 dari tempe tambahan
+      expect(a.recs.find((r) => r.item.name === 'Tempe')).toBeUndefined() // sudah di batas 1 kg
+    })
+
+    it('menggabungkan bahan per nama + satuan', () => {
+      expect(
+        mergeIngredients(
+          [{ name: 'Telur', unit: 'butir', qty: 6 }],
+          [
+            { name: 'telur', unit: 'butir', qty: 6 },
+            { name: 'Tahu', unit: 'g', qty: 250 },
+          ],
+        ),
+      ).toEqual([
+        { name: 'Tahu', unit: 'g', qty: 250 },
+        { name: 'Telur', unit: 'butir', qty: 12 },
+      ])
+    })
   })
 })

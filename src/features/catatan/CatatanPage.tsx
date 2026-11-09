@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ListTodo, Pin, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useToday } from '../../app/useToday'
+import { Limited } from '../../components/Limited'
 import { PageTop } from '../../components/PageTop'
 import { RoleTag } from '../../components/RoleTag'
 import { Sheet } from '../../components/Sheet'
@@ -182,47 +183,51 @@ export function CatatanPage() {
             : 'Belum ada catatan. Tulis ide, link, atau ringkasan materi di sini (atau lewat Catat cepat).'}
         </p>
       )}
-      <div className="stagger mt-3 gap-3 sm:columns-2 lg:columns-3">
-        {shown.map((n) => {
-          const [first, ...rest] = n.text.split('\n')
-          return (
-            <article
-              key={n.id}
-              className="card mb-3 break-inside-avoid border-t-4 p-0 md:p-0"
-              style={{ borderTopColor: n.color ?? 'var(--line)' }}
-            >
-              <button
-                type="button"
-                onClick={() => setEditing(n)}
-                className="block w-full p-4 text-left"
-                aria-label={`Buka catatan ${first}`}
-              >
-                <div className="font-medium">{first}</div>
-                {rest.join('\n').trim() && (
-                  <p className="mt-1 line-clamp-6 text-[13px] whitespace-pre-line text-muted">{rest.join('\n').trim()}</p>
-                )}
-              </button>
-              <div className="flex items-center gap-2 px-4 pb-3 text-[11.5px] text-faint">
-                {n.roleId && <RoleTag role={role(n.roleId)} compact />}
-                <span className="flex-1">
-                  {dateOf(n.updatedAt) === today
-                    ? 'hari ini'
-                    : relativeDayLabel(dateOf(n.updatedAt), today) || formatDateShort(dateOf(n.updatedAt))}
-                </span>
-                <button
-                  type="button"
-                  className="rounded-full p-1 hover:text-text"
-                  aria-label={n.pinned ? `Lepas sematan ${first}` : `Sematkan ${first}`}
-                  aria-pressed={n.pinned}
-                  onClick={() => void setPinned(n.id, !n.pinned)}
+      <Limited items={shown} limit={9} className="btn-ghost mt-1 w-full border border-line">
+        {(list) => (
+          <div className="stagger mt-3 gap-3 sm:columns-2 lg:columns-3">
+            {list.map((n) => {
+              const [first, ...rest] = n.text.split('\n')
+              return (
+                <article
+                  key={n.id}
+                  className="card mb-3 break-inside-avoid border-t-4 p-0 md:p-0"
+                  style={{ borderTopColor: n.color ?? 'var(--line)' }}
                 >
-                  <Pin size={14} aria-hidden="true" className={n.pinned ? 'fill-current text-text' : ''} />
-                </button>
-              </div>
-            </article>
-          )
-        })}
-      </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(n)}
+                    className="block w-full p-4 text-left"
+                    aria-label={`Buka catatan ${first}`}
+                  >
+                    <div className="font-medium">{first}</div>
+                    {rest.join('\n').trim() && (
+                      <p className="mt-1 line-clamp-6 text-[13px] whitespace-pre-line text-muted">{rest.join('\n').trim()}</p>
+                    )}
+                  </button>
+                  <div className="flex items-center gap-2 px-4 pb-3 text-[11.5px] text-faint">
+                    {n.roleId && <RoleTag role={role(n.roleId)} compact />}
+                    <span className="flex-1">
+                      {dateOf(n.updatedAt) === today
+                        ? 'hari ini'
+                        : relativeDayLabel(dateOf(n.updatedAt), today) || formatDateShort(dateOf(n.updatedAt))}
+                    </span>
+                    <button
+                      type="button"
+                      className="rounded-full p-1 hover:text-text"
+                      aria-label={n.pinned ? `Lepas sematan ${first}` : `Sematkan ${first}`}
+                      aria-pressed={n.pinned}
+                      onClick={() => void setPinned(n.id, !n.pinned)}
+                    >
+                      <Pin size={14} aria-hidden="true" className={n.pinned ? 'fill-current text-text' : ''} />
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </Limited>
       <Editor draft={editing} roles={roles} onClose={() => setEditing(null)} />
     </>
   )
