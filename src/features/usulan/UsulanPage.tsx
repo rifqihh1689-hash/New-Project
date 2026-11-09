@@ -1,8 +1,9 @@
-import { Inbox } from 'lucide-react'
+import { ChevronDown, Inbox } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { routeHref } from '../../app/router'
 import { useToday } from '../../app/useToday'
+import { Limited } from '../../components/Limited'
 import { PageTop } from '../../components/PageTop'
 import { useToast } from '../../components/toast-context'
 import { useMoneyRefs, type MoneyRefs } from '../../db/money'
@@ -91,6 +92,39 @@ function Pending({ p, roles, money, today }: { p: Proposal; roles: Role[]; money
   )
 }
 
+/** Riwayat disembunyikan di balik tombol; yang terbuka pun dibatasi 10 terbaru supaya tidak menumpuk. */
+function History({ decided }: { decided: Proposal[] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <section className="card self-start lg:col-span-2">
+      <button type="button" className="card-title w-full text-left" aria-expanded={open} onClick={() => setOpen(!open)}>
+        Riwayat <span className="text-[13px] font-medium text-faint">{decided.length}</span>
+        <ChevronDown size={16} aria-hidden="true" className={`ml-auto text-faint transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <Limited items={decided} limit={10}>
+          {(list) => (
+            <ul>
+              {list.map((p) => (
+                <li key={p.id} className="border-t border-line py-2 text-[13.5px] first:border-t-0">
+                  <div className="flex gap-2">
+                    <span className="flex-1">{p.summary || 'Usulan dari Claude'}</span>
+                    <span className={`text-xs ${p.status === 'disetujui' ? 'text-ok' : 'text-faint'}`}>{p.status}</span>
+                  </div>
+                  <div className="text-xs text-muted">
+                    {p.decidedAt ? when(p.decidedAt) : ''}
+                    {p.result ? ` · ${p.result}` : ''}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Limited>
+      )}
+    </section>
+  )
+}
+
 export function UsulanPage() {
   const today = useToday()
   const roles = useRoles()
@@ -126,25 +160,7 @@ export function UsulanPage() {
               </p>
             </section>
           )}
-          {decided.length > 0 && (
-            <section className="card">
-              <h2 className="card-title">Riwayat</h2>
-              <ul>
-                {decided.slice(0, 20).map((p) => (
-                  <li key={p.id} className="border-t border-line py-2 text-[13.5px] first:border-t-0">
-                    <div className="flex gap-2">
-                      <span className="flex-1">{p.summary || 'Usulan dari Claude'}</span>
-                      <span className={`text-xs ${p.status === 'disetujui' ? 'text-ok' : 'text-faint'}`}>{p.status}</span>
-                    </div>
-                    <div className="text-xs text-muted">
-                      {p.decidedAt ? when(p.decidedAt) : ''}
-                      {p.result ? ` · ${p.result}` : ''}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {decided.length > 0 && <History decided={decided} />}
         </div>
       )}
     </>

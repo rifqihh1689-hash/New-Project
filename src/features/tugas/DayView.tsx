@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Limited } from '../../components/Limited'
 import { useToast } from '../../components/toast-context'
 import { addTask, moveTasks, moveUndoneToTomorrow, PatientIdentityError } from '../../db/daily'
 import { DEFAULT_ROLE_ID } from '../../db/defaults'
@@ -85,14 +86,20 @@ export function DayView({ date, today, tasks, roles, filter, onEdit }: Props) {
           Mirip identitas pasien ({phi}). {PHI_HINT}
         </p>
       )}
-      <ul className="mt-3">
+      <div className="mt-3">
         {shown.length === 0 && (
-          <li className="py-3 text-[13px] text-muted">Belum ada tugas{filter ? ` ${role(filter).name}` : ''} di hari ini.</li>
+          <p className="py-3 text-[13px] text-muted">Belum ada tugas{filter ? ` ${role(filter).name}` : ''} di hari ini.</p>
         )}
-        {shown.map((t) => (
-          <TaskRow key={t.id} task={t} role={role(t.roleId)} onEdit={onEdit} onMove={(x) => void moveOne(x)} />
-        ))}
-      </ul>
+        <Limited items={shown}>
+          {(list) => (
+            <ul>
+              {list.map((t) => (
+                <TaskRow key={t.id} task={t} role={role(t.roleId)} onEdit={onEdit} onMove={(x) => void moveOne(x)} />
+              ))}
+            </ul>
+          )}
+        </Limited>
+      </div>
       {left.length > 0 && (
         <button type="button" onClick={() => void moveLeft()} className="btn-ghost mt-2 w-full justify-between border border-line">
           Pindahkan sisa ke {nextLabel} <span className="text-faint">{left.length}</span>

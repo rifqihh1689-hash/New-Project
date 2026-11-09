@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { routeHref } from '../../app/router'
+import { Limited } from '../../components/Limited'
 import { useToast } from '../../components/toast-context'
 import { addTask, moveTasks, PatientIdentityError } from '../../db/daily'
 import { DEFAULT_ROLE_ID } from '../../db/defaults'
@@ -145,11 +146,17 @@ export function WeekView({ week, today, roles, filter, focus, onEdit }: Props) {
                   </form>
                 )}
                 {shown.length > 0 ? (
-                  <ul className="mt-2">
-                    {shown.map((t) => (
-                      <TaskRow key={t.id} task={t} role={role(t.roleId)} onEdit={onEdit} onMove={(x) => void moveOne(x)} compact />
-                    ))}
-                  </ul>
+                  <div className="mt-2">
+                    <Limited items={shown} limit={5} className="btn-ghost mt-1 w-full text-xs">
+                      {(list) => (
+                        <ul>
+                          {list.map((t) => (
+                            <TaskRow key={t.id} task={t} role={role(t.roleId)} onEdit={onEdit} onMove={(x) => void moveOne(x)} compact />
+                          ))}
+                        </ul>
+                      )}
+                    </Limited>
+                  </div>
                 ) : (
                   adding !== date && <p className="mt-2 pl-6 text-[13px] text-faint">Kosong.</p>
                 )}
