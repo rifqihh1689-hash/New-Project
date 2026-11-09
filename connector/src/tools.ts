@@ -452,7 +452,7 @@ const getTrainingPlan: ToolDef = {
 const propose: ToolDef = {
   name: 'propose',
   title: 'Kirim usulan',
-  description: `Kirim usulan ke Qawwam: jadwal, tugas, habit, menu, dan juga keuangan (pemasukan, pengeluaran, utang baru, cicilan utang, setoran/penarikan tabungan). TIDAK langsung ditulis: masuk halaman Usulan dan pengguna memilih item mana yang disetujui. Tidak bisa menghapus apa pun. Satu usulan = satu topik (mis. "Pengeluaran minggu ini"). Tanggal YYYY-MM-DD, jam HH.MM. Dilarang menulis identitas pasien (nama, No. RM, tanggal lahir); item seperti itu ditolak. Untuk cicilan/setoran, nama utang/tabungan harus sama dengan yang ada (lihat "uang" di get_overview).
+  description: `Kirim usulan ke Qawwam: jadwal, tugas, habit, menu, dan juga keuangan (pemasukan, pengeluaran, utang baru, cicilan utang, setoran/penarikan tabungan), dan kartu ulasan UKMPPD. TIDAK langsung ditulis: masuk halaman Usulan dan pengguna memilih item mana yang disetujui. Tidak bisa menghapus apa pun. Satu usulan = satu topik (mis. "Pengeluaran minggu ini"). Tanggal YYYY-MM-DD, jam HH.MM. Dilarang menulis identitas pasien (nama, No. RM, tanggal lahir); item seperti itu ditolak. Untuk cicilan/setoran, nama utang/tabungan harus sama dengan yang ada (lihat "uang" di get_overview).
 
 Format item:
 ${IMPORT_ITEM_GUIDE}
@@ -523,5 +523,6 @@ export const INSTRUCTIONS = `Qawwam adalah app pengatur hidup pribadi seorang ko
 - XP ala MBAPPE OS: Σ XP selesai (maks. 100) × pengali tidur 24 jam; lolos bila ≥ 60% isi hari selesai; jaga/pasca tidak memutus streak. Mutaba'ah tanpa skor.
 - Prinsip: hadiah untuk pemulihan, bukan volume; maksimal 3 Main Quest aktif; kuota sampingan (tentir dll.) 9–15 jam/minggu.
 - Catatan uang dari percakapan ("tadi beli buku 150rb", "dapat kiriman 1,5jt", "bayar utang kakak 500rb", "nabung 1jt ke dana jembatan") dikirim lewat propose sebagai pemasukan/pengeluaran/cicilan/setoran, juga utang baru. Nama utang & tabungan ada di get_overview → uang.
+- Kartu ulasan UKMPPD (pengulangan berjarak) dibuat lewat propose jenis "kartu" (depan = pertanyaan/konsep, belakang = jawaban + alasan). Satu konsep per kartu, ringkas, mudah dijawab dari ingatan; bisa dari catatan pengguna atau soal yang sering salah.
 - JANGAN pernah menulis identitas pasien (nama, No. RM, tanggal lahir, "Tn./Ny. + nama").
 Mulai dengan get_overview.`

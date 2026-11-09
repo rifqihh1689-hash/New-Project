@@ -12,6 +12,7 @@ import { previousMonday, reviewWindow, reviewXpTotal } from '../../domain/weekly
 import { savingPlan } from '../../domain/money'
 import { docStats, nextDeadline } from '../../domain/ppds'
 import { energyReport } from '../../domain/energy'
+import { cashPlan } from '../../domain/cashflow'
 import { DEFAULT_STUDY_WEEKLY, systemStats, weakestSystem, weekProgress } from '../../domain/study'
 import { diffDays } from '../../domain/time'
 import { privateId } from '../../lib/id'
@@ -56,6 +57,8 @@ export async function loadBeranda(today: ISODate) {
     studyLogs,
     cards,
     docs,
+    pastTxs,
+    unpaidTentir,
   ] = await Promise.all([
     db.reviews.where('period').equals('minggu').toArray(),
     db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
@@ -71,6 +74,15 @@ export async function loadBeranda(today: ISODate) {
     db.studyLogs.toArray(),
     db.flashcards.where('due').belowOrEqual(today).count(),
     db.ppdsDocs.toArray(),
+    db.transactions
+      .where('date')
+      .between(`${addMonths(month, -3)}-01`, `${month}-31`, true, true)
+      .toArray(),
+    db.tentirSessions
+      .where('date')
+      .between(`${month}-01`, `${month}-31`, true, true)
+      .filter((x) => !x.paid)
+      .toArray(),
   ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
@@ -121,6 +133,15 @@ export async function loadBeranda(today: ISODate) {
   // Tanggal UKMPPD dari Belajar ikut jadi tanggal penting bila lebih dekat dari yang di fase hidup.
   const exam = studyTarget?.examDate && studyTarget.examDate > today ? { name: 'UKMPPD', date: studyTarget.examDate } : null
   const energy = energyReport(recentDays, today)
+  const cashPlanNow = cashPlan({
+    txs: pastTxs,
+    today,
+    debts,
+    budget: budgets.reduce((a, b) => a + b.amount, 0),
+    incomeExpected: unpaidTentir.reduce((a, x) => a + x.fee, 0),
+    saving: null,
+  })
+  const hasMoneyData = pastTxs.length > 0 || debts.length > 0
   const dueDoc = nextDeadline(docs)
   const questWithNext = [...mainQuests].filter((q) => q.next.trim()).sort((a, b) => a.progress - b.progress)[0]
   const insightBase = {
@@ -140,6 +161,7 @@ export async function loadBeranda(today: ISODate) {
       cardsDue: cards,
     },
     energy: { lowRun: energy.lowRun, pattern: energy.pattern },
+    cash: hasMoneyData ? { net: cashPlanNow.thisMonth.net } : null,
     sleep: [0, 1, 2].map((n) => {
       const d = recentDays.find((x) => x.date === addDays(today, -n))
       return d ? sleepTotal(d.sleepNight, d.nap, rules) : null

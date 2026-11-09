@@ -44,4 +44,28 @@ describe('usulan dari Claude', () => {
     expect((await db.days.get('#day:2026-11-07'))?.type).toBe('jaga')
     void b
   })
+
+  it('kartu dari Claude: jadi kartu ulasan jatuh tempo hari ini; depan yang sama dilewati; identitas pasien ditolak', async () => {
+    const cards = [
+      { jenis: 'kartu', depan: 'Tanda khas stenosis aorta?', belakang: 'Murmur ejeksi sistolik di ICS 2 kanan.', sistem: 'kardiovaskular' },
+      { jenis: 'kartu', depan: 'tanda khas stenosis aorta?', belakang: 'duplikat' },
+      { jenis: 'kartu', depan: 'Kasus Tn. Budi tadi pagi', belakang: 'jawaban' },
+      { jenis: 'kartu', depan: 'Tanpa belakang' },
+    ]
+    const p = await addProposal('Kartu kardio', cards)
+    const rows = previewProposal(p, await loadRoles(), TODAY)
+    expect(rows[2].phi).toBeTruthy()
+    expect(rows[3].error).toMatch(/depan.*belakang/)
+    const result = await approveProposal(p.id, TODAY)
+    expect(result).toMatch(/1 kartu ulasan, 1 kartu sudah ada/)
+    const stored = await db.flashcards.toArray()
+    expect(stored).toHaveLength(1)
+    expect(stored[0]).toMatchObject({
+      front: 'Tanda khas stenosis aorta?',
+      system: 'Kardiovaskular',
+      source: 'claude',
+      interval: 0,
+      reps: 0,
+    })
+  })
 })

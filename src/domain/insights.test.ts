@@ -20,6 +20,7 @@ const base: InsightInput = {
   study: null,
   ppds: null,
   energy: null,
+  cash: null,
   reviewOpen: false,
 }
 
@@ -122,5 +123,12 @@ describe('pickInsights', () => {
   it('pola energi antar tipe hari', () => {
     const energy = { lowRun: 0, pattern: { low: { label: 'pasca-jaga', avg: 2 }, high: { label: 'stase', avg: 3.7 } } }
     expect(text({ energy })).toContain('Energi hari pasca-jaga rata-rata 2, hari stase 3,7.')
+  })
+
+  it('arus kas negatif memicu temuan tanpa menyebut utang; tidak sebelum tanggal 8', () => {
+    expect(ids({ cash: { net: -400_000 }, today: '2026-11-12' })).toContain('arus-kas-kurang')
+    expect(ids({ cash: { net: -400_000 }, today: '2026-11-05' })).not.toContain('arus-kas-kurang')
+    expect(ids({ cash: { net: 200_000 }, today: '2026-11-12' })).not.toContain('arus-kas-kurang')
+    expect(text({ cash: { net: -400_000 }, today: '2026-11-12' }).toLowerCase()).not.toMatch(/utang|cicil/)
   })
 })

@@ -9,7 +9,8 @@ import { formatRupiah, formatRupiahShort } from '../../lib/format'
 import type { Category } from '../../types'
 import { Limited } from '../../components/Limited'
 import { Sheet } from '../../components/Sheet'
-import { FlowDetail } from './Details'
+import { FlowDetail, PlanDetail } from './Details'
+import { HIDE_DEBT_KEY, useStoredFlag } from '../../app/useStoredFlag'
 import { useUang, type UangData } from './data'
 import { BudgetCard, GoalsCard, RecurringCard } from './Planning'
 import { TransactionForm, type TxDraft } from './TransactionForm'
@@ -32,21 +33,26 @@ function Tiles({ data }: { data: UangData }) {
       </div>
     </div>
   )
-  const [detail, setDetail] = useState(false)
+  const [detail, setDetail] = useState<'flow' | 'plan' | null>(null)
+  const [hideDebt] = useStoredFlag(HIDE_DEBT_KEY, false)
   return (
     <section className="mt-3 grid grid-cols-3 gap-2 md:gap-3">
       {tile('Pemasukan', s.income, 'text-ok')}
       {tile('Pengeluaran', s.expense)}
       {tile('Sisa', s.balance, s.balance < 0 ? 'text-danger' : '')}
-      <button
-        type="button"
-        className="col-span-3 -mt-0.5 justify-self-end text-[12.5px] text-faint underline-offset-2 hover:text-text hover:underline"
-        onClick={() => setDetail(true)}
-      >
-        Detail keuangan 6 bulan →
-      </button>
-      <Sheet open={detail} title="Detail keuangan" onClose={() => setDetail(false)}>
-        {detail && <FlowDetail month={data.month} />}
+      <div className="col-span-3 -mt-0.5 flex justify-end gap-4 text-[12.5px] text-faint">
+        <button type="button" className="underline-offset-2 hover:text-text hover:underline" onClick={() => setDetail('plan')}>
+          Rencana bulan ini →
+        </button>
+        <button type="button" className="underline-offset-2 hover:text-text hover:underline" onClick={() => setDetail('flow')}>
+          Detail 6 bulan →
+        </button>
+      </div>
+      <Sheet open={detail === 'flow'} title="Detail keuangan" onClose={() => setDetail(null)}>
+        {detail === 'flow' && <FlowDetail month={data.month} />}
+      </Sheet>
+      <Sheet open={detail === 'plan'} title="Rencana uang" onClose={() => setDetail(null)}>
+        {detail === 'plan' && <PlanDetail data={data} hideDebt={hideDebt} />}
       </Sheet>
     </section>
   )

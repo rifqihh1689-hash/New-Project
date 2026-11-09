@@ -2,12 +2,14 @@ import type { Category, Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSl
 import { DEFAULT_CATEGORIES, guessCategory, matchCategory, parseAmount } from './money'
 import { parseIngredients } from './menu'
 import { DAY_TYPES } from './dayType'
+import { STUDY_SYSTEMS } from './study'
 import { detectPatientIdentity } from './phi'
 import { guessRole, matchRole, type RoleRef } from './quickCapture'
 import { normalizeClock } from './ritme'
 import { formatDateLong, formatDateShort, isValidISODate, MONTH_NAMES } from './time'
 
-export type ImportKind = 'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu' | 'transaksi' | 'utang' | 'cicilan' | 'setoran'
+export type ImportKind =
+  'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu' | 'transaksi' | 'utang' | 'cicilan' | 'setoran' | 'kartu'
 
 export const IMPORT_KINDS: ImportKind[] = [
   'ritme',
@@ -21,6 +23,7 @@ export const IMPORT_KINDS: ImportKind[] = [
   'utang',
   'cicilan',
   'setoran',
+  'kartu',
 ]
 
 export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
@@ -35,6 +38,7 @@ export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   utang: 'Utang baru',
   cicilan: 'Cicilan utang',
   setoran: 'Setoran tabungan',
+  kartu: 'Kartu ulasan',
 }
 
 export type ImportItem =
@@ -71,6 +75,8 @@ export type ImportItem =
   | { kind: 'cicilan'; name: string; amount: number; date: ISODate }
   /** `amount` negatif = penarikan. */
   | { kind: 'setoran'; name: string; amount: number; date: ISODate }
+  /** Kartu ulasan UKMPPD (pengulangan berjarak). */
+  | { kind: 'kartu'; front: string; back: string; system?: string }
 
 export interface ImportRow {
   /** Nomor baris di teks asli (CSV) atau urutan item (JSON), mulai 1. */
@@ -139,6 +145,15 @@ const COLUMN_ALIASES: Record<string, string> = {
   ukuran: 'ukuran',
   xp: 'ukuran',
   penting: 'penting',
+  depan: 'depan',
+  pertanyaan: 'depan',
+  front: 'depan',
+  belakang: 'belakang',
+  jawaban: 'belakang',
+  back: 'belakang',
+  sistem: 'sistem',
+  system: 'sistem',
+  bidang: 'sistem',
   catatan: 'catatan',
   keterangan: 'catatan',
   detail: 'catatan',
@@ -217,6 +232,10 @@ const KIND_ALIASES: Record<string, ImportKind> = {
   menabung: 'setoran',
   penarikan: 'setoran',
   tarik_tabungan: 'setoran',
+  kartu: 'kartu',
+  kartu_ulasan: 'kartu',
+  flashcard: 'kartu',
+  flashcards: 'kartu',
 }
 
 const INCOME_KIND = /^(pemasukan|masuk|income)$/
@@ -557,6 +576,14 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       if (r.target && !targetDate) return { error: `Target lunas "${r.target}" tidak dikenali (contoh 2027-06-30).` }
       return { items: [{ kind, name: title, amount: amt.amount, targetDate }] }
     }
+    case 'kartu': {
+      const front = (r.depan ?? '').trim()
+      const back = (r.belakang ?? '').trim()
+      if (!front || !back) return { error: 'Kartu butuh "depan" dan "belakang" (pertanyaan dan jawaban).' }
+      if (front.length > 600 || back.length > 1200) return { error: 'Kartu terlalu panjang (depan maks. 600, belakang maks. 1200 huruf).' }
+      const system = STUDY_SYSTEMS.find((x) => normKey(x) === normKey(r.sistem ?? ''))
+      return { items: [{ kind, front, back, ...(system ? { system } : {}) }] }
+    }
     case 'cicilan':
     case 'setoran': {
       const what = kind === 'cicilan' ? 'utang' : 'tabungan'
@@ -647,7 +674,7 @@ export function parseImport(text: string, ctx: ImportContext): ImportRow[] {
   const rowCtx = ctx.debts && newDebts.length ? { ...ctx, debts: [...ctx.debts, ...newDebts] } : ctx
   const out: ImportRow[] = []
   for (const { line, rec } of records) {
-    const phi = detectPatientIdentity([rec.judul, rec.catatan].filter(Boolean).join(' · '))
+    const phi = detectPatientIdentity([rec.judul, rec.catatan, rec.depan, rec.belakang].filter(Boolean).join(' · '))
     const { items, error } = rowToItems(rec, rowCtx)
     if (error || !items) out.push({ line, error: error ?? 'Baris tidak bisa dibaca.' })
     else for (const item of items) out.push({ line, item, ...(phi ? { phi } : {}) })
@@ -692,6 +719,8 @@ export function describeItem(
       return `${formatDateShort(item.date)} · ${item.name} · ${rupiah(item.amount)}`
     case 'setoran':
       return `${formatDateShort(item.date)} · ${item.name} · ${rupiah(Math.abs(item.amount))}`
+    case 'kartu':
+      return `${item.front.length > 80 ? `${item.front.slice(0, 80)}…` : item.front}${item.system ? ` · ${item.system}` : ''}`
   }
 }
 

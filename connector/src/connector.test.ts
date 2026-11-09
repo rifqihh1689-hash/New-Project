@@ -257,6 +257,18 @@ describe('propose', () => {
     expect(String(c.posted[0].rows[0].id)).toMatch(/^prp_/)
   })
 
+  it('kartu ulasan UKMPPD: tersimpan sebagai usulan; kartu tanpa belakang ditolak', async () => {
+    const c = sample()
+    const ok = await call(c, 'propose', {
+      summary: 'Kartu kardio',
+      items: [{ jenis: 'kartu', depan: 'Tanda khas stenosis aorta?', belakang: 'Murmur ejeksi sistolik.', sistem: 'Kardiovaskular' }],
+    })
+    expect(ok.isError).toBeUndefined()
+    expect(ok.content[0].text).toMatch(/Kartu ulasan: Tanda khas stenosis aorta\? · Kardiovaskular/)
+    const bad = await call(c, 'propose', { summary: 'x', items: [{ jenis: 'kartu', depan: 'Hanya depan' }] })
+    expect(bad.isError).toBe(true)
+  })
+
   it('keuangan: pemasukan, pengeluaran (kategori sendiri), utang baru, cicilan & setoran ke yang sudah ada', async () => {
     const c = fakeCloud({
       categories: [
