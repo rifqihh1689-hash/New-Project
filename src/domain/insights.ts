@@ -42,6 +42,7 @@ export interface InsightInput {
     perDayLeft: number
     weakest: { system: string; accuracy: number } | null
     examDateSet: boolean
+    cardsDue: number
   } | null
   /** Muhasabah minggu lalu bisa diisi dan belum selesai. */
   reviewOpen: boolean
@@ -272,6 +273,15 @@ export function pickInsights(i: InsightInput): Insight[] {
         tone: 'info',
         href: '#/belajar',
         priority: 38,
+      })
+    if (st.cardsDue > 0)
+      add({
+        id: 'kartu-jatuh-tempo',
+        title: `${st.cardsDue} kartu ulasan jatuh tempo.`,
+        detail: `Sekitar ${Math.max(5, Math.min(15, Math.ceil(st.cardsDue / 4)))} menit. Ulasan tepat waktu yang membuat ingatan bertahan.`,
+        tone: 'info',
+        href: '#/belajar',
+        priority: 64,
       })
     if (!st.examDateSet)
       add({

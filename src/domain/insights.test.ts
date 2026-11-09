@@ -84,9 +84,12 @@ describe('pickInsights', () => {
       perDayLeft: 26,
       weakest: { system: 'Saraf', accuracy: 0.5 },
       examDateSet: false,
+      cardsDue: 12,
     }
     const r = pickInsights({ ...base, study })
-    expect(r.map((x) => x.id)).toEqual(expect.arrayContaining(['belajar-tertinggal', 'belajar-lemah', 'belajar-tanggal']))
+    expect(r.map((x) => x.id)).toEqual(
+      expect.arrayContaining(['kartu-jatuh-tempo', 'belajar-tertinggal', 'belajar-lemah', 'belajar-tanggal']),
+    )
     expect(r.find((x) => x.id === 'belajar-lemah')?.title).toBe('Saraf sistem terlemahmu (50%).')
     expect(ids({ study: { ...study, behind: false, weekDone: 150 } })).toContain('belajar-tercapai')
   })

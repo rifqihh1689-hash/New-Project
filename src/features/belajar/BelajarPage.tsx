@@ -10,6 +10,7 @@ import { MIN_FOR_RANKING, STUDY_SYSTEMS } from '../../domain/study'
 import { formatDateShort } from '../../domain/time'
 import { formatNumber } from '../../lib/format'
 import type { StudyLog } from '../../types'
+import { CardsTab } from './CardsTab'
 import { useBelajar, type BelajarData } from './data'
 
 const pct = (x: number | null) => (x == null ? '–' : `${Math.round(x * 100)}%`)
@@ -186,6 +187,8 @@ interface Draft {
   total: string
   correct: string
   note: string
+  wrongFront: string
+  wrongBack: string
 }
 
 function LogForm({ draft, onClose }: { draft: Draft; onClose: () => void }) {
@@ -196,7 +199,16 @@ function LogForm({ draft, onClose }: { draft: Draft; onClose: () => void }) {
   const ok = total >= 1 && correct >= 0 && correct <= total
   const save = async () => {
     try {
-      await saveStudyLog({ id: d.id, date: d.date, system: d.system, kind: d.kind, total, correct, note: d.note })
+      await saveStudyLog({
+        id: d.id,
+        date: d.date,
+        system: d.system,
+        kind: d.kind,
+        total,
+        correct,
+        note: d.note,
+        wrong: { front: d.wrongFront, back: d.wrongBack },
+      })
       onClose()
     } catch (e) {
       toast({ message: (e as Error).message, tone: 'error' })
@@ -270,6 +282,30 @@ function LogForm({ draft, onClose }: { draft: Draft; onClose: () => void }) {
         placeholder="Catatan (mis. topik lemah). Tanpa identitas pasien."
         aria-label="Catatan"
       />
+      {!d.id && (
+        <details className="rounded-xl border border-line px-3 py-2">
+          <summary className="cursor-pointer text-[13px] text-muted">Ada yang salah? Buat kartu ulasan</summary>
+          <div className="mt-2 grid gap-2">
+            <textarea
+              className="field min-h-[60px] resize-y"
+              value={d.wrongFront}
+              maxLength={600}
+              onChange={(e) => setD({ ...d, wrongFront: e.target.value })}
+              placeholder="Konsep atau pertanyaan yang terlewat"
+              aria-label="Kartu: sisi depan"
+            />
+            <textarea
+              className="field min-h-[60px] resize-y"
+              value={d.wrongBack}
+              maxLength={1200}
+              onChange={(e) => setD({ ...d, wrongBack: e.target.value })}
+              placeholder="Jawaban benar dan kenapa"
+              aria-label="Kartu: sisi belakang"
+            />
+            <p className="text-xs text-faint">Jadi kartu di tab Kartu ulasan, dijadwalkan hari ini lalu 1, 3, 8 hari dst.</p>
+          </div>
+        </details>
+      )}
       <div className="flex gap-2">
         {d.id && (
           <button type="button" className="btn-ghost border border-line" onClick={() => void remove()}>
@@ -288,20 +324,62 @@ export function BelajarPage() {
   const today = useToday()
   const data = useBelajar(today)
   const [editing, setEditing] = useState<Draft | null>(null)
+  const [tab, setTab] = useState<'soal' | 'kartu'>('soal')
   const draftFor = (l?: StudyLog): Draft =>
     l
-      ? { id: l.id, date: l.date, system: l.system, kind: l.kind, total: String(l.total), correct: String(l.correct), note: l.note ?? '' }
-      : { date: today, system: data?.stalest?.system ?? STUDY_SYSTEMS[0], kind: 'soal', total: '', correct: '', note: '' }
+      ? {
+          id: l.id,
+          date: l.date,
+          system: l.system,
+          kind: l.kind,
+          total: String(l.total),
+          correct: String(l.correct),
+          note: l.note ?? '',
+          wrongFront: '',
+          wrongBack: '',
+        }
+      : {
+          date: today,
+          system: data?.stalest?.system ?? STUDY_SYSTEMS[0],
+          kind: 'soal',
+          total: '',
+          correct: '',
+          note: '',
+          wrongFront: '',
+          wrongBack: '',
+        }
   return (
     <>
       <PageTop title="Belajar UKMPPD" />
       <h1 className="mt-4 text-[26px] font-semibold tracking-tight md:hidden">Belajar UKMPPD</h1>
-      <div className="mt-3 flex md:mt-[26px]">
-        <button type="button" className="btn-primary" onClick={() => setEditing(draftFor())}>
-          <Plus size={15} aria-hidden="true" /> Catat soal
-        </button>
+      <div role="tablist" aria-label="Bagian Belajar" className="mt-3 flex gap-1 rounded-full bg-surface-2 p-[3px] md:mt-[26px] md:w-fit">
+        {(
+          [
+            ['soal', 'Soal'],
+            ['kartu', 'Kartu ulasan'],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={tab === v}
+            onClick={() => setTab(v)}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] ${tab === v ? 'bg-surface text-text shadow-sm' : 'text-muted'}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      {data && (
+      {tab === 'kartu' && <CardsTab />}
+      {tab === 'soal' && (
+        <div className="mt-3 flex">
+          <button type="button" className="btn-primary" onClick={() => setEditing(draftFor())}>
+            <Plus size={15} aria-hidden="true" /> Catat soal
+          </button>
+        </div>
+      )}
+      {tab === 'soal' && data && (
         <>
           <Tiles data={data} />
           <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">

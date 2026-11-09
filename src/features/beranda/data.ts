@@ -40,21 +40,34 @@ export async function loadBeranda(today: ISODate) {
       db.mainQuests.where('status').equals('aktif').toArray(),
       db.chapters.where('end').aboveOrEqual(today).toArray(),
     ])
-  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda, lastMonthReview, recentDays, strength, studyLogs] =
-    await Promise.all([
-      db.reviews.where('period').equals('minggu').toArray(),
-      db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
-      loadMenus(),
-      db.mealPlans.where('date').equals(today).toArray(),
-      db.claims.count(),
-      db.proposals.where('status').equals('menunggu').count(),
-      db.events.where('date').equals(today).toArray(),
-      // Prioritas bulan ini ditulis di Muhasabah bulanan bulan lalu.
-      db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
-      db.days.where('date').between(addDays(today, -2), today, true, true).toArray(),
-      db.workouts.where('kind').equals('beban').toArray(),
-      db.studyLogs.toArray(),
-    ])
+  const [
+    reviews,
+    lastReview,
+    menus,
+    todayMeals,
+    claimCount,
+    pendingProposals,
+    agenda,
+    lastMonthReview,
+    recentDays,
+    strength,
+    studyLogs,
+    cards,
+  ] = await Promise.all([
+    db.reviews.where('period').equals('minggu').toArray(),
+    db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
+    loadMenus(),
+    db.mealPlans.where('date').equals(today).toArray(),
+    db.claims.count(),
+    db.proposals.where('status').equals('menunggu').count(),
+    db.events.where('date').equals(today).toArray(),
+    // Prioritas bulan ini ditulis di Muhasabah bulanan bulan lalu.
+    db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
+    db.days.where('date').between(addDays(today, -2), today, true, true).toArray(),
+    db.workouts.where('kind').equals('beban').toArray(),
+    db.studyLogs.toArray(),
+    db.flashcards.where('due').belowOrEqual(today).count(),
+  ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
   const meals = slotsFor(nutrition.mealsPerDay).map((slot) => {
@@ -111,6 +124,7 @@ export async function loadBeranda(today: ISODate) {
       perDayLeft: studyWeek.perDayLeft,
       weakest: weakest && weakest.accuracy != null ? { system: weakest.system, accuracy: weakest.accuracy } : null,
       examDateSet: !!studyTarget?.examDate,
+      cardsDue: cards,
     },
     sleep: [0, 1, 2].map((n) => {
       const d = recentDays.find((x) => x.date === addDays(today, -n))

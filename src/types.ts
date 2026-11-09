@@ -562,3 +562,21 @@ export interface StudyLog extends Stamped {
   correct: number
   note?: string
 }
+
+/** Kartu ulasan dengan pengulangan berjarak (gaya SM-2 sederhana). */
+export interface Flashcard extends Stamped {
+  front: string
+  back: string
+  /** Sistem/bidang UKMPPD (opsional). */
+  system?: string
+  /** Dari mana kartu berasal: ditulis sendiri, dari soal yang salah, atau dari usulan Claude. */
+  source: 'manual' | 'salah' | 'claude'
+  /** Tanggal ulasan berikutnya. */
+  due: ISODate
+  /** Jarak ulasan sekarang (hari); 0 = kartu baru. */
+  interval: number
+  ease: number
+  reps: number
+  lapses: number
+  lastReviewed?: ISODate
+}

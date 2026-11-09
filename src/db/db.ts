@@ -27,6 +27,7 @@ import type {
   Role,
   Saving,
   StudyLog,
+  Flashcard,
   Student,
   Task,
   TentirPackage,
@@ -51,6 +52,7 @@ export type QawwamDB = Dexie & {
   tentirSessions: EntityTable<TentirSession, 'id'>
   notes: EntityTable<Note, 'id'>
   studyLogs: EntityTable<StudyLog, 'id'>
+  flashcards: EntityTable<Flashcard, 'id'>
   transactions: EntityTable<Transaction, 'id'>
   categories: EntityTable<Category, 'id'>
   budgets: EntityTable<Budget, 'id'>
@@ -126,6 +128,7 @@ export const SCHEMA_V4_ADDITIONS = {
 
 export const SCHEMA_V5_ADDITIONS = {
   studyLogs: 'id, date, system',
+  flashcards: 'id, due',
 } as const
 
 export function createDatabase(name: string = DB_NAME): QawwamDB {
@@ -137,7 +140,7 @@ export function createDatabase(name: string = DB_NAME): QawwamDB {
   db.version(3).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS })
   // v4: Tentir+ (murid, paket, materi).
   db.version(4).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS, ...SCHEMA_V4_ADDITIONS })
-  // v5: Belajar UKMPPD (catatan latihan soal & tryout).
+  // v5: Belajar UKMPPD (catatan latihan soal & tryout, kartu ulasan).
   db.version(5).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS, ...SCHEMA_V4_ADDITIONS, ...SCHEMA_V5_ADDITIONS })
   return db
 }
