@@ -1,7 +1,8 @@
 import { useClockMinutes } from '../../app/useToday'
 import { roleLookup } from '../../db/structure'
 import { dayTypeLabel } from '../../domain/dayType'
-import { dayRibbon, DAY_END, formatIn, greeting, headline, nowNext } from '../../domain/headline'
+import { dayRibbon, DAY_END, formatIn, headline, nowNext } from '../../domain/headline'
+import { pickInsights, type Insight } from '../../domain/insights'
 import { slotNote } from '../../domain/ritme'
 import { DAY_NAMES, MONTH_NAMES, weekday } from '../../domain/time'
 import type { RitmeSlot } from '../../types'
@@ -46,6 +47,21 @@ export function Hero({ data }: { data: BerandaData }) {
     workEndLimit: data.rules.workEndLimit,
     napDone: (data.snap.day?.nap ?? 0) > 0,
   })
+  const effType = type == null ? null : data.snap.result.effType
+  const insights = pickInsights({
+    ...data.insightBase,
+    today: data.today,
+    dayType: effType,
+    ritmeLine: line,
+    level: data.level,
+    streak: data.streak,
+    tentir: { hours: data.tentir.hours, min: data.tentir.capacity.min, max: data.tentir.capacity.max },
+    money: { expense: data.money.expense, budget: data.money.budget },
+    mutabaah: data.mutabaah.map((m) => ({ name: m.item.name, week: m.week })),
+  })
+  const [top, ...rest] = insights
+  // Kalimat ritme tetap ada sebagai baris kecil terakhir (arah per tipe hari), temuan lain maksimal dua.
+  const more = rest.filter((x) => x.id !== 'ritme').slice(0, 2)
   const summary = blocks.map((b) => `${b.slot.time} ${b.slot.title}`).join(', ')
 
   return (
@@ -73,10 +89,23 @@ export function Hero({ data }: { data: BerandaData }) {
               </span>
             ))}
           </div>
-          <h2 id="hero-greeting" className="mt-1.5 font-serif text-[27px] leading-[1.15] font-normal tracking-[-0.01em] md:text-[34px]">
-            {greeting(minutes, data.profile.name)}
+          <h2 id="hero-greeting" className="mt-1.5 font-serif text-[23px] leading-[1.2] font-normal tracking-[-0.01em] md:text-[30px]">
+            {top.title}
           </h2>
-          <p className="mt-1.5 max-w-[560px] text-[14.5px] leading-snug text-muted md:text-[15.5px]">{line}</p>
+          {top.detail && <p className="mt-1.5 max-w-[560px] text-[14.5px] leading-snug text-muted md:text-[15.5px]">{top.detail}</p>}
+          {top.href && (
+            <a href={top.href} className="mt-1.5 inline-block text-[13px] text-faint underline-offset-2 hover:text-text hover:underline">
+              Buka →
+            </a>
+          )}
+          {more.length > 0 && (
+            <ul className="mt-3 grid max-w-[560px] gap-1.5">
+              {more.map((x) => (
+                <InsightLine key={x.id} insight={x} />
+              ))}
+            </ul>
+          )}
+          {top.id !== 'ritme' && <p className="mt-2 max-w-[560px] text-[12.5px] leading-snug text-faint">{line}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -178,5 +207,29 @@ function NowTile({
         <div className="mt-1 text-[14px] leading-snug font-semibold text-muted">{empty}</div>
       )}
     </div>
+  )
+}
+
+const TONE: Record<Insight['tone'], string> = { good: 'var(--ok)', warn: 'var(--danger)', info: 'var(--faint)' }
+
+function InsightLine({ insight }: { insight: Insight }) {
+  const body = (
+    <>
+      <span className="mt-[7px] size-1.5 shrink-0 rounded-full" style={{ background: TONE[insight.tone] }} aria-hidden="true" />
+      <span className="min-w-0">
+        <span className="text-text">{insight.title}</span> {insight.detail && <span className="text-muted">{insight.detail}</span>}
+      </span>
+    </>
+  )
+  return (
+    <li className="text-[13px] leading-snug">
+      {insight.href ? (
+        <a href={insight.href} className="flex gap-2 rounded-lg hover:bg-surface-2/60">
+          {body}
+        </a>
+      ) : (
+        <div className="flex gap-2">{body}</div>
+      )}
+    </li>
   )
 }

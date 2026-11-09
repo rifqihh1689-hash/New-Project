@@ -18,6 +18,8 @@ interface Props {
   label: string
   /** Nilai lebih kecil = lebih baik (mis. waktu 5K): sumbu tetap biasa, hanya untuk keterangan. */
   lowerIsBetter?: boolean
+  /** Format label tanggal (bawaan "Sen, 9 Nov"). */
+  formatX?: (x: string) => string
 }
 
 const W = 600
@@ -41,7 +43,15 @@ function niceTicks(min: number, max: number, count = 4): number[] {
  * Grafik garis satu seri: garis 2px, isian tipis, label nilai di titik akhir, garis acuan opsional,
  * dan crosshair + tooltip yang mengikuti jari/pointer (snap ke tanggal terdekat).
  */
-export function LineChart({ points, target, format, color = 'var(--color-tentir)', label, lowerIsBetter }: Props) {
+export function LineChart({
+  points,
+  target,
+  format,
+  color = 'var(--color-tentir)',
+  label,
+  lowerIsBetter,
+  formatX = formatDateShort,
+}: Props) {
   const id = useId()
   const box = useRef<SVGSVGElement>(null)
   const [hover, setHover] = useState<number | null>(null)
@@ -108,10 +118,10 @@ export function LineChart({ points, target, format, color = 'var(--color-tentir)
           </text>
         ) : null}
         <text x={PAD.left} y={H - 6} fontSize="11" fill="var(--faint)">
-          {formatDateShort(points[0].x)}
+          {formatX(points[0].x)}
         </text>
         <text x={W - PAD.right} y={H - 6} fontSize="11" fill="var(--faint)" textAnchor="end">
-          {formatDateShort(last.x)}
+          {formatX(last.x)}
         </text>
         {h && (
           <g pointerEvents="none">
@@ -129,7 +139,7 @@ export function LineChart({ points, target, format, color = 'var(--color-tentir)
             transform: `translateX(${x(h.x) / W > 0.6 ? '-105%' : '5%'})`,
           }}
         >
-          <div className="text-muted">{formatDateShort(h.x)}</div>
+          <div className="text-muted">{formatX(h.x)}</div>
           <div className="font-semibold tabular-nums">{format(h.y)}</div>
           {h.note && <div className="text-muted tabular-nums">{h.note}</div>}
         </div>

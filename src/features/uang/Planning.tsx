@@ -26,6 +26,7 @@ import { formatRupiah, formatRupiahShort } from '../../lib/format'
 import type { Debt, RecurringRule, Saving } from '../../types'
 import { AmountField } from './AmountField'
 import type { UangData } from './data'
+import { DebtDetail, SavingsDetail } from './Details'
 
 const LEVEL: Record<BudgetLevel, { bar: string; text: string; label: string }> = {
   aman: { bar: 'bg-ok', text: 'text-muted', label: 'aman' },
@@ -247,6 +248,7 @@ export function GoalsCard({ data }: { data: UangData }) {
   const [savingsOpen, setSavingsOpen] = useStoredFlag('qawwam:uang-tabungan-buka', true)
   const [debtsOpen, setDebtsOpen] = useStoredFlag('qawwam:uang-utang-buka', true)
   const [hideDebt, setHideDebt] = useStoredFlag(HIDE_DEBT_KEY, false)
+  const [detail, setDetail] = useState<'saving' | 'debt' | null>(null)
   const savingTotal = data.savings.reduce((a, x) => ({ done: a.done + x.plan.done, target: a.target + x.plan.target }), {
     done: 0,
     target: 0,
@@ -286,7 +288,19 @@ export function GoalsCard({ data }: { data: UangData }) {
         </p>
       )}
       <div className="grid gap-3">
-        <Fold title="Tabungan" summary={savingsSummary} open={savingsOpen} onToggle={() => setSavingsOpen(!savingsOpen)}>
+        <Fold
+          title="Tabungan"
+          summary={savingsSummary}
+          open={savingsOpen}
+          onToggle={() => setSavingsOpen(!savingsOpen)}
+          extra={
+            data.savings.length > 0 && (
+              <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setDetail('saving')}>
+                Detail
+              </button>
+            )
+          }
+        >
           <ul className="grid gap-3">
             {data.savings.map(({ s, plan }) => (
               <li key={s.id} className="text-[13.5px]">
@@ -333,15 +347,20 @@ export function GoalsCard({ data }: { data: UangData }) {
             onToggle={() => setDebtsOpen(!debtsOpen)}
             extra={
               data.debts.length > 0 && (
-                <button
-                  type="button"
-                  className="btn-ghost p-1.5"
-                  aria-label="Sembunyikan utang dari layar"
-                  title="Sembunyikan dari layar"
-                  onClick={() => setHideDebt(true)}
-                >
-                  <Eye size={16} aria-hidden="true" />
-                </button>
+                <>
+                  <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => setDetail('debt')}>
+                    Detail
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost p-1.5"
+                    aria-label="Sembunyikan utang dari layar"
+                    title="Sembunyikan dari layar"
+                    onClick={() => setHideDebt(true)}
+                  >
+                    <Eye size={16} aria-hidden="true" />
+                  </button>
+                </>
               )
             }
           >
@@ -384,6 +403,12 @@ export function GoalsCard({ data }: { data: UangData }) {
           </Fold>
         )}
       </div>
+      <Sheet open={detail === 'saving'} title="Detail tabungan" onClose={() => setDetail(null)}>
+        {detail === 'saving' && <SavingsDetail data={data} />}
+      </Sheet>
+      <Sheet open={detail === 'debt' && !hideDebt} title="Detail utang" onClose={() => setDetail(null)}>
+        {detail === 'debt' && !hideDebt && <DebtDetail data={data} />}
+      </Sheet>
       <Sheet open={!!editing} title={editing?.kind === 'debt' ? 'Utang' : 'Tabungan'} onClose={() => setEditing(null)}>
         {editing && <GoalForm key={editing.row.id} editing={editing} onClose={() => setEditing(null)} onDelete={remove} />}
       </Sheet>
