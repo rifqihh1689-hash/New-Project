@@ -8,7 +8,9 @@ import { addDays, addMonths, monthOf, weekDates, weekStart } from '../../domain/
 import { effectiveRitme, workEndTime } from '../../domain/ritme'
 import { proteinTarget, resolveNutrition, slotsFor } from '../../domain/menu'
 import { loadMenus } from '../../db/menu'
-import { previousMonday, reviewXpTotal } from '../../domain/weekly'
+import { previousMonday, reviewWindow, reviewXpTotal } from '../../domain/weekly'
+import { savingPlan } from '../../domain/money'
+import { diffDays } from '../../domain/time'
 import { privateId } from '../../lib/id'
 import { db } from '../../db/db'
 import { loadAllResults, loadDaySnapshot } from '../../db/daily'
@@ -37,17 +39,20 @@ export async function loadBeranda(today: ISODate) {
       db.mainQuests.where('status').equals('aktif').toArray(),
       db.chapters.where('end').aboveOrEqual(today).toArray(),
     ])
-  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda, lastMonthReview] = await Promise.all([
-    db.reviews.where('period').equals('minggu').toArray(),
-    db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
-    loadMenus(),
-    db.mealPlans.where('date').equals(today).toArray(),
-    db.claims.count(),
-    db.proposals.where('status').equals('menunggu').count(),
-    db.events.where('date').equals(today).toArray(),
-    // Prioritas bulan ini ditulis di Muhasabah bulanan bulan lalu.
-    db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
-  ])
+  const [reviews, lastReview, menus, todayMeals, claimCount, pendingProposals, agenda, lastMonthReview, recentDays, strength] =
+    await Promise.all([
+      db.reviews.where('period').equals('minggu').toArray(),
+      db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
+      loadMenus(),
+      db.mealPlans.where('date').equals(today).toArray(),
+      db.claims.count(),
+      db.proposals.where('status').equals('menunggu').count(),
+      db.events.where('date').equals(today).toArray(),
+      // Prioritas bulan ini ditulis di Muhasabah bulanan bulan lalu.
+      db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
+      db.days.where('date').between(addDays(today, -2), today, true, true).toArray(),
+      db.workouts.where('kind').equals('beban').toArray(),
+    ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
   const meals = slotsFor(nutrition.mealsPerDay).map((slot) => {
@@ -81,6 +86,37 @@ export async function loadBeranda(today: ISODate) {
   const debtLeft = debts.reduce((s, d) => s + d.initial - d.payments.reduce((p, x) => p + x.amount, 0), 0)
   const debtInitial = debts.reduce((s, d) => s + d.initial, 0)
   const bridge = savings.filter((s) => s.kind === 'jembatan')
+  const lastStrength = strength.reduce<string | null>((a, w) => (w.date <= today && (!a || w.date > a) ? w.date : a), null)
+  const milestone =
+    phases
+      .filter((p) => !p.archived)
+      .flatMap((p) => [
+        p.start && p.start > today ? { name: `${p.name} mulai`, date: p.start } : null,
+        p.end && p.end > today ? { name: p.id === phase?.id ? `${p.name} selesai` : p.name, date: p.end } : null,
+      ])
+      .filter((x): x is { name: string; date: string } => !!x)
+      .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null
+  const insightBase = {
+    sleep: [0, 1, 2].map((n) => {
+      const d = recentDays.find((x) => x.date === addDays(today, -n))
+      return d ? sleepTotal(d.sleepNight, d.nap, rules) : null
+    }),
+    daysSinceStrength: lastStrength ? diffDays(today, lastStrength) : null,
+    nextChapter: chapters.filter((c) => c.start > today).sort((a, b) => a.start.localeCompare(b.start))[0] ?? null,
+    milestone,
+    reviewOpen: reviewWindow(previousMonday(weekStart(today)), today) === 'buka' && !lastReview?.completedAt,
+    savings: savings.map((s) => {
+      const plan = savingPlan(s, today)
+      return {
+        name: s.name,
+        kind: s.kind,
+        saved: plan.done,
+        target: plan.target,
+        perMonth: plan.perMonth,
+        depositedThisMonth: s.deposits.some((d) => monthOf(d.date) === month),
+      }
+    }),
+  }
   const tentirIncome = txs.filter((t) => t.type === 'income' && t.tentirSessionId).reduce((s, t) => s + t.amount, 0)
 
   return {
@@ -117,6 +153,7 @@ export async function loadBeranda(today: ISODate) {
     monthPriorities: (lastMonthReview?.priorities ?? []).filter((p) => p.trim()),
     meals,
     proteinTarget: proteinTarget(nutrition),
+    insightBase,
   }
 }
 
