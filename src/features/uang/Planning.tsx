@@ -40,7 +40,6 @@ const Bar = ({ pct, className }: { pct: number; className: string }) => (
 )
 
 const pctText = (pct: number) => `${Math.round(Math.max(0, Math.min(1, pct)) * 100)}%`
-const MASK = '•••••'
 
 /** Bagian yang bisa dilipat: judul + ringkasan satu baris tetap terlihat saat tertutup. */
 function Fold({
@@ -258,9 +257,7 @@ export function GoalsCard({ data }: { data: UangData }) {
     : 'belum ada'
   const debtsSummary = !data.debts.length
     ? 'belum ada'
-    : hideDebt
-      ? 'disembunyikan'
-      : `sisa ${formatRupiahShort(debtTotal.left)} · ${pctText(debtTotal.target ? 1 - debtTotal.left / debtTotal.target : 0)} lunas`
+    : `sisa ${formatRupiahShort(debtTotal.left)} · ${pctText(debtTotal.target ? 1 - debtTotal.left / debtTotal.target : 0)} lunas`
   const remove = async (table: 'savings' | 'debts', id: string) => {
     const row = await deleteGoal(table, id)
     setEditing(null)
@@ -268,8 +265,21 @@ export function GoalsCard({ data }: { data: UangData }) {
   }
   return (
     <section className="card">
-      <h2 className="card-title">Tabungan & utang</h2>
-      {!data.savings.length && !data.debts.length && (
+      <h2 className="card-title">
+        {hideDebt ? 'Tabungan' : 'Tabungan & utang'}
+        {hideDebt && data.debts.length > 0 && (
+          // Sengaja tanpa teks: saat disembunyikan, kata "utang" tidak boleh terlihat di layar.
+          <button
+            type="button"
+            className="btn-ghost ml-auto p-1.5 text-faint"
+            aria-label="Tampilkan bagian tersembunyi"
+            onClick={() => setHideDebt(false)}
+          >
+            <EyeOff size={15} aria-hidden="true" />
+          </button>
+        )}
+      </h2>
+      {!data.savings.length && (!data.debts.length || hideDebt) && (
         <p className="text-[13px] text-muted">
           Mulai dengan <b className="font-medium text-text">dana jembatan</b> (biaya hidup selama jeda koas → PPDS). Hadiah berbiaya terbuka
           setelah targetnya tercapai.
@@ -315,69 +325,64 @@ export function GoalsCard({ data }: { data: UangData }) {
             <Plus size={14} aria-hidden="true" /> Tabungan
           </button>
         </Fold>
-        <Fold
-          title="Utang"
-          summary={debtsSummary}
-          open={debtsOpen}
-          onToggle={() => setDebtsOpen(!debtsOpen)}
-          extra={
-            data.debts.length > 0 && (
-              <button
-                type="button"
-                className="btn-ghost p-1.5"
-                aria-pressed={hideDebt}
-                aria-label={hideDebt ? 'Tampilkan progres utang' : 'Sembunyikan progres utang'}
-                title={hideDebt ? 'Tampilkan progres utang' : 'Sembunyikan progres utang'}
-                onClick={() => setHideDebt(!hideDebt)}
-              >
-                {hideDebt ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-              </button>
-            )
-          }
-        >
-          <ul className="grid gap-3">
-            {data.debts.map(({ d, plan }) => (
-              <li key={d.id} className="text-[13.5px]">
-                <div className="flex items-baseline gap-2">
-                  <button type="button" className="flex-1 text-left font-medium" onClick={() => setEditing({ kind: 'debt', row: d })}>
-                    {d.name}
-                  </button>
-                  {plan.left > 0 && (
-                    <button
-                      type="button"
-                      className="btn-ghost py-1 text-xs"
-                      onClick={() => setTopup({ kind: 'debt', id: d.id, name: d.name })}
-                    >
-                      + Bayar
-                    </button>
-                  )}
-                </div>
-                {hideDebt ? (
-                  <div className="text-xs text-muted">{MASK}</div>
-                ) : (
-                  <>
-                    <div className="text-xs text-muted tabular-nums">
-                      sisa {formatRupiah(plan.left)} dari {formatRupiah(plan.target)} · {pctText(plan.pct)} lunas
-                      {plan.left === 0
-                        ? ' · lunas'
-                        : plan.perMonth
-                          ? ` · ${formatRupiahShort(plan.perMonth)}/bln sampai ${monthYear(d.targetDate!)}`
-                          : ''}
-                    </div>
-                    <Bar pct={plan.pct} className="bg-uang" />
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            className="btn-ghost mt-3 border border-line py-1.5"
-            onClick={() => setEditing({ kind: 'debt', row: newDebt() })}
+        {!hideDebt && (
+          <Fold
+            title="Utang"
+            summary={debtsSummary}
+            open={debtsOpen}
+            onToggle={() => setDebtsOpen(!debtsOpen)}
+            extra={
+              data.debts.length > 0 && (
+                <button
+                  type="button"
+                  className="btn-ghost p-1.5"
+                  aria-label="Sembunyikan utang dari layar"
+                  title="Sembunyikan dari layar"
+                  onClick={() => setHideDebt(true)}
+                >
+                  <Eye size={16} aria-hidden="true" />
+                </button>
+              )
+            }
           >
-            <Plus size={14} aria-hidden="true" /> Utang
-          </button>
-        </Fold>
+            <ul className="grid gap-3">
+              {data.debts.map(({ d, plan }) => (
+                <li key={d.id} className="text-[13.5px]">
+                  <div className="flex items-baseline gap-2">
+                    <button type="button" className="flex-1 text-left font-medium" onClick={() => setEditing({ kind: 'debt', row: d })}>
+                      {d.name}
+                    </button>
+                    {plan.left > 0 && (
+                      <button
+                        type="button"
+                        className="btn-ghost py-1 text-xs"
+                        onClick={() => setTopup({ kind: 'debt', id: d.id, name: d.name })}
+                      >
+                        + Bayar
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted tabular-nums">
+                    sisa {formatRupiah(plan.left)} dari {formatRupiah(plan.target)} · {pctText(plan.pct)} lunas
+                    {plan.left === 0
+                      ? ' · lunas'
+                      : plan.perMonth
+                        ? ` · ${formatRupiahShort(plan.perMonth)}/bln sampai ${monthYear(d.targetDate!)}`
+                        : ''}
+                  </div>
+                  <Bar pct={plan.pct} className="bg-uang" />
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn-ghost mt-3 border border-line py-1.5"
+              onClick={() => setEditing({ kind: 'debt', row: newDebt() })}
+            >
+              <Plus size={14} aria-hidden="true" /> Utang
+            </button>
+          </Fold>
+        )}
       </div>
       <Sheet open={!!editing} title={editing?.kind === 'debt' ? 'Utang' : 'Tabungan'} onClose={() => setEditing(null)}>
         {editing && <GoalForm key={editing.row.id} editing={editing} onClose={() => setEditing(null)} onDelete={remove} />}

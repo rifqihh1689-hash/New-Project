@@ -97,7 +97,21 @@ export function MoneyCard({ data }: { data: BerandaData }) {
     <div className="card">
       <h3 className="card-title">
         Uang
-        <a href={routeHref('uang')} className="ml-auto text-[13px] font-normal text-faint hover:text-text">
+        {hideDebt && money.hasDebt && (
+          // Tanpa teks: saat disembunyikan, kata "utang" tidak boleh terlihat.
+          <button
+            type="button"
+            className="btn-ghost ml-auto p-1 text-faint"
+            aria-label="Tampilkan bagian tersembunyi"
+            onClick={() => setHideDebt(false)}
+          >
+            <EyeOff size={14} aria-hidden="true" />
+          </button>
+        )}
+        <a
+          href={routeHref('uang')}
+          className={`${hideDebt && money.hasDebt ? '' : 'ml-auto '}text-[13px] font-normal text-faint hover:text-text`}
+        >
           Buka →
         </a>
       </h3>
@@ -107,30 +121,31 @@ export function MoneyCard({ data }: { data: BerandaData }) {
         money.budget ? `${formatRupiahShort(money.expense)} / ${formatRupiahShort(money.budget)}` : formatRupiah(money.expense),
       )}
       {money.budget > 0 && bar((money.expense / money.budget) * 100, money.expense > money.budget ? 'var(--danger)' : 'var(--ok)')}
-      {!money.hasDebt && !money.bridge.length && money.tentirIncome === 0 ? (
-        <p className="mt-3 text-xs text-faint">Atur dana jembatan, utang, dan anggaran di halaman Uang.</p>
+      {(!money.hasDebt || hideDebt) && !money.bridge.length && money.tentirIncome === 0 ? (
+        <p className="mt-3 text-xs text-faint">
+          {hideDebt ? 'Atur dana jembatan dan anggaran di halaman Uang.' : 'Atur dana jembatan, utang, dan anggaran di halaman Uang.'}
+        </p>
       ) : (
         <>
-          {money.hasDebt && (
+          {money.hasDebt && !hideDebt && (
             <>
               <div className="mt-3 flex items-center justify-between text-[13px] text-muted">
                 <span>Sisa utang</span>
                 <span className="flex items-center gap-1">
                   <b className="font-semibold text-text tabular-nums">
-                    {hideDebt ? '•••••' : `${formatRupiah(money.debtLeft)} · ${debtPct}% lunas`}
+                    {formatRupiah(money.debtLeft)} · {debtPct}% lunas
                   </b>
                   <button
                     type="button"
                     className="btn-ghost p-1"
-                    aria-pressed={hideDebt}
-                    aria-label={hideDebt ? 'Tampilkan sisa utang' : 'Sembunyikan sisa utang'}
-                    onClick={() => setHideDebt(!hideDebt)}
+                    aria-label="Sembunyikan utang dari layar"
+                    onClick={() => setHideDebt(true)}
                   >
-                    {hideDebt ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+                    <Eye size={14} aria-hidden="true" />
                   </button>
                 </span>
               </div>
-              {!hideDebt && bar(debtPct, 'var(--color-uang)')}
+              {bar(debtPct, 'var(--color-uang)')}
             </>
           )}
           {money.bridge.length > 0 && (
