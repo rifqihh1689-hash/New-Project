@@ -1,8 +1,10 @@
 import type { ImportItem } from '../domain/importer'
 import { slotOrder } from '../domain/ritme'
+import { dayKey } from '../domain/time'
 import { createId } from '../lib/id'
 import type { DayType, RitmeSlot } from '../types'
 import { setJaga, saveEvent } from './calendar'
+import { saveCard } from './cards'
 import { addTask } from './daily'
 import { db } from './db'
 import { loadMenus, newMenu, saveMenu } from './menu'
@@ -25,6 +27,8 @@ export interface ImportSummary {
   utangUpdated: number
   cicilan: number
   setoran: number
+  kartu: number
+  kartuSkipped: number
   /** Transaksi/cicilan/setoran yang sudah tercatat, atau utang/tabungan yang tidak ditemukan. */
   uangSkipped: number
 }
@@ -51,6 +55,8 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     utangUpdated: 0,
     cicilan: 0,
     setoran: 0,
+    kartu: 0,
+    kartuSkipped: 0,
     uangSkipped: 0,
   }
   const now = Date.now()
@@ -206,6 +212,22 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     await addDeposit(s.id, it.amount, it.date)
     sum.setoran++
   }
+  // Kartu ulasan: sisi depan yang sama dilewati.
+  const cards = items.filter((it): it is Extract<ImportItem, { kind: 'kartu' }> => it.kind === 'kartu')
+  if (cards.length) {
+    const have = new Set((await db.flashcards.toArray()).map((c) => c.front.trim().toLowerCase()))
+    const today = dayKey()
+    for (const it of cards) {
+      const key = it.front.trim().toLowerCase()
+      if (have.has(key)) {
+        sum.kartuSkipped++
+        continue
+      }
+      have.add(key)
+      await saveCard({ front: it.front, back: it.back, system: it.system, source: 'claude' }, today)
+      sum.kartu++
+    }
+  }
   return sum
 }
 
@@ -226,6 +248,8 @@ export function summaryText(s: ImportSummary): string {
     s.utangUpdated && `${s.utangUpdated} utang diperbarui`,
     s.cicilan && `${s.cicilan} cicilan`,
     s.setoran && `${s.setoran} setoran/penarikan`,
+    s.kartu && `${s.kartu} kartu ulasan`,
+    s.kartuSkipped && `${s.kartuSkipped} kartu sudah ada`,
     s.uangSkipped && `${s.uangSkipped} catatan uang dilewati (sudah ada / utang-tabungan tidak ditemukan)`,
   ].filter(Boolean)
   return parts.length ? `Diimpor: ${parts.join(', ')}.` : 'Tidak ada yang diimpor.'
