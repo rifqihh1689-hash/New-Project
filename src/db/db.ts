@@ -28,6 +28,7 @@ import type {
   Saving,
   StudyLog,
   Flashcard,
+  PpdsDoc,
   Student,
   Task,
   TentirPackage,
@@ -53,6 +54,7 @@ export type QawwamDB = Dexie & {
   notes: EntityTable<Note, 'id'>
   studyLogs: EntityTable<StudyLog, 'id'>
   flashcards: EntityTable<Flashcard, 'id'>
+  ppdsDocs: EntityTable<PpdsDoc, 'id'>
   transactions: EntityTable<Transaction, 'id'>
   categories: EntityTable<Category, 'id'>
   budgets: EntityTable<Budget, 'id'>
@@ -131,6 +133,10 @@ export const SCHEMA_V5_ADDITIONS = {
   flashcards: 'id, due',
 } as const
 
+export const SCHEMA_V6_ADDITIONS = {
+  ppdsDocs: 'id, group, due',
+} as const
+
 export function createDatabase(name: string = DB_NAME): QawwamDB {
   const db = new Dexie(name, { addons: [dexieCloud] }) as QawwamDB
   db.version(1).stores(SCHEMA_V1)
@@ -142,6 +148,15 @@ export function createDatabase(name: string = DB_NAME): QawwamDB {
   db.version(4).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS, ...SCHEMA_V4_ADDITIONS })
   // v5: Belajar UKMPPD (catatan latihan soal & tryout, kartu ulasan).
   db.version(5).stores({ ...SCHEMA_V1, ...SCHEMA_V2_ADDITIONS, ...SCHEMA_V3_ADDITIONS, ...SCHEMA_V4_ADDITIONS, ...SCHEMA_V5_ADDITIONS })
+  // v6: Berkas PPDS (daftar persiapan dengan status & tenggat).
+  db.version(6).stores({
+    ...SCHEMA_V1,
+    ...SCHEMA_V2_ADDITIONS,
+    ...SCHEMA_V3_ADDITIONS,
+    ...SCHEMA_V4_ADDITIONS,
+    ...SCHEMA_V5_ADDITIONS,
+    ...SCHEMA_V6_ADDITIONS,
+  })
   return db
 }
 

@@ -10,6 +10,7 @@ import { proteinTarget, resolveNutrition, slotsFor } from '../../domain/menu'
 import { loadMenus } from '../../db/menu'
 import { previousMonday, reviewWindow, reviewXpTotal } from '../../domain/weekly'
 import { savingPlan } from '../../domain/money'
+import { docStats, nextDeadline } from '../../domain/ppds'
 import { DEFAULT_STUDY_WEEKLY, systemStats, weakestSystem, weekProgress } from '../../domain/study'
 import { diffDays } from '../../domain/time'
 import { privateId } from '../../lib/id'
@@ -53,6 +54,7 @@ export async function loadBeranda(today: ISODate) {
     strength,
     studyLogs,
     cards,
+    docs,
   ] = await Promise.all([
     db.reviews.where('period').equals('minggu').toArray(),
     db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
@@ -67,6 +69,7 @@ export async function loadBeranda(today: ISODate) {
     db.workouts.where('kind').equals('beban').toArray(),
     db.studyLogs.toArray(),
     db.flashcards.where('due').belowOrEqual(today).count(),
+    db.ppdsDocs.toArray(),
   ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
@@ -116,7 +119,15 @@ export async function loadBeranda(today: ISODate) {
   const studyWeek = weekProgress(studyLogs, today, studyTarget?.weeklyQuestions ?? DEFAULT_STUDY_WEEKLY)
   // Tanggal UKMPPD dari Belajar ikut jadi tanggal penting bila lebih dekat dari yang di fase hidup.
   const exam = studyTarget?.examDate && studyTarget.examDate > today ? { name: 'UKMPPD', date: studyTarget.examDate } : null
+  const dueDoc = nextDeadline(docs)
+  const questWithNext = [...mainQuests].filter((q) => q.next.trim()).sort((a, b) => a.progress - b.progress)[0]
   const insightBase = {
+    ppds: {
+      questCount: mainQuests.length,
+      quest: questWithNext ? { name: questWithNext.name, next: questWithNext.next } : null,
+      docs: { total: docs.length, ready: docs.filter((d) => d.status === 'siap').length, overdue: docStats(docs, today).overdue },
+      nextDoc: dueDoc ? { name: (dueDoc as (typeof docs)[number]).name, due: dueDoc.due! } : null,
+    },
     study: {
       weekDone: studyWeek.done,
       weekTarget: studyWeek.target,

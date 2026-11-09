@@ -1,5 +1,13 @@
 import { dayKey } from '../domain/time'
-import { db, SCHEMA_V1, SCHEMA_V2_ADDITIONS, SCHEMA_V3_ADDITIONS, SCHEMA_V4_ADDITIONS, SCHEMA_V5_ADDITIONS } from './db'
+import {
+  db,
+  SCHEMA_V1,
+  SCHEMA_V2_ADDITIONS,
+  SCHEMA_V3_ADDITIONS,
+  SCHEMA_V4_ADDITIONS,
+  SCHEMA_V5_ADDITIONS,
+  SCHEMA_V6_ADDITIONS,
+} from './db'
 
 export const BACKUP_APP = 'qawwam'
 export const BACKUP_VERSION = 1
@@ -20,6 +28,7 @@ export async function createBackup(now: Date = new Date()): Promise<BackupFile> 
     ...Object.keys(SCHEMA_V3_ADDITIONS),
     ...Object.keys(SCHEMA_V4_ADDITIONS),
     ...Object.keys(SCHEMA_V5_ADDITIONS),
+    ...Object.keys(SCHEMA_V6_ADDITIONS),
   ])
     data[name] = await db.table(name).toArray()
   return { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), data }
