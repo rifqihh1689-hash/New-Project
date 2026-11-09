@@ -11,6 +11,7 @@ import { loadMenus } from '../../db/menu'
 import { previousMonday, reviewWindow, reviewXpTotal } from '../../domain/weekly'
 import { savingPlan } from '../../domain/money'
 import { docStats, nextDeadline } from '../../domain/ppds'
+import { energyReport } from '../../domain/energy'
 import { DEFAULT_STUDY_WEEKLY, systemStats, weakestSystem, weekProgress } from '../../domain/study'
 import { diffDays } from '../../domain/time'
 import { privateId } from '../../lib/id'
@@ -65,7 +66,7 @@ export async function loadBeranda(today: ISODate) {
     db.events.where('date').equals(today).toArray(),
     // Prioritas bulan ini ditulis di Muhasabah bulanan bulan lalu.
     db.reviews.get(privateId.monthlyReview(addMonths(monthOf(today), -1))),
-    db.days.where('date').between(addDays(today, -2), today, true, true).toArray(),
+    db.days.where('date').between(addDays(today, -27), today, true, true).toArray(),
     db.workouts.where('kind').equals('beban').toArray(),
     db.studyLogs.toArray(),
     db.flashcards.where('due').belowOrEqual(today).count(),
@@ -119,6 +120,7 @@ export async function loadBeranda(today: ISODate) {
   const studyWeek = weekProgress(studyLogs, today, studyTarget?.weeklyQuestions ?? DEFAULT_STUDY_WEEKLY)
   // Tanggal UKMPPD dari Belajar ikut jadi tanggal penting bila lebih dekat dari yang di fase hidup.
   const exam = studyTarget?.examDate && studyTarget.examDate > today ? { name: 'UKMPPD', date: studyTarget.examDate } : null
+  const energy = energyReport(recentDays, today)
   const dueDoc = nextDeadline(docs)
   const questWithNext = [...mainQuests].filter((q) => q.next.trim()).sort((a, b) => a.progress - b.progress)[0]
   const insightBase = {
@@ -137,6 +139,7 @@ export async function loadBeranda(today: ISODate) {
       examDateSet: !!studyTarget?.examDate,
       cardsDue: cards,
     },
+    energy: { lowRun: energy.lowRun, pattern: energy.pattern },
     sleep: [0, 1, 2].map((n) => {
       const d = recentDays.find((x) => x.date === addDays(today, -n))
       return d ? sleepTotal(d.sleepNight, d.nap, rules) : null
@@ -194,6 +197,7 @@ export async function loadBeranda(today: ISODate) {
     meals,
     proteinTarget: proteinTarget(nutrition),
     insightBase,
+    energy,
   }
 }
 

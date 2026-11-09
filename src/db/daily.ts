@@ -24,6 +24,16 @@ async function putDay(date: ISODate, change: (day: Day) => Partial<Day>): Promis
   })
 }
 
+/** Catat energi hari ini (1–5); `null` menghapus. Mengembalikan nilai sebelumnya untuk Urungkan. */
+export async function setEnergy(date: ISODate, energy: Day['energy'] | null): Promise<Day['energy'] | null> {
+  let prev: Day['energy'] | null = null
+  await putDay(date, (day) => {
+    prev = day.energy ?? null
+    return { energy: energy ?? undefined }
+  })
+  return prev
+}
+
 /**
  * Memilih tipe hari. Saat pasca-jaga, tugas yang belum selesai dan bukan pemulihan pindah ke besok.
  * Mengembalikan ID tugas yang dipindah (untuk tombol Urungkan).

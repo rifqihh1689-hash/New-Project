@@ -5,6 +5,7 @@ import { useToday } from '../../app/useToday'
 import { PageTop } from '../../components/PageTop'
 import { MoneyCard, TentirCard, WeekCard } from './BottomCards'
 import { CloseDayCard } from './CloseDayCard'
+import { EnergyCard } from './EnergyCard'
 import { useBeranda } from './data'
 import { GameStrip } from './GameStrip'
 import { Hero } from './Hero'
@@ -59,6 +60,7 @@ export function BerandaPage() {
             </div>
             <div className="stagger grid content-start gap-3">
               {!isPasca && <PrioritiesCard data={data} />}
+              <EnergyCard data={data} />
               <MutabaahCard data={data} />
               <MiniCalendar today={today} />
               <MealsCard data={data} />
@@ -78,6 +80,7 @@ export function BerandaPage() {
         // HP = "Hari ini": yang dikerjakan sekarang dulu, ringkasan lain bisa dibuka.
         <div className="stagger grid gap-3">
           <TodayList data={data} />
+          <EnergyCard data={data} />
           <MutabaahCard data={data} />
           <CloseDayCard data={data} />
           <button

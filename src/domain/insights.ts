@@ -51,6 +51,7 @@ export interface InsightInput {
     docs: { total: number; ready: number; overdue: number }
     nextDoc: { name: string; due: ISODate } | null
   } | null
+  energy: { lowRun: number; pattern: { low: { label: string; avg: number }; high: { label: string; avg: number } } | null } | null
   /** Muhasabah minggu lalu bisa diisi dan belum selesai. */
   reviewOpen: boolean
 }
@@ -86,6 +87,18 @@ export function pickInsights(i: InsightInput): Insight[] {
         priority: 30,
       })
   }
+
+  // Energi rendah berturut-turut: meringankan beban lebih penting daripada target apa pun.
+  if (i.energy && i.energy.lowRun >= 2)
+    add({
+      id: 'energi-rendah',
+      title: `Energi rendah ${i.energy.lowRun} hari berturut-turut.`,
+      detail: recovering
+        ? 'Wajar setelah jaga. Pulih dulu, jangan paksa target.'
+        : 'Hari ini cukup yang paling penting: tunda tugas non-wajib dan jangan tambah sesi tentir.',
+      tone: 'warn',
+      priority: 92,
+    })
 
   if (i.dayType == null || recovering) {
     add({ id: 'ritme', title: i.ritmeLine, tone: 'info', priority: i.dayType == null ? 95 : 70 })
@@ -132,6 +145,19 @@ export function pickInsights(i: InsightInput): Insight[] {
       tone: 'good',
       priority: 55,
     })
+
+  // Pola energi antar tipe hari.
+  if (i.energy?.pattern) {
+    const { low, high } = i.energy.pattern
+    const f = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 1 })
+    add({
+      id: 'energi-pola',
+      title: `Energi hari ${low.label} rata-rata ${f(low.avg)}, hari ${high.label} ${f(high.avg)}.`,
+      detail: 'Rencanakan hal berat di hari yang energinya tinggi.',
+      tone: 'info',
+      priority: 34,
+    })
+  }
 
   // Muhasabah mingguan.
   if (i.reviewOpen)
