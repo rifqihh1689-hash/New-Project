@@ -580,3 +580,17 @@ export interface Flashcard extends Stamped {
   lapses: number
   lastReviewed?: ISODate
 }
+
+// ---------- Berkas PPDS ----------
+
+export type DocStatus = 'belum' | 'proses' | 'siap'
+
+/** Satu butir daftar persiapan PPDS (berkas, sertifikat, portofolio, bahasa). */
+export interface PpdsDoc extends Stamped {
+  name: string
+  group: 'berkas' | 'sertifikat' | 'portofolio' | 'bahasa'
+  status: DocStatus
+  /** Tenggat internal; `null` = belum ditentukan. */
+  due: ISODate | null
+  note?: string
+}

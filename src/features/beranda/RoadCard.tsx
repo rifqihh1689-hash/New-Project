@@ -46,7 +46,15 @@ export function RoadCard({ data }: { data: BerandaData }) {
         ))}
       </ol>
       <div className="mt-4 grid gap-2 border-t border-line pt-3.5">
-        {data.mainQuests.length === 0 && <p className="text-[13px] text-muted">Belum ada Main Quest aktif. Dibuat di Target &amp; PPDS.</p>}
+        {data.mainQuests.length === 0 && (
+          <p className="text-[13px] text-muted">
+            Belum ada Main Quest aktif.{' '}
+            <a href="#/target" className="underline underline-offset-2">
+              Buat di Target &amp; PPDS
+            </a>
+            .
+          </p>
+        )}
         {data.mainQuests.map((q) => (
           <div key={q.id} className="flex items-center gap-2.5 text-[13px]">
             <span className="dot" style={{ background: role(q.roleId).color }} aria-hidden="true" />

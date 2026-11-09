@@ -18,6 +18,7 @@ const base: InsightInput = {
   nextChapter: null,
   milestone: null,
   study: null,
+  ppds: null,
   reviewOpen: false,
 }
 
@@ -92,5 +93,20 @@ describe('pickInsights', () => {
     )
     expect(r.find((x) => x.id === 'belajar-lemah')?.title).toBe('Saraf sistem terlemahmu (50%).')
     expect(ids({ study: { ...study, behind: false, weekDone: 150 } })).toContain('belajar-tercapai')
+  })
+
+  it('PPDS: berkas lewat tenggat & dekat, langkah Main Quest, quest kosong', () => {
+    const docs = { total: 10, ready: 3, overdue: 1 }
+    const mk = (nextDoc: { name: string; due: string } | null, quest: { name: string; next: string } | null, questCount = 1) => ({
+      questCount,
+      quest,
+      docs,
+      nextDoc,
+    })
+    expect(ids({ ppds: mk({ name: 'STR dokter', due: '2026-11-05' }, null) })[0]).toBe('berkas-lewat')
+    expect(ids({ ppds: mk({ name: 'TOEFL', due: '2026-11-20' }, null) })).toContain('berkas-dekat')
+    expect(ids({ ppds: mk({ name: 'TOEFL', due: '2027-03-01' }, null) })).not.toContain('berkas-dekat')
+    expect(ids({ ppds: mk(null, { name: 'Lulus UKMPPD', next: 'Tryout 1' }) })).toContain('quest-langkah')
+    expect(ids({ ppds: mk(null, null, 0) })).toContain('quest-kosong')
   })
 })

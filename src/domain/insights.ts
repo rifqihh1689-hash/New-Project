@@ -44,6 +44,13 @@ export interface InsightInput {
     examDateSet: boolean
     cardsDue: number
   } | null
+  ppds: {
+    questCount: number
+    /** Langkah berikutnya dari Main Quest aktif dengan progres terendah yang punya langkah. */
+    quest: { name: string; next: string } | null
+    docs: { total: number; ready: number; overdue: number }
+    nextDoc: { name: string; due: ISODate } | null
+  } | null
   /** Muhasabah minggu lalu bisa diisi dan belum selesai. */
   reviewOpen: boolean
 }
@@ -243,6 +250,50 @@ export function pickInsights(i: InsightInput): Insight[] {
       tone: 'info',
       priority: 32,
     })
+
+  // Persiapan PPDS: tenggat berkas dan langkah Main Quest.
+  if (i.ppds) {
+    const p = i.ppds
+    if (p.nextDoc) {
+      const d = diffDays(p.nextDoc.due, i.today)
+      if (d < 0)
+        add({
+          id: 'berkas-lewat',
+          title: `${p.nextDoc.name} lewat tenggat ${-d} hari.`,
+          detail: 'Tetapkan tanggal baru atau tandai siap.',
+          tone: 'warn',
+          href: '#/target',
+          priority: 68,
+        })
+      else if (d <= 30)
+        add({
+          id: 'berkas-dekat',
+          title: `${p.nextDoc.name}: ${d === 0 ? 'tenggat hari ini' : `${d} hari lagi`}.`,
+          detail: `${p.docs.ready} dari ${p.docs.total} butir persiapan PPDS siap.`,
+          tone: 'info',
+          href: '#/target',
+          priority: d <= 7 ? 61 : 44,
+        })
+    }
+    if (p.quest)
+      add({
+        id: 'quest-langkah',
+        title: `${p.quest.name}: ${p.quest.next}`,
+        detail: 'Langkah berikutnya Main Quest.',
+        tone: 'info',
+        href: '#/target',
+        priority: 36,
+      })
+    else if (p.questCount === 0)
+      add({
+        id: 'quest-kosong',
+        title: 'Belum ada Main Quest.',
+        detail: 'Pilih 1–3 tujuan besar supaya hari-harimu punya arah.',
+        tone: 'info',
+        href: '#/target',
+        priority: 33,
+      })
+  }
 
   // Belajar UKMPPD.
   if (i.study) {
