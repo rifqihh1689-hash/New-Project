@@ -154,6 +154,8 @@ export interface Day extends CloudFields {
   sleepNight: number | null
   /** Jam qailulah/tidur siang hari ini. */
   nap: number
+  /** Energi subjektif hari ini, 1 (habis) – 5 (prima). Tidak masuk XP; hanya untuk melihat pola. */
+  energy?: 1 | 2 | 3 | 4 | 5
   workEnd: WorkEnd | null
   note: string
   /** Hasil final saat hari terkunci. Hari beku tidak berubah walau aturan/habit diedit. */

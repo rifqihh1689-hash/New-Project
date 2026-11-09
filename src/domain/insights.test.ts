@@ -19,6 +19,7 @@ const base: InsightInput = {
   milestone: null,
   study: null,
   ppds: null,
+  energy: null,
   reviewOpen: false,
 }
 
@@ -108,5 +109,18 @@ describe('pickInsights', () => {
     expect(ids({ ppds: mk({ name: 'TOEFL', due: '2027-03-01' }, null) })).not.toContain('berkas-dekat')
     expect(ids({ ppds: mk(null, { name: 'Lulus UKMPPD', next: 'Tryout 1' }) })).toContain('quest-langkah')
     expect(ids({ ppds: mk(null, null, 0) })).toContain('quest-kosong')
+  })
+
+  it('energi rendah dua hari berturut-turut mengalahkan temuan lain, juga di hari pemulihan', () => {
+    const energy = { lowRun: 2, pattern: null }
+    expect(ids({ energy, sleep: [5, 5, 5] })[0]).toBe('energi-rendah')
+    expect(ids({ energy, dayType: 'pasca' })[0]).toBe('energi-rendah')
+    expect(text({ energy, dayType: 'pasca' })).toContain('Wajar setelah jaga')
+    expect(ids({ energy: { lowRun: 1, pattern: null } })).not.toContain('energi-rendah')
+  })
+
+  it('pola energi antar tipe hari', () => {
+    const energy = { lowRun: 0, pattern: { low: { label: 'pasca-jaga', avg: 2 }, high: { label: 'stase', avg: 3.7 } } }
+    expect(text({ energy })).toContain('Energi hari pasca-jaga rata-rata 2, hari stase 3,7.')
   })
 })
