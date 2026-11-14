@@ -52,6 +52,36 @@ export function napMinutes(s: RitmeSlot): number {
   return 60
 }
 
+export interface Block {
+  /** Menit sejak 00.00. */
+  start: number
+  end: number
+  label: string
+}
+
+/**
+ * Blok ritme yang "lunak": kegiatan rutin selain kerja, tidur siang, dan tidur malam (mis. blok belajar).
+ * Bisa dipotong bila terpaksa, tapi penjadwal menghindarinya dulu. Lamanya dari teks ("90 mnt"), kalau
+ * tidak ada: sampai slot berikutnya, paling lama 2 jam (sama dengan pita 24 jam).
+ */
+export function softBlocks(ritme: RitmeSlot[]): Block[] {
+  const sorted = [...ritme].sort((a, b) => order(a.time) - order(b.time))
+  const out: Block[] = []
+  sorted.forEach((s, i) => {
+    if (s.work || isNapSlot(s) || isNightSleepSlot(s) || isTentirSlot(s) || isTrainingSlot(s) || /^jaga\b/i.test(s.title)) return
+    const start = parseClock(s.time)
+    if (start == null) return
+    const until = s.until ? parseClock(s.until) : null
+    const stated = /(\d+)\s*(mnt|menit)/i.exec(`${s.title} ${s.note ?? ''}`)
+    const next = i + 1 < sorted.length ? order(sorted[i + 1].time) - order(s.time) : 120
+    // Slot ibadah (tanpa peran) pendek; kegiatan lain dianggap sampai slot berikutnya, paling lama 2 jam.
+    const fallback = Math.min(s.roleId ? 120 : 45, Math.max(15, next))
+    const minutes = until != null && until > start ? until - start : stated ? Math.min(240, Number(stated[1])) : fallback
+    out.push({ start, end: start + minutes, label: s.title })
+  })
+  return out
+}
+
 export function plannedTitle(p: Pick<PlannedWorkout, 'kind' | 'day' | 'run'>): string {
   if (p.kind === 'lari') return `Lari ${p.run ? `${RUN_LABELS[p.run.type]} ${String(p.run.km).replace('.', ',')} km` : 'santai'}`
   return `Latihan beban${p.day && p.day !== 'Semua' ? ` · ${p.day}` : ''}`
@@ -216,6 +246,11 @@ export function daySchedule(input: DayScheduleInput): DaySchedule {
       else if (type === 'pasca') item.warn = 'Pasca-jaga: ganti jalan santai, pindahkan sesinya.'
       else if (input.readiness === 'ringan-tidur') item.note = 'Tidur < 5 jam: ringan saja (80% beban, satu set lebih sedikit).'
       else if (input.lowEnergy) item.note = 'Energi rendah: ringan saja, atau pindahkan.'
+      else {
+        // Tidak ada jam yang benar-benar kosong: sesi memotong blok ritme lain. Diberi tahu, bukan disembunyikan.
+        const cut = softBlocks(input.ritme).find((b) => start < b.end && b.start < start + p.minutes)
+        if (cut) item.note = `memotong ${cut.label} ${formatClock(cut.start)}`
+      }
     }
     items.push(item)
   }

@@ -107,27 +107,35 @@ export function WeekPlan({ today, onLog }: { today: ISODate; onLog: (kind: Worko
               >
                 {DAY_SHORT[weekday(d.date)]} {Number(d.date.slice(8))}
               </span>
-              <span className="flex w-[84px] shrink-0 items-center gap-1.5 text-xs text-muted" title={d.typed ? undefined : 'Perkiraan'}>
+              <span
+                className="flex shrink-0 items-center gap-1.5 text-xs text-muted sm:w-[84px]"
+                title={d.typed ? DAY_TYPE_LABELS[d.type] : `${DAY_TYPE_LABELS[d.type]} (perkiraan)`}
+              >
                 <span className="dot" style={{ background: DAY_TYPE_COLORS[d.type], opacity: d.typed ? 1 : 0.45 }} aria-hidden="true" />
-                <span className="truncate">{DAY_TYPE_LABELS[d.type].replace(' malam', '')}</span>
+                {/* HP: titik warna saja supaya sesi muat; libur/jaga/pasca tetap ditulis karena menjelaskan kenapa kosong. */}
+                <span className={`truncate ${d.type === 'stase' ? 'hidden sm:inline' : ''}`}>
+                  {DAY_TYPE_LABELS[d.type].replace(' malam', '')}
+                </span>
               </span>
               <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
                 {d.sessions.map(({ p, state, issue }) => (
                   <button
                     key={p.id}
                     type="button"
-                    className={`chip py-1 text-xs ${STATE_CLASS[state]}`}
+                    className={`chip max-w-full shrink py-1 text-xs ${STATE_CLASS[state]}`}
                     onClick={() => setDraft(p)}
                     aria-label={`${chipText(p)}, ${state}${issue ? ` (${issue})` : ''}. Ubah`}
                   >
-                    {state === 'selesai' && <Check size={12} aria-hidden="true" />}
-                    {chipText(p)}
-                    {issue && <span className="no-underline"> · {issue}</span>}
+                    {state === 'selesai' && <Check size={12} className="shrink-0" aria-hidden="true" />}
+                    <span className="truncate">
+                      {chipText(p)}
+                      {issue && ` · ${issue}`}
+                    </span>
                   </button>
                 ))}
                 {preview.map((p) => (
-                  <span key={p.id} className={`chip py-1 text-xs ${STATE_CLASS.usulan}`}>
-                    {chipText(p)}
+                  <span key={p.id} className={`chip max-w-full shrink py-1 text-xs ${STATE_CLASS.usulan}`}>
+                    <span className="truncate">{chipText(p)}</span>
                   </span>
                 ))}
                 {d.extra.map((w) => (
@@ -214,8 +222,9 @@ function ScheduleSettings({ data }: { data: WeekPlanData }) {
         Susun otomatis tiap awal minggu
       </label>
       <p className="text-xs text-faint">
-        Jam yang disukai dipakai bila kosong; kalau terisi tentir atau agenda, sesi digeser ke jam kosong terdekat. Lari mengikuti rencana
-        lari mingguan ({data.runPlan.easyRuns} santai{data.runPlan.qualityRuns ? `, ${data.runPlan.qualityRuns} kualitas` : ''}).
+        Jam yang disukai dipakai bila kosong. Kalau terisi tentir, agenda, atau blok lain di ritme (mis. blok belajar), sesi digeser ke jam
+        kosong terdekat; blok ritme hanya dipotong bila tidak ada jam lain. Lari mengikuti rencana lari mingguan ({data.runPlan.easyRuns}{' '}
+        santai{data.runPlan.qualityRuns ? `, ${data.runPlan.qualityRuns} kualitas` : ''}).
       </p>
     </div>
   )

@@ -258,7 +258,7 @@ export function KalenderPage() {
         message: `${clash.length} sesi latihan jatuh di hari jaga atau pasca-jaga.`,
         tone: 'info',
         duration: 8000,
-        action: { label: 'Susun ulang', onClick: () => void applyWeekPlan(from) },
+        action: { label: 'Susun ulang', onClick: () => void applyWeekPlan(from, from === today ? undefined : null) },
       })
   }
   return (

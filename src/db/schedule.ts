@@ -1,8 +1,8 @@
 import { nextDay } from '../domain/exerciseCatalog'
-import { effectiveRitme, normalizeClock } from '../domain/ritme'
+import { chapterOn, effectiveRitme, normalizeClock } from '../domain/ritme'
 import { type DayScheduleInput } from '../domain/schedule'
 import { sleepTotal } from '../domain/sleep'
-import { addDays, isValidISODate, weekDates, weekStart } from '../domain/time'
+import { addDays, isValidISODate, weekDates, weekStart, wibMinutes } from '../domain/time'
 import { planRunWeek, readiness, runsOf } from '../domain/training'
 import {
   busyOf,
@@ -16,17 +16,12 @@ import {
 } from '../domain/trainingSchedule'
 import { suggestDayType } from '../domain/dayType'
 import { privateId } from '../lib/id'
-import type { Chapter, DayType, ISODate, PlannedWorkout, RunType, TrainingScheduleSettings, TrainingSplit, Workout } from '../types'
+import type { DayType, ISODate, PlannedWorkout, RunType, TrainingScheduleSettings, TrainingSplit, Workout } from '../types'
 import { db } from './db'
 import { loadHabits, loadProfile, rulesOf, updateProfile } from './structure'
 import { HABIT_MATCH, loadWorkouts } from './training'
 
 export class ScheduleError extends Error {}
-
-/** Stase yang berjalan di tanggal itu (yang mulai paling akhir bila tumpang tindih). */
-export function chapterOn(chapters: Chapter[], date: ISODate): Chapter | null {
-  return chapters.filter((c) => c.start <= date && c.end >= date).sort((a, b) => b.start.localeCompare(a.start))[0] ?? null
-}
 
 async function weekContext(today: ISODate) {
   const week = weekDates(today)
@@ -85,8 +80,9 @@ async function weekContext(today: ISODate) {
 
 type Ctx = Awaited<ReturnType<typeof weekContext>>
 
-const compute = (c: Ctx, now: number): PlanResult =>
+const compute = (c: Ctx, now: number, nowMinutes: number | null): PlanResult =>
   planWeek({
+    nowMinutes: nowMinutes ?? undefined,
     today: c.today,
     days: c.days,
     split: c.split,
@@ -103,7 +99,7 @@ const compute = (c: Ctx, now: number): PlanResult =>
 export type PlannedState = 'selesai' | 'terlewat' | 'bentrok' | 'rencana'
 
 /** Jadwal latihan minggu ini untuk halaman Latihan: tujuh hari, sesi terjadwal dengan statusnya, dan usulan susunan. */
-export async function loadWeekPlan(today: ISODate) {
+export async function loadWeekPlan(today: ISODate, nowMinutes: number | null = wibMinutes()) {
   const c = await weekContext(today)
   const doneOn = new Set(c.weekly.map((w) => `${w.date}:${w.kind}`))
   const days = c.days.map((d) => ({
@@ -136,7 +132,7 @@ export async function loadWeekPlan(today: ISODate) {
     doneRuns: c.weekly.filter((w) => w.kind === 'lari').length,
     runPlan: c.runPlan,
     /** Susunan yang akan dipakai bila "Susun" ditekan. */
-    preview: compute(c, 0),
+    preview: compute(c, 0, nowMinutes),
   }
 }
 
@@ -152,10 +148,11 @@ export interface PlanChange {
  * Menyusun (ulang) minggu ini: sesi otomatis yang belum dikerjakan mulai hari ini diganti susunan baru.
  * Sesi buatan tangan, usulan Claude, dan sesi yang sudah dicatat tidak disentuh.
  */
-export async function applyWeekPlan(today: ISODate): Promise<PlanChange> {
+/** `nowMinutes` = jam dinding WIB untuk hari ini; `null` bila `today` bukan hari berjalan (mis. Senin minggu depan). */
+export async function applyWeekPlan(today: ISODate, nowMinutes: number | null = wibMinutes()): Promise<PlanChange> {
   const c = await weekContext(today)
   const now = Date.now()
-  const result = compute(c, now)
+  const result = compute(c, now, nowMinutes)
   const doneOn = new Set(c.weekly.map((w) => `${w.date}:${w.kind}`))
   const removed = c.planned.filter((p) => p.source === 'auto' && p.date >= today && !doneOn.has(`${p.date}:${p.kind}`))
   await db.transaction('rw', db.plannedWorkouts, async () => {
@@ -173,11 +170,11 @@ export async function undoWeekPlan(change: PlanChange): Promise<void> {
 }
 
 /** Bila "otomatis tiap minggu" aktif: susun sekali per minggu saat app dibuka (ID deterministik, aman di banyak perangkat). */
-export async function ensureWeekPlan(today: ISODate): Promise<boolean> {
+export async function ensureWeekPlan(today: ISODate, nowMinutes?: number | null): Promise<boolean> {
   const profile = await loadProfile()
   const monday = weekStart(today)
   if (!profile.trainingSchedule?.auto || profile.trainingSchedule.lastAutoWeek === monday) return false
-  await applyWeekPlan(today)
+  await applyWeekPlan(today, nowMinutes)
   await updateProfile({ trainingSchedule: { ...profile.trainingSchedule, lastAutoWeek: monday } })
   return true
 }

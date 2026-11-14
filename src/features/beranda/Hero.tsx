@@ -60,6 +60,7 @@ export function Hero({ data }: { data: BerandaData }) {
     tentir: { hours: data.tentir.hours, min: data.tentir.capacity.min, max: data.tentir.capacity.max },
     money: { expense: data.money.expense, budget: data.money.budget },
     mutabaah: data.mutabaah.map((m) => ({ name: m.item.name, week: m.week })),
+    conflicts: schedule.conflicts,
   })
   const [top, ...rest] = insights
   // Kalimat ritme tetap ada sebagai baris kecil terakhir (arah per tipe hari), temuan lain maksimal dua.

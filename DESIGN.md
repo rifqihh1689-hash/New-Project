@@ -86,6 +86,23 @@ Tujuan: tahu persis beban/jarak sesi berikutnya dan tidak stuck. Target bawaan: 
 - **Progres:** grafik perkiraan 1RM per gerakan (garis target untuk bench) dan perkiraan 5K, rekor tiap gerakan + laju kg/minggu, "Stagnan: ganti variasi?". Sebelum ada data, tampil contoh berlabel.
 - Mencatat sesi mencentang habit latihan yang cocok di hari itu (nama memuat "beban/bench/gym…" atau "lari/run…"). Catatan sesi dicek identitas pasien.
 
+### Jadwal terpadu
+
+Satu linimasa per hari yang dipakai Beranda, Kalender, dan connector (`src/domain/schedule.ts`), supaya fitur yang berjam saling tahu:
+
+- **Isi:** ritme tipe hari + sesi tentir (jam & murid yang sebenarnya, menggantikan slot "Tentir bila ada sesi") + agenda berjam + sesi latihan terjadwal + jam tidur. Agenda tanpa jam tampil terpisah.
+- **Jam tidur paling lambat** = jam bangun besok − (target tidur − qailulah). Qailulah di ritme dihitung selama slotnya belum lewat 2 jam; setelah itu dianggap terlewat dan jam tidur maju. Slot "Tidur" di ritme yang lebih awal dipertahankan.
+- **Bentrok** antara yang tidak bisa digeser (stase, tentir, agenda, latihan) ditandai di butir yang paling mudah dipindah (latihan, lalu agenda), dan muncul sebagai temuan di pembuka Beranda. Latihan di hari jaga/pasca-jaga atau yang selesai < 1 jam sebelum tidur juga ditandai.
+- **Kesiapan:** tidur < 5 jam atau energi ≤ 2 memberi catatan "ringan saja" di sesi latihan hari itu.
+- **Program latihan masuk ke jam** (`src/domain/trainingSchedule.ts`, halaman Latihan › Jadwal minggu ini): "Susun" menaruh sesi beban & lari minggu ini ke hari dan jam kosong.
+  - Tanpa latihan di hari jaga dan pasca-jaga. Tidak menabrak stase (45 menit sebelum masuk, 30 menit setelah pulang), qailulah, tentir (±15 menit), agenda, tidur; selesai ≥ 1 jam sebelum batas kerja malam; hari ini tidak pernah di jam yang sudah lewat.
+  - Blok ritme lain (mis. blok belajar) dihindari bila ada jam kosong; dipotong hanya bila tidak ada, dan diberi catatan "memotong …".
+  - Full body tidak di hari berurutan; lari kualitas tidak sehari dengan beban dan dihindari sehari setelah hari kaki; satu sesi per hari bila harinya cukup.
+  - Hari yang disukai mengikuti habit latihan (mis. Sen/Rab/Jum); jam yang disukai per hari stase & libur diatur di kartu itu.
+  - Sesi buatan tangan dan usulan Claude tidak digeser. Sesi otomatis diganti saat "Susun ulang"; sesi terlewat ikut ditaruh ulang. Bisa otomatis tiap awal minggu.
+  - Mencatat latihan menandai sesi terjadwal selesai. XP tetap dari habit latihan, tidak dobel.
+- **Sambungan lain:** menandai jaga di Kalender menawarkan "Susun ulang" bila ada sesi yang jatuh di hari jaga/pasca-jaga; slot kosong tentir tidak ditawarkan di atas sesi latihan.
+
 ### Uang
 
 Port Dompetku, disesuaikan untuk koas:
@@ -134,6 +151,7 @@ Sumber jadwal beragam: Google Sheets, screenshot, PDF dari RS, catatan program l
 | `stase` | Stase + jam masuk/pulang; nama + mulai sama = diperbarui | judul, mulai, selesai, masuk, pulang, bobot |
 | `menu` | Daftar menu; nama sama = diperbarui | judul, sumber, waktu, protein, biaya, bahan, tempat, bekal |
 | `pemasukan` / `pengeluaran` | Transaksi; kategori dicocokkan dari nama (kosong = ditebak dari catatan); yang sama persis dilewati | tanggal, jumlah, kategori, catatan |
+| `sesi_latihan` | Sesi latihan yang diberi hari & jam (masuk jadwal terpadu); judul menentukan jenis: "Beban · Atas", "Lari santai 5 km" | tanggal, jam, menit, judul |
 | `utang` | Utang baru; nama sama = jumlah & target diperbarui | judul, jumlah, target |
 | `cicilan` | Pembayaran ke utang yang ada (nama harus sama); yang sama persis dilewati | judul, jumlah, tanggal |
 | `setoran` / `penarikan` | Setoran/penarikan tabungan yang ada (mis. dana jembatan) | judul, jumlah, tanggal |
@@ -203,7 +221,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 - Baris "satu per kunci alami" (hari per tanggal, log habit/mutaba'ah per tanggal, profil, Muhasabah per minggu, rencana makan per tanggal & waktu makan): ID privat `#…` (`#day:2026-11-05`). Dexie Cloud menerjemahkannya per pengguna, jadi HP dan laptop yang offline menulis ke baris yang sama, bukan membuat duplikat.
 - Bawaan (peran, fase, mutaba'ah, habit inti, menu awal) hidup di kode dengan ID `#…`; database hanya menyimpan perubahanmu. Perangkat baru tidak pernah menimpa nama atau warna yang sudah kamu ubah.
 - Peran, fase, habit, mutaba'ah, dan menu tidak dihapus, hanya diarsipkan/dinonaktifkan. Riwayat lama tetap utuh.
-- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu, v3 latihan & hadiah, v4 murid, paket & materi tentir).
+- Mengubah skema = menambah versi Dexie; data lama tidak tersentuh (v2 menambah tabel Menu, v3 latihan & hadiah, v4 murid, paket & materi tentir, v5 belajar & kartu ulasan, v6 berkas PPDS, v7 sesi latihan terjadwal).
 
 | Tabel | Isi utama | Status |
 |---|---|---|
@@ -218,6 +236,7 @@ Semua kunci primer berupa string yang dibuat otomatis oleh app (syarat Dexie Clo
 | `reviews` | Muhasabah mingguan/bulanan: 3 prioritas, refleksi (berhasil, macet, fokus), angka ringkasan, selesai + XP | dipakai |
 | `menus` / `mealPlans` | daftar menu (beli/masak, waktu makan, protein, biaya, bahan, bekal); rencana per tanggal & waktu makan. Daftar belanja dihitung dari rencana, tidak disimpan terpisah | dipakai |
 | `exercises` / `workouts` | gerakan (rentang rep, set, kenaikan, arsip; bawaan di kode); sesi beban (set kg × rep, rasa) atau lari (km, waktu, jenis) | dipakai |
+| `plannedWorkouts` | sesi latihan yang diberi hari & jam (`#plw:<tanggal>:<jenis>`: satu beban + satu lari per hari; jenis, hari program / rencana lari, jam mulai, lama, sumber auto/manual/claude) | dipakai |
 | `rewards` / `claims` | hadiah (nama, biaya, arsip) dan klaimnya (nama & biaya saat klaim, level). Token = level − 1 − jumlah klaim | dipakai |
 | `events` | agenda (judul, tanggal, jam mulai/selesai, peran). Jadwal jaga disimpan sebagai tipe hari, stase di `chapters` | dipakai |
 | `mainQuests` | nama, peran, status (aktif/beku/selesai), langkah berikut, progres | disiapkan |
@@ -264,8 +283,9 @@ Folder `connector/`: Cloudflare Worker yang berbicara MCP (Streamable HTTP) dan 
 | `get_overview` | konteks: hari ini & tipe hari, fase, stase, level/XP/streak, peran, habit, mutaba'ah, Main Quest, aturan XP, tentir, makan, target latihan, dana jembatan, uang (kategori, utang & sisa, tabungan), usulan menunggu |
 | `get_summary(from, to)` | ringkasan per hari + total: tidur, XP, lolos, tugas per peran, habit, mutaba'ah, tentir, latihan, lembur |
 | `list_records(table, from, to)` | data mentah satu tabel |
-| `get_training_plan` | resep sesi beban berikutnya, proyeksi bench, rencana lari minggu ini |
-| `propose(summary, items)` | tugas, jadwal jaga, agenda, habit, stase, ritme, menu, dan keuangan (pemasukan, pengeluaran, utang baru, cicilan, setoran/penarikan) → **Usulan**. Format sama dengan JSON impor (`src/domain/importGuide.ts`). Cicilan/setoran ke nama yang tidak ada dan kategori yang salah ditolak dengan daftar yang tersedia |
+| `get_training_plan` | resep sesi beban berikutnya, proyeksi bench, rencana lari minggu ini, sesi minggu ini yang sudah diberi jam |
+| `get_schedule(from, to)` | jadwal terpadu per hari (maks. 14 hari): ritme + tentir + agenda + latihan + jam tidur, dengan bentrok; untuk mencari jam kosong |
+| `propose(summary, items)` | tugas, jadwal jaga, agenda, habit, stase, ritme, menu, sesi latihan berjam, dan keuangan (pemasukan, pengeluaran, utang baru, cicilan, setoran/penarikan) → **Usulan**. Format sama dengan JSON impor (`src/domain/importGuide.ts`). Cicilan/setoran ke nama yang tidak ada dan kategori yang salah ditolak dengan daftar yang tersedia |
 
 - Hitungan memakai kode domain yang sama dengan app (`src/domain/dayRows.ts`, `xp.ts`, `training.ts`, …), jadi hasilnya identik.
 - Tidak ada tool yang mengubah atau menghapus data; `propose` hanya menulis baris `proposals` (status menunggu). Disetujui di app, item per item, lewat jalur Impor.
@@ -305,6 +325,7 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Rapi di HP: kolom jam cukup diketik angka (titik otomatis, mis. 2000 → 20.00; waktu lari 3120 → 31:20), lembar bawah mengikuti papan ketik & tidak naik ke bawah status bar, latar status bar saat menggulir, input tanggal iOS tidak meluber; **Urungkan** untuk aksi sekali ketuk (Lunas/belum, simpan sesi tentir, catat latihan, setoran/penarikan/cicilan, salin anggaran, selesaikan Muhasabah), satu toast sekaligus supaya Urungkan selalu milik aksi terakhir | selesai |
 | Identitas & pembuka: logo & ikon baru, pembuka Beranda yang hidup (sapaan, sekarang/berikutnya, pita 24 jam, kalimat menurut jam), nama panggilan di Setelan, sidebar bisa diciutkan (`Ctrl+\`) | selesai |
 | Keuangan lewat connector/Impor: pemasukan, pengeluaran, utang baru, cicilan, setoran/penarikan → Usulan → disetujui; aman diulang (tidak dobel) | selesai |
+| Jadwal terpadu: satu linimasa hari (ritme + tentir + agenda + latihan + jam tidur) di Beranda, Kalender, dan connector; program latihan disusun ke hari & jam kosong (Latihan › Jadwal minggu ini); bentrok ditandai; jaga berubah → susun ulang; slot tentir menghindari latihan | selesai |
 | Kalender & jadwal jaga: bulan dengan warna tipe hari, mode atur jaga (besoknya otomatis pasca bila kosong, batal ikut mengosongkan pasca), hitungan jaga + peringatan berurutan/minggu berat, agenda per hari, agenda hari ini di Beranda, kalender mini di layar lebar, impor/usulan jenis `agenda` | selesai |
 | Catatan: kartu warna (grid), cari semua kata, filter per peran, sematkan, jadikan tugas, cek identitas pasien, Catat cepat menebak peran | selesai |
 | Muhasabah bulanan: XP/lolos/tidur/jaga (dibanding bulan lalu bila bulan selesai), tren per minggu + tidur vs minggu berat jaga, per bidang (peran, habit, mutaba'ah, tentir, uang, dana jembatan, utang, latihan), refleksi + 3 prioritas bulan depan (tampil di Beranda), salin ringkasan untuk Claude, selesai mulai tgl 25 tanpa XP | selesai |
@@ -314,21 +335,16 @@ Makan & belanja dan impor jadwal dikerjakan lebih awal (saat Fase 1) karena dimi
 | Fase 2 | selesai (semua modul di atas) |
 | Fase 3 (Belajar UKMPPD, Target & PPDS, logbook, produk digital, Buku) | belum |
 
-## Backlog untuk Senin
+## Backlog
 
-Dicatat dulu, dikerjakan saat limit Claude sudah reset. Urutan kasar dari yang paling terasa:
+Sudah dikerjakan (PR #12–#17): riwayat usulan di balik tombol, daftar panjang tampil 5–10 item dulu, rekap Tentir bulanan & pemasukan bulan ini, tabungan/utang bisa dilipat dengan persentase, saran belanja, buka app lebih cepat.
 
-- **Riwayat usulan**: sembunyikan usulan yang sudah diputuskan (disetujui/ditolak) di balik satu tombol "Riwayat", dan batasi jumlah yang tampil supaya daftar tidak panjang.
-- **Daftar panjang secara umum**: batasi tampilan awal (mis. 5–10 item) dengan tombol "Tampilkan semua" di Uang, Tugas, Catatan, dan Usulan.
-- **Rekap bulanan Tentir**: total jam bulan itu, dibandingkan kuota 9–15 j, plus pemasukan bulan itu.
-- **Pendapatan bulan itu**: total pemasukan bulan itu di kartu Uang (sekarang hanya pengeluaran).
-- **Tabungan & utang bisa diminimize**: kartu dilipat dengan progres persentase (terkumpul/target, terbayar/utang awal). Utang boleh disembunyikan sesekali supaya tidak membebani.
-- **Rekomendasi belanja**: daftar bahan belanja yang disarankan (dari menu & bahan yang sering dipakai) yang bisa langsung masuk ke daftar belanja di Menu.
-- **Muat lebih cepat**:
-  - Penyebab: penyimpanan app yang dipasang di layar utama iPhone terpisah dari Safari, sehingga data mulai dari kosong dan harus ditarik dari Dexie Cloud; bundle utama sekitar 975 KB (290 KB gzip).
-  - Pilihan: pecah kode per halaman, dan tampilkan kerangka saat data belum siap.
-  - Perlu dipastikan dulu: lambat hanya saat pertama dibuka setelah dipasang, atau setiap kali dibuka.
-- **Catatan**: dibantu lagi saat Senin.
+Belum:
+
+- **Makan ↔ jadwal:** menu hari ini belum muncul di linimasa (hanya di kartu Makan).
+- **Tugas berjam:** tugas belum punya jam, jadi belum ikut jadwal terpadu.
+- **XP dari sesi terjadwal:** sekarang XP latihan hanya lewat habit; sesi terjadwal di hari tanpa habit tidak memberi XP.
+- **Notifikasi** untuk butir jadwal (latihan, tentir, jam tidur).
 
 ## Belum diputuskan
 

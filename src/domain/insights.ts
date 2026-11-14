@@ -56,6 +56,8 @@ export interface InsightInput {
   cash: { net: number } | null
   /** Muhasabah minggu lalu bisa diisi dan belum selesai. */
   reviewOpen: boolean
+  /** Bentrok di jadwal terpadu hari ini (latihan ⟂ tentir/agenda, latihan di hari jaga, dst.). */
+  conflicts?: string[]
 }
 
 const daysIn = (iso: ISODate) => new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0)).getUTCDate()
@@ -89,6 +91,17 @@ export function pickInsights(i: InsightInput): Insight[] {
         priority: 30,
       })
   }
+
+  // Jadwal hari ini bertabrakan: perlu diputuskan sebelum jamnya tiba.
+  if (i.conflicts?.length)
+    add({
+      id: 'jadwal-bentrok',
+      title: i.conflicts[0],
+      detail: i.conflicts.length > 1 ? `Dan ${i.conflicts.length - 1} bentrok lain. Pindahkan salah satunya.` : 'Pindahkan salah satunya.',
+      tone: 'warn',
+      href: '#/latihan',
+      priority: 88,
+    })
 
   // Energi rendah berturut-turut: meringankan beban lebih penting daripada target apa pun.
   if (i.energy && i.energy.lowRun >= 2)

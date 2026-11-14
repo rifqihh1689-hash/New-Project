@@ -1,4 +1,4 @@
-import type { Category, Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSlot, TransactionType, XpSize } from '../types'
+import type { Category, Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSlot, RunType, TransactionType, XpSize } from '../types'
 import { DEFAULT_CATEGORIES, guessCategory, matchCategory, parseAmount } from './money'
 import { parseIngredients } from './menu'
 import { DAY_TYPES } from './dayType'
@@ -6,10 +6,11 @@ import { STUDY_SYSTEMS } from './study'
 import { detectPatientIdentity } from './phi'
 import { guessRole, matchRole, type RoleRef } from './quickCapture'
 import { normalizeClock } from './ritme'
+import { plannedTitle } from './schedule'
 import { formatDateLong, formatDateShort, isValidISODate, MONTH_NAMES } from './time'
 
 export type ImportKind =
-  'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu' | 'transaksi' | 'utang' | 'cicilan' | 'setoran' | 'kartu'
+  'ritme' | 'habit' | 'tugas' | 'jaga' | 'agenda' | 'stase' | 'menu' | 'transaksi' | 'utang' | 'cicilan' | 'setoran' | 'kartu' | 'sesi'
 
 export const IMPORT_KINDS: ImportKind[] = [
   'ritme',
@@ -24,6 +25,7 @@ export const IMPORT_KINDS: ImportKind[] = [
   'cicilan',
   'setoran',
   'kartu',
+  'sesi',
 ]
 
 export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
@@ -39,6 +41,7 @@ export const IMPORT_KIND_LABELS: Record<ImportKind, string> = {
   cicilan: 'Cicilan utang',
   setoran: 'Setoran tabungan',
   kartu: 'Kartu ulasan',
+  sesi: 'Sesi latihan terjadwal',
 }
 
 export type ImportItem =
@@ -77,6 +80,16 @@ export type ImportItem =
   | { kind: 'setoran'; name: string; amount: number; date: ISODate }
   /** Kartu ulasan UKMPPD (pengulangan berjarak). */
   | { kind: 'kartu'; front: string; back: string; system?: string }
+  /** Sesi latihan yang diberi hari & jam (masuk jadwal terpadu). */
+  | {
+      kind: 'sesi'
+      date: ISODate
+      workout: 'beban' | 'lari'
+      start: string
+      minutes: number
+      day?: string
+      run?: { type: RunType; km: number }
+    }
 
 export interface ImportRow {
   /** Nomor baris di teks asli (CSV) atau urutan item (JSON), mulai 1. */
@@ -236,6 +249,10 @@ const KIND_ALIASES: Record<string, ImportKind> = {
   kartu_ulasan: 'kartu',
   flashcard: 'kartu',
   flashcards: 'kartu',
+  sesi: 'sesi',
+  sesi_latihan: 'sesi',
+  jadwal_latihan: 'sesi',
+  workout: 'sesi',
 }
 
 const INCOME_KIND = /^(pemasukan|masuk|income)$/
@@ -576,6 +593,27 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       if (r.target && !targetDate) return { error: `Target lunas "${r.target}" tidak dikenali (contoh 2027-06-30).` }
       return { items: [{ kind, name: title, amount: amt.amount, targetDate }] }
     }
+    case 'sesi': {
+      const date = parseDate(r.tanggal ?? '', ctx.today)
+      if (!date) return { error: `Tanggal sesi "${r.tanggal ?? ''}" tidak dikenali (contoh 2026-11-12).` }
+      const start = normalizeClock(r.jam ?? '')
+      if (!start) return { error: `Jam mulai "${r.jam ?? ''}" tidak dikenali (contoh 16.30).` }
+      // Jenis sesi dibaca dari judul: "Lari santai 5 km", "Beban · Atas".
+      const text = `${title} ${r.catatan ?? ''}`
+      const isRun = /\b(lari|run|jog|jogging)\b/i.test(text)
+      const menit = r.menit ? Math.round(Number(r.menit.replace(',', '.').replace(/[^\d.]/g, ''))) : null
+      if (r.menit && !(menit && menit >= 10 && menit <= 240)) return { error: `Lama "${r.menit}" tidak valid (10–240 menit).` }
+      if (isRun) {
+        const kmMatch = /(\d+(?:[.,]\d+)?)\s*km/i.exec(text)
+        const km = kmMatch ? Number(kmMatch[1].replace(',', '.')) : 4
+        if (!(km > 0 && km < 100)) return { error: 'Jarak lari tidak valid.' }
+        const type: RunType = /kualitas|tempo|interval|cepat/i.test(text) ? 'kualitas' : /panjang|long/i.test(text) ? 'long' : 'easy'
+        return { items: [{ kind, date, workout: 'lari', start, minutes: menit ?? Math.round((km * 7 + 8) / 5) * 5, run: { type, km } }] }
+      }
+      if (!title) return { error: 'Judul sesi kosong (mis. "Beban · Atas" atau "Lari santai 5 km").' }
+      const day = ['Atas', 'Bawah', 'Push', 'Pull', 'Kaki'].find((d) => new RegExp(`\\b${d}\\b`, 'i').test(text))
+      return { items: [{ kind, date, workout: 'beban', start, minutes: menit ?? 60, ...(day ? { day } : {}) }] }
+    }
     case 'kartu': {
       const front = (r.depan ?? '').trim()
       const back = (r.belakang ?? '').trim()
@@ -719,6 +757,8 @@ export function describeItem(
       return `${formatDateShort(item.date)} · ${item.name} · ${rupiah(item.amount)}`
     case 'setoran':
       return `${formatDateShort(item.date)} · ${item.name} · ${rupiah(Math.abs(item.amount))}`
+    case 'sesi':
+      return `${formatDateShort(item.date)} ${item.start} · ${plannedTitle({ kind: item.workout, day: item.day, run: item.run })} · ${item.minutes} mnt`
     case 'kartu':
       return `${item.front.length > 80 ? `${item.front.slice(0, 80)}…` : item.front}${item.system ? ` · ${item.system}` : ''}`
   }

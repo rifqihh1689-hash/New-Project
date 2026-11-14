@@ -2,7 +2,7 @@ import type { DayType, ISODate, PlannedWorkout, RitmeSlot, RunType, TrainingSche
 import { suggestDayType } from './dayType'
 import { SPLITS } from './exerciseCatalog'
 import { slotOrder } from './ritme'
-import { isNapSlot, isNightSleepSlot, isTentirSlot, isTrainingSlot, napMinutes } from './schedule'
+import { isNapSlot, isNightSleepSlot, isTentirSlot, isTrainingSlot, napMinutes, softBlocks, type Block } from './schedule'
 import { formatClock, sessionEnd } from './tentir'
 import { diffDays, parseClock, weekday } from './time'
 
@@ -15,6 +15,7 @@ import { diffDays, parseClock, weekday } from './time'
  *    (±15 menit), agenda berjam, tidur malam; selesai paling lambat 1 jam sebelum batas kerja malam.
  *  - Full body: sesi beban tidak di hari berurutan. Program lain boleh berurutan, tapi disebar.
  *  - Lari kualitas tidak di hari yang sama dengan beban, dan dihindari sehari setelah hari kaki.
+ *  - Blok ritme lain (mis. blok belajar) dihindari bila ada jam kosong; dipotong hanya bila tidak ada.
  *  - Satu sesi per hari; dua sesi (beban + lari santai) hanya bila harinya tidak cukup.
  *  - Hari yang disukai: hari habit latihan bila ada, selain itu pola umum (3× = Sen, Rab, Jum).
  * Sesi buatan tangan atau usulan Claude tidak pernah digeser, hanya dihitung.
@@ -47,12 +48,7 @@ export function resolveTrainingSchedule(
 /** Pola hari yang umum untuk n sesi beban per minggu (0 = Minggu). */
 const IDEAL_DAYS: Record<number, number[]> = { 1: [3], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6] }
 
-export interface Busy {
-  /** Menit sejak 00.00. */
-  start: number
-  end: number
-  label: string
-}
+export type Busy = Block
 
 export interface PlanDay {
   date: ISODate
@@ -61,7 +57,10 @@ export interface PlanDay {
   /** Tipe tersimpan (bukan perkiraan). */
   typed: boolean
   ritme: RitmeSlot[]
+  /** Yang tidak bisa digeser: stase, qailulah, tentir, agenda, tidur. */
   busy: Busy[]
+  /** Blok ritme lain (mis. blok belajar): dihindari bila ada jam kosong, dipotong bila tidak ada. */
+  soft?: Busy[]
 }
 
 /** Tipe hari untuk rentang tanggal berurutan: yang tersimpan dipakai, sisanya diperkirakan berantai. */
@@ -92,7 +91,8 @@ export function busyOf(
     const start = min(s.time)
     if (start == null) continue
     const until = min(s.until)
-    if (s.work) out.push({ start, end: (until != null && until > start ? until : start + 8 * 60) + 30, label: s.title })
+    // Kerja: 45 menit sebelum masuk (mandi, berangkat) dan 30 menit setelah pulang ikut terisi.
+    if (s.work) out.push({ start: start - 45, end: (until != null && until > start ? until : start + 8 * 60) + 30, label: s.title })
     else if (isNapSlot(s)) out.push({ start, end: start + napMinutes(s) + 15, label: s.title })
     else if (isNightSleepSlot(s)) out.push({ start, end: 24 * 60, label: s.title })
     else if (/^jaga\b/i.test(s.title)) out.push({ start, end: 24 * 60, label: s.title })
@@ -122,18 +122,26 @@ export function findStart(
   settings: TrainingScheduleSettings,
   limit: string | null,
   extra: Busy[] = [],
+  /** Jam paling awal (menit), dipakai untuk hari ini supaya tidak menjadwalkan ke jam yang sudah lewat. */
+  notBefore = 0,
 ): number | null {
   if (day.type === 'jaga' || day.type === 'pasca') return null
   const slot = day.ritme.find(isTrainingSlot)
   const pref = min(slot?.time) ?? min(day.type === 'libur' ? settings.timeLibur : settings.timeStase) ?? 16 * 60 + 30
   const latestEnd = (min(limit) ?? 22 * 60) - 60
-  const busy = [...day.busy, ...extra]
-  let best: number | null = null
-  for (let t = EARLIEST; t + minutes <= latestEnd; t += STEP) {
-    if (busy.some((b) => t < b.end && b.start < t + minutes)) continue
-    if (best == null || Math.abs(t - pref) < Math.abs(best - pref)) best = t
+  const hard = [...day.busy, ...extra]
+  const soft = day.soft ?? softBlocks(day.ritme)
+  // Pertama cari jam yang tidak memotong apa pun; kalau tidak ada, boleh memotong blok ritme yang lunak.
+  for (const busy of [[...hard, ...soft], hard]) {
+    let best: number | null = null
+    for (let t = EARLIEST; t + minutes <= latestEnd; t += STEP) {
+      if (t < notBefore) continue
+      if (busy.some((b) => t < b.end && b.start < t + minutes)) continue
+      if (best == null || Math.abs(t - pref) < Math.abs(best - pref)) best = t
+    }
+    if (best != null) return best
   }
-  return best
+  return null
 }
 
 export interface PlanInput {
@@ -153,6 +161,8 @@ export interface PlanInput {
   preferred?: { beban?: number[]; lari?: number[] }
   /** Batas kerja malam (`HH.MM`) atau `null`. */
   limit: string | null
+  /** Jam dinding WIB (menit): sesi hari ini hanya ditaruh setelah jam ini. */
+  nowMinutes?: number
   now?: number
 }
 
@@ -181,6 +191,9 @@ const isHard = (t: RunType | undefined) => t === 'kualitas' || t === 'tes'
 export function planWeek(input: PlanInput): PlanResult {
   const { today, days, split, settings } = input
   const now = input.now ?? 0
+  // Sebelum 03.00 masih "hari ini" bagi Qawwam: tidak ada lagi jam latihan tersisa.
+  const clock = input.nowMinutes
+  const notBefore = clock == null ? 0 : (clock < 180 ? clock + 1440 : clock) + 15
   const skipped: string[] = []
   const open = days.filter((d) => d.date >= today && d.type !== 'jaga' && d.type !== 'pasca')
 
@@ -224,7 +237,7 @@ export function planWeek(input: PlanInput): PlanResult {
         if (on(d.date).some((p) => p.kind === kind)) continue
         const s = score(d, strict)
         if (s == null) continue
-        const start = findStart(d, minutes, settings, input.limit, extraBusy(d.date))
+        const start = findStart(d, minutes, settings, input.limit, extraBusy(d.date), d.date === today ? notBefore : 0)
         if (start == null) continue
         if (!best || s > best.s) best = { d, s, start }
       }

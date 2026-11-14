@@ -54,9 +54,20 @@ describe('tipe hari diperkirakan berantai', () => {
 })
 
 describe('jam kosong', () => {
-  it('hari stase: setelah qailulah, di jam yang disukai', () => {
+  it('hari stase: jam yang disukai (16.30) ada di dalam Blok belajar → digeser ke jam kosong terdekat', () => {
     const d = week()[0]
+    expect(findStart(d, 60, settings, '21.00')).toBe(18 * 60)
+  })
+  it('tanpa blok lain di jam itu, jam yang disukai dipakai apa adanya', () => {
+    const d = week()[0]
+    const free = { ...d, ritme: d.ritme.filter((s) => s.title !== 'Blok belajar') }
+    expect(findStart(free, 60, settings, '21.00')).toBe(16 * 60 + 30)
+  })
+  it('tidak ada jam yang benar-benar kosong → boleh memotong blok belajar, tidak pernah menabrak tentir', () => {
+    // Tentir 19.00–21.00: sisa kosong 18.00–18.45 tidak cukup untuk 60 menit.
+    const d = week({}, { [WEEK[0]]: [{ start: '19.00', hours: 2 }] })[0]
     expect(findStart(d, 60, settings, '21.00')).toBe(16 * 60 + 30)
+    expect(findStart(d, 45, settings, '21.00')).toBe(18 * 60)
   })
   it('tentir di jam itu → digeser ke jam kosong terdekat; hari libur memakai slot Olahraga di ritme', () => {
     const d = week({}, { [WEEK[0]]: [{ start: '16.00', hours: 2 }] })[0]

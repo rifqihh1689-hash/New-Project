@@ -3,7 +3,7 @@ import { DEFAULT_RITME } from '../db/defaults'
 import type { PlannedWorkout } from '../types'
 import { dayRibbon, nowNext } from './headline'
 import { effectiveRitme } from './ritme'
-import { daySchedule, napMinutes, plannedTitle, sleepPlan, type DayScheduleInput } from './schedule'
+import { daySchedule, napMinutes, plannedTitle, sleepPlan, softBlocks, type DayScheduleInput } from './schedule'
 
 const D = '2026-11-09'
 const stase = effectiveRitme('stase', DEFAULT_RITME, null)
@@ -148,6 +148,24 @@ describe('jam tidur dari jam bangun', () => {
   })
   it('hari jaga tidak diberi jam tidur malam', () => {
     expect(daySchedule(input({ type: 'jaga', ritme: effectiveRitme('jaga', DEFAULT_RITME, null), sleep })).sleep).toBeNull()
+  })
+})
+
+describe('blok ritme yang lunak', () => {
+  it('blok belajar dihitung 2 jam; kerja, qailulah, tentir, dan tidur tidak termasuk', () => {
+    const blocks = softBlocks(stase)
+    expect(blocks.map((b) => b.label)).toEqual(['Qiyamul lail', 'Blok belajar', 'Berhenti kerja'])
+    expect(blocks.find((b) => b.label === 'Blok belajar')).toMatchObject({ start: 960, end: 1080 })
+    // Lama yang tertulis dipakai: "Blok belajar panjang · 90 mnt".
+    const libur = softBlocks(effectiveRitme('libur', DEFAULT_RITME, null))
+    expect(libur.find((b) => b.label === 'Blok belajar panjang')).toMatchObject({ start: 420, end: 510 })
+  })
+  it('sesi latihan yang memotong blok belajar diberi catatan, bukan peringatan', () => {
+    const i = daySchedule(input({ planned: [plan()] })).items.find((x) => x.source === 'latihan')!
+    expect(i.note).toBe('memotong Blok belajar 16.00')
+    expect(i.warn).toBeUndefined()
+    const clear = daySchedule(input({ planned: [plan({ start: '18.00' })] })).items.find((x) => x.source === 'latihan')!
+    expect(clear.note).toBeUndefined()
   })
 })
 
