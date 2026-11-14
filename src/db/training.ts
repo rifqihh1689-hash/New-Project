@@ -80,7 +80,7 @@ export async function saveTargets(changes: Partial<TrainingTargets>): Promise<vo
   await updateProfile({ trainingTargets: { ...current, ...changes } })
 }
 
-const HABIT_MATCH: Record<Workout['kind'], RegExp> = {
+export const HABIT_MATCH: Record<Workout['kind'], RegExp> = {
   beban: /beban|bench|gym|angkat|squat|deadlift|compound|upper|lower|fitness/i,
   lari: /lari|run|jog/i,
 }

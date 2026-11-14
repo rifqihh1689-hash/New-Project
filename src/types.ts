@@ -92,7 +92,23 @@ export interface Profile extends CloudFields {
   trainingTargets?: Partial<TrainingTargets>
   /** Program latihan beban; bawaan full body (semua gerakan tiap sesi). */
   trainingSplit?: TrainingSplit
+  /** Cara program latihan dimasukkan ke jadwal mingguan (jumlah sesi, lama, jam yang disukai). */
+  trainingSchedule?: Partial<TrainingScheduleSettings>
   updatedAt: number
+}
+
+export interface TrainingScheduleSettings {
+  /** Sesi beban per minggu. */
+  strengthPerWeek: number
+  /** Lama satu sesi beban (menit). */
+  strengthMinutes: number
+  /** Jam latihan yang disukai di hari stase & hari libur (`HH.MM`). */
+  timeStase: string
+  timeLibur: string
+  /** Susun jadwal otomatis tiap minggu saat app dibuka. */
+  auto: boolean
+  /** Senin dari minggu terakhir yang disusun otomatis, supaya tidak disusun dua kali. */
+  lastAutoWeek?: ISODate
 }
 
 export interface XpRules {
@@ -524,6 +540,27 @@ export interface Workout extends Stamped {
   entries: StrengthEntry[]
   run: RunLog | null
   note: string
+}
+
+/**
+ * Sesi latihan yang sudah diberi hari & jam ("program masuk ke jadwal"). Tampil di linimasa hari,
+ * Kalender, dan slot kosong tentir. Selesai = ada `Workout` berjenis sama di tanggal itu.
+ */
+export interface PlannedWorkout extends CloudFields {
+  /** `#plw:<tanggal>:<jenis>`: paling banyak satu sesi beban dan satu lari per hari. */
+  id: string
+  date: ISODate
+  kind: Workout['kind']
+  /** Hari program untuk beban ("Atas", "Push", …). */
+  day?: string
+  /** Rencana lari. */
+  run?: { type: RunType; km: number }
+  /** `HH.MM` WIB. */
+  start: string
+  minutes: number
+  /** `auto` = disusun penjadwal (diganti saat disusun ulang); `manual`/`claude` dipertahankan. */
+  source: 'auto' | 'manual' | 'claude'
+  updatedAt: number
 }
 
 // ---------- Hadiah ----------

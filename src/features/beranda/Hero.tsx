@@ -1,4 +1,3 @@
-import { useClockMinutes } from '../../app/useToday'
 import { roleLookup } from '../../db/structure'
 import { dayTypeLabel } from '../../domain/dayType'
 import { dayRibbon, DAY_END, formatIn, headline, nowNext } from '../../domain/headline'
@@ -9,6 +8,7 @@ import type { RitmeSlot } from '../../types'
 import type { BerandaData } from './data'
 import { DayTypePicker } from './DayTypePicker'
 import { DAY_TYPE_COLORS } from './dayTypeColors'
+import { useSchedule } from './useSchedule'
 
 const DAY_START = 180
 const pct = (m: number) => ((Math.min(Math.max(m, DAY_START), DAY_END) - DAY_START) / (DAY_END - DAY_START)) * 100
@@ -20,14 +20,16 @@ const clock = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')
  * Warna latarnya mengikuti tipe hari.
  */
 export function Hero({ data }: { data: BerandaData }) {
-  const minutes = useClockMinutes()
+  // Jadwal terpadu: ritme + sesi tentir + agenda + latihan terjadwal + jam tidur.
+  const schedule = useSchedule(data)
+  const minutes = schedule.minutes
   const role = roleLookup(data.roles)
   const type = data.snap.day?.type ?? null
   const shownType = type ?? data.suggested
   const tint = DAY_TYPE_COLORS[shownType]
   const t = minutes < DAY_START ? minutes + 1440 : minutes
-  const { now, next, inMinutes } = nowNext(data.ritme, minutes)
-  const blocks = dayRibbon(data.ritme)
+  const { now, next, inMinutes } = nowNext(schedule.items, minutes)
+  const blocks = dayRibbon(schedule.items)
   const colorOf = (s: RitmeSlot) => (s.roleId ? (role(s.roleId)?.color ?? 'var(--faint)') : 'var(--faint)')
   const [, m, d] = data.today.split('-').map(Number)
   // Tiap bagian tidak dipatah di tengah ("minggu 2" tetap satu baris).
@@ -134,9 +136,9 @@ export function Hero({ data }: { data: BerandaData }) {
             aria-label={`Ritme hari ini: ${summary}. Sekarang ${clock(minutes)}.`}
             className="relative h-2.5 rounded-full bg-track"
           >
-            {blocks.map((b) => (
+            {blocks.map((b, i) => (
               <span
-                key={`${b.slot.time}-${b.slot.title}`}
+                key={`${i}-${b.slot.time}-${b.slot.title}`}
                 className="absolute inset-y-0 rounded-full"
                 style={{
                   left: `calc(${pct(b.start)}% + 1px)`,

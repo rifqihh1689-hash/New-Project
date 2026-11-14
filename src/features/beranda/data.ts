@@ -18,6 +18,7 @@ import { diffDays } from '../../domain/time'
 import { privateId } from '../../lib/id'
 import { db } from '../../db/db'
 import { loadAllResults, loadDaySnapshot } from '../../db/daily'
+import { loadDaySchedule } from '../../db/schedule'
 import { currentPhase, loadMutabaah, loadPhases, loadProfile, loadRoles } from '../../db/structure'
 import type { DayType, ISODate } from '../../types'
 
@@ -59,6 +60,7 @@ export async function loadBeranda(today: ISODate) {
     docs,
     pastTxs,
     unpaidTentir,
+    scheduleData,
   ] = await Promise.all([
     db.reviews.where('period').equals('minggu').toArray(),
     db.reviews.get(privateId.weeklyReview(previousMonday(weekStart(today)))),
@@ -83,6 +85,7 @@ export async function loadBeranda(today: ISODate) {
       .between(`${month}-01`, `${month}-31`, true, true)
       .filter((x) => !x.paid)
       .toArray(),
+    loadDaySchedule(today),
   ])
   const nutrition = resolveNutrition(profile.nutrition)
   const menuById = new Map(menus.map((m) => [m.id, m]))
@@ -196,6 +199,8 @@ export async function loadBeranda(today: ISODate) {
     profile,
     suggested,
     ritme: effectiveRitme(ritmeType, profile.ritme, chapter),
+    /** Bahan jadwal terpadu hari ini (ritme + tentir + agenda + latihan + tidur); jam sekarang ditambahkan komponen. */
+    scheduleInput: scheduleData.input,
     pulang: workEndTime(effectiveRitme('stase', profile.ritme, chapter)),
     sleep: { total, next: napToNextTier(total, rules) },
     totalXp,

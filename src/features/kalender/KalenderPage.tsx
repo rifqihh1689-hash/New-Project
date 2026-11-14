@@ -7,13 +7,16 @@ import { PageTop } from '../../components/PageTop'
 import { Sheet } from '../../components/Sheet'
 import { TimeField } from '../../components/TimeField'
 import { useToast } from '../../components/toast-context'
+import { ScheduleList } from '../../components/ScheduleList'
 import { deleteEvent, restoreEvent, saveEvent, setJaga } from '../../db/calendar'
+import { applyWeekPlan, loadDaySchedule, plannedConflicts } from '../../db/schedule'
+import { daySchedule } from '../../domain/schedule'
 import { moveTasks } from '../../db/daily'
 import { db } from '../../db/db'
-import { currentPhase, usePhases } from '../../db/structure'
+import { currentPhase, usePhases, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS, suggestDayType } from '../../domain/dayType'
 import { detectPatientIdentity } from '../../domain/phi'
-import { addDays, addMonths, DAY_SHORT, formatDateLong, formatDateShort, formatMonth, monthOf } from '../../domain/time'
+import { addDays, addMonths, DAY_SHORT, formatDateLong, formatDateShort, formatMonth, monthOf, weekStart } from '../../domain/time'
 import { DayTypePicker } from '../beranda/DayTypePicker'
 import { DAY_TYPE_COLORS } from '../beranda/dayTypeColors'
 import { useKalender, type KalenderData } from './data'
@@ -96,6 +99,9 @@ function DayBody({ date, onClose }: { date: string; onClose: () => void }) {
     ])
     return { day, prev, events: events.sort((a, b) => (a.start ?? '99').localeCompare(b.start ?? '99')), tasks, sessions }
   }, [date])
+  // Jadwal terpadu tanggal itu: ritme tipe harinya + tentir + agenda + latihan terjadwal + jam tidur.
+  const schedule = useLiveQuery(async () => daySchedule((await loadDaySchedule(date)).input), [date])
+  const roles = useRoles()
   const [title, setTitle] = useState('')
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
@@ -124,6 +130,13 @@ function DayBody({ date, onClose }: { date: string; onClose: () => void }) {
         suggested={suggestDayType(date, info.prev?.type ?? null)}
         phase={currentPhase(phases ?? [], date)}
       />
+      {schedule && (
+        <div>
+          <span className="label">Jadwal hari itu</span>
+          <ScheduleList items={schedule.items} roles={roles} />
+          {schedule.conflicts.length > 0 && <p className="mt-1 text-xs text-uang">{schedule.conflicts.join(' ')}</p>}
+        </div>
+      )}
       <div>
         <span className="label">Agenda</span>
         {!info.events.length && <p className="text-[13px] text-faint">Belum ada agenda.</p>}
@@ -231,11 +244,21 @@ export function KalenderPage() {
     if (!jagaMode || !data) return setPicked(d)
     const on = data.types(d) !== 'jaga'
     const moved = await setJaga(d, on)
+    // Jaga berubah → sesi latihan yang jatuh di hari jaga/pasca-jaga ditawarkan untuk disusun ulang.
+    const from = weekStart(d) > today ? weekStart(d) : today
+    const clash = on ? await plannedConflicts(from) : []
     if (moved.length)
       toast({
         message: `${moved.length} tugas di hari pasca-jaga dipindah ke ${formatDateShort(addDays(d, 2))}.`,
         tone: 'info',
         action: { label: 'Urungkan', onClick: () => void moveTasks(moved, addDays(d, 1)) },
+      })
+    else if (clash.length)
+      toast({
+        message: `${clash.length} sesi latihan jatuh di hari jaga atau pasca-jaga.`,
+        tone: 'info',
+        duration: 8000,
+        action: { label: 'Susun ulang', onClick: () => void applyWeekPlan(from) },
       })
   }
   return (
