@@ -1,56 +1,52 @@
-import { useClockMinutes } from '../../app/useToday'
-import { roleLookup } from '../../db/structure'
-import { slotNote, slotOrder } from '../../domain/ritme'
+import { useState } from 'react'
+import { ScheduleList } from '../../components/ScheduleList'
+import { currentIndex } from '../../domain/schedule'
 import type { BerandaData } from './data'
+import { useSchedule } from './useSchedule'
 
-/** Linimasa hari ini dari template ritme per tipe hari (bisa diubah per fase hidup). */
-export function Ritme({ data }: { data: BerandaData }) {
-  const minutes = useClockMinutes()
-  const slots = data.ritme
-  const role = roleLookup(data.roles)
-  // Sebelum 03.00 jam dinding masih "kemarin" bagi Qawwam, jadi geser agar urutan tetap benar.
-  const now = minutes < 180 ? minutes + 1440 : minutes
-  const times = slots.map((s) => slotOrder(s.time))
-  const nowIndex = times.reduce((idx, t, i) => (t <= now ? i : idx), -1)
+/**
+ * Jadwal hari ini: ritme tipe hari digabung sesi tentir, agenda, latihan terjadwal, dan jam tidur.
+ * `compact` (HP): hanya sisa hari ini, sisanya bisa dibuka.
+ */
+export function Ritme({ data, compact = false }: { data: BerandaData; compact?: boolean }) {
+  const schedule = useSchedule(data)
+  const [all, setAll] = useState(false)
+  const now = currentIndex(schedule.items, schedule.minutes)
+  const from = compact && !all ? Math.max(0, now) : 0
+  const training = schedule.items.some((i) => i.source === 'latihan' && i.warn)
   return (
     <div className="card">
-      <h3 className="card-title">
-        Ritme hari ini{' '}
+      <h3 className="card-title flex-wrap">
+        {compact && !all ? 'Sisa hari ini' : 'Jadwal hari ini'}{' '}
         <span className="text-[13px] font-medium text-faint">
-          {data.snap.day?.type ? 'menyesuaikan tipe hari' : 'perkiraan, pilih tipe hari'}
+          {data.snap.day?.type ? 'ritme, tentir, agenda, latihan' : 'perkiraan, pilih tipe hari'}
         </span>
+        {compact && now > 0 && (
+          <button type="button" className="ml-auto text-[13px] font-normal text-faint hover:text-text" onClick={() => setAll(!all)}>
+            {all ? 'Sisa saja' : 'Sehari penuh'}
+          </button>
+        )}
       </h3>
-      <ol className="grid gap-0.5">
-        {slots.map((s, i) => {
-          const state = i === nowIndex ? 'now' : i < nowIndex ? 'past' : ''
-          const r = s.roleId ? role(s.roleId) : null
-          return (
-            <li
-              key={`${s.time}-${s.title}`}
-              className={`grid grid-cols-[46px_12px_1fr] items-center gap-2.5 rounded-[10px] px-2 py-[7px] md:grid-cols-[52px_14px_1fr_auto] ${state === 'now' ? 'bg-surface-2' : ''}`}
-              aria-current={state === 'now' ? 'time' : undefined}
-            >
-              <span className={`text-[13px] tabular-nums ${state === 'now' ? 'font-semibold text-text' : 'text-muted'}`}>{s.time}</span>
-              <span
-                className="h-[22px] w-1 justify-self-center rounded"
-                style={{ background: r?.color ?? 'var(--faint)' }}
-                aria-hidden="true"
-              />
-              <span className={`font-medium ${state === 'past' ? 'text-muted' : ''}`}>
-                {s.title}
-                {slotNote(s) && <small className="block text-[12.5px] font-normal text-muted">{slotNote(s)}</small>}
-              </span>
-              <span className="hidden items-center gap-1.5 text-xs text-muted md:flex">
-                {state === 'now' ? (
-                  <span className="rounded-md bg-text px-[7px] py-0.5 text-[11px] font-bold tracking-wide text-bg uppercase">Sekarang</span>
-                ) : (
-                  (r?.name ?? 'Ibadah')
-                )}
-              </span>
-            </li>
-          )
-        })}
-      </ol>
+      {schedule.allDay.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {schedule.allDay.map((e) => (
+            <a key={e.id} href="#/kalender" className="chip py-1 text-xs">
+              {e.title}
+            </a>
+          ))}
+        </div>
+      )}
+      <ScheduleList items={schedule.items} roles={data.roles} minutes={schedule.minutes} from={from} />
+      {schedule.conflicts.length > 0 && (
+        <p className="mt-2 text-xs text-uang">
+          {schedule.conflicts.length} hal perlu diputuskan.{' '}
+          {training && (
+            <a href="#/latihan" className="underline underline-offset-2">
+              Atur jadwal latihan →
+            </a>
+          )}
+        </p>
+      )}
     </div>
   )
 }

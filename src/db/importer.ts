@@ -9,6 +9,7 @@ import { addTask } from './daily'
 import { db } from './db'
 import { loadMenus, newMenu, saveMenu } from './menu'
 import { addDeposit, addPayment, newDebt, saveDebt, saveTransaction } from './money'
+import { savePlanned } from './schedule'
 import { loadHabits, saveChapter, saveHabit, saveRitme } from './structure'
 
 export interface ImportSummary {
@@ -29,6 +30,7 @@ export interface ImportSummary {
   setoran: number
   kartu: number
   kartuSkipped: number
+  sesi: number
   /** Transaksi/cicilan/setoran yang sudah tercatat, atau utang/tabungan yang tidak ditemukan. */
   uangSkipped: number
 }
@@ -57,6 +59,7 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
     setoran: 0,
     kartu: 0,
     kartuSkipped: 0,
+    sesi: 0,
     uangSkipped: 0,
   }
   const now = Date.now()
@@ -228,6 +231,12 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
       sum.kartu++
     }
   }
+  // Sesi latihan terjadwal: satu per jenis per hari (yang sudah ada di tanggal itu diganti), tidak digeser penjadwal.
+  for (const it of items) {
+    if (it.kind !== 'sesi') continue
+    await savePlanned({ date: it.date, kind: it.workout, start: it.start, minutes: it.minutes, day: it.day, run: it.run, source: 'claude' })
+    sum.sesi++
+  }
   return sum
 }
 
@@ -248,6 +257,7 @@ export function summaryText(s: ImportSummary): string {
     s.utangUpdated && `${s.utangUpdated} utang diperbarui`,
     s.cicilan && `${s.cicilan} cicilan`,
     s.setoran && `${s.setoran} setoran/penarikan`,
+    s.sesi && `${s.sesi} sesi latihan dijadwalkan`,
     s.kartu && `${s.kartu} kartu ulasan`,
     s.kartuSkipped && `${s.kartuSkipped} kartu sudah ada`,
     s.uangSkipped && `${s.uangSkipped} catatan uang dilewati (sudah ada / utang-tabungan tidak ditemukan)`,

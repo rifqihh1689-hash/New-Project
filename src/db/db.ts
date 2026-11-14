@@ -28,6 +28,7 @@ import type {
   Saving,
   StudyLog,
   Flashcard,
+  PlannedWorkout,
   PpdsDoc,
   Student,
   Task,
@@ -55,6 +56,7 @@ export type QawwamDB = Dexie & {
   studyLogs: EntityTable<StudyLog, 'id'>
   flashcards: EntityTable<Flashcard, 'id'>
   ppdsDocs: EntityTable<PpdsDoc, 'id'>
+  plannedWorkouts: EntityTable<PlannedWorkout, 'id'>
   transactions: EntityTable<Transaction, 'id'>
   categories: EntityTable<Category, 'id'>
   budgets: EntityTable<Budget, 'id'>
@@ -137,6 +139,11 @@ export const SCHEMA_V6_ADDITIONS = {
   ppdsDocs: 'id, group, due',
 } as const
 
+/** Tabel baru di skema v7 (sesi latihan terjadwal). */
+export const SCHEMA_V7_ADDITIONS = {
+  plannedWorkouts: 'id, date',
+} as const
+
 export function createDatabase(name: string = DB_NAME): QawwamDB {
   const db = new Dexie(name, { addons: [dexieCloud] }) as QawwamDB
   db.version(1).stores(SCHEMA_V1)
@@ -156,6 +163,16 @@ export function createDatabase(name: string = DB_NAME): QawwamDB {
     ...SCHEMA_V4_ADDITIONS,
     ...SCHEMA_V5_ADDITIONS,
     ...SCHEMA_V6_ADDITIONS,
+  })
+  // v7: jadwal terpadu (sesi latihan yang diberi hari & jam).
+  db.version(7).stores({
+    ...SCHEMA_V1,
+    ...SCHEMA_V2_ADDITIONS,
+    ...SCHEMA_V3_ADDITIONS,
+    ...SCHEMA_V4_ADDITIONS,
+    ...SCHEMA_V5_ADDITIONS,
+    ...SCHEMA_V6_ADDITIONS,
+    ...SCHEMA_V7_ADDITIONS,
   })
   return db
 }

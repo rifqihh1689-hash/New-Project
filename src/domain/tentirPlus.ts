@@ -35,6 +35,8 @@ export function freeSlots(
   types: (d: ISODate) => DayType | null,
   sessions: Pick<TentirSession, 'date' | 'start' | 'hours'>[],
   opts: SlotOptions,
+  /** Hal lain yang sudah mengisi jam itu, mis. sesi latihan terjadwal (`start` `HH.MM`, lama dalam menit). */
+  busy: { date: ISODate; start: string; minutes: number }[] = [],
 ): ISODate[] {
   const skip = opts.skip ?? ['jaga', 'pasca']
   const s0 = parseClock(opts.start) ?? 19 * 60
@@ -43,6 +45,13 @@ export function freeSlots(
     if (d < today) return false
     const t = types(d)
     if (t && skip.includes(t)) return false
+    if (
+      busy.some((b) => {
+        const a = parseClock(b.start)
+        return b.date === d && a != null && a < s1 && a + b.minutes > s0
+      })
+    )
+      return false
     return !sessions.some((x) => {
       if (x.date !== d) return false
       const a = x.start ? parseClock(x.start) : null

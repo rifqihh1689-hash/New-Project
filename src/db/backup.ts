@@ -7,6 +7,7 @@ import {
   SCHEMA_V4_ADDITIONS,
   SCHEMA_V5_ADDITIONS,
   SCHEMA_V6_ADDITIONS,
+  SCHEMA_V7_ADDITIONS,
 } from './db'
 
 export const BACKUP_APP = 'qawwam'
@@ -29,6 +30,7 @@ export async function createBackup(now: Date = new Date()): Promise<BackupFile> 
     ...Object.keys(SCHEMA_V4_ADDITIONS),
     ...Object.keys(SCHEMA_V5_ADDITIONS),
     ...Object.keys(SCHEMA_V6_ADDITIONS),
+    ...Object.keys(SCHEMA_V7_ADDITIONS),
   ])
     data[name] = await db.table(name).toArray()
   return { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: now.toISOString(), data }

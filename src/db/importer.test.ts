@@ -89,3 +89,21 @@ describe('impor keuangan', () => {
     expect((await db.debts.toArray())[0].payments).toHaveLength(1)
   })
 })
+
+describe('impor sesi latihan terjadwal', () => {
+  it('masuk jadwal sebagai sesi yang dipertahankan; diulang tidak membuat dobel', async () => {
+    const items = parseImport(
+      JSON.stringify([
+        { jenis: 'sesi_latihan', tanggal: '2026-11-09', jam: '16.30', judul: 'Beban Bawah' },
+        { jenis: 'sesi_latihan', tanggal: '2026-11-10', jam: '05.00', judul: 'Lari santai 4,5 km', menit: 40 },
+      ]),
+      { roles: DEFAULT_ROLES, today: '2026-11-05' },
+    ).map((r) => r.item!)
+    expect(await applyImport(items)).toMatchObject({ sesi: 2 })
+    await applyImport(items)
+    const list = (await db.plannedWorkouts.toArray()).sort((a, b) => a.date.localeCompare(b.date))
+    expect(list).toHaveLength(2)
+    expect(list[0]).toMatchObject({ id: '#plw:2026-11-09:beban', day: 'Bawah', start: '16.30', minutes: 60, source: 'claude' })
+    expect(list[1]).toMatchObject({ kind: 'lari', run: { type: 'easy', km: 4.5 }, minutes: 40 })
+  })
+})

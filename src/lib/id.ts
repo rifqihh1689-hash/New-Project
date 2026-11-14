@@ -20,4 +20,5 @@ export const privateId = {
   weeklyReview: (monday: string) => `#rev:minggu:${monday}`,
   monthlyReview: (month: string) => `#rev:bulan:${month}`,
   meal: (date: string, slot: string) => `#meal:${date}:${slot}`,
+  plannedWorkout: (date: string, kind: string) => `#plw:${date}:${kind}`,
 }

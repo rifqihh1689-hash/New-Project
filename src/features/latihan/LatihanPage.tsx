@@ -15,6 +15,7 @@ import { LineChart, type ChartPoint } from './LineChart'
 import { ExerciseEditor } from './ExerciseEditor'
 import { RunForm, StrengthForm } from './forms'
 import { Sparkline } from './Sparkline'
+import { WeekPlan } from './WeekPlan'
 
 const READY: Record<Readiness, { label: string; tone: string }> = {
   normal: { label: 'Siap latihan normal', tone: 'text-ok' },
@@ -503,6 +504,13 @@ export function LatihanPage() {
           </p>
           <Targets data={data} />
           <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-2">
+            <WeekPlan
+              today={today}
+              onLog={(kind, programDay) => {
+                if (kind === 'beban' && programDay) setDay(programDay)
+                setForm(kind)
+              }}
+            />
             <StrengthCard data={data} onLog={() => setForm('beban')} onAdd={() => setCatalog(true)} onDay={setDay} />
             <RunCard data={data} onLog={() => setForm('lari')} />
             <Progress data={data} onEdit={setEditing} />

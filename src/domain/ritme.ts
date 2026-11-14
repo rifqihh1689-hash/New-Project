@@ -66,6 +66,11 @@ export function effectiveRitme(
   return [...slots].sort((a, b) => slotOrder(a.time) - slotOrder(b.time))
 }
 
+/** Stase yang berjalan di tanggal itu (yang mulai paling akhir bila tumpang tindih). */
+export function chapterOn<T extends Pick<Chapter, 'start' | 'end'>>(chapters: T[], date: string): T | null {
+  return chapters.filter((c) => c.start <= date && c.end >= date).sort((a, b) => b.start.localeCompare(a.start))[0] ?? null
+}
+
 /** Jam pulang dari slot kerja pertama, untuk kalimat pembuka. */
 export function workEndTime(slots: RitmeSlot[]): string | null {
   return slots.find((s) => s.work && s.until)?.until ?? null

@@ -80,6 +80,8 @@ export function BerandaPage() {
         // HP = "Hari ini": yang dikerjakan sekarang dulu, ringkasan lain bisa dibuka.
         <div className="stagger grid gap-3">
           <TodayList data={data} />
+          {/* Sisa jadwal hari ini (tentir, latihan, agenda, jam tidur) selalu terlihat di HP. */}
+          <Ritme data={data} compact />
           <EnergyCard data={data} />
           <MutabaahCard data={data} />
           <CloseDayCard data={data} />
@@ -89,13 +91,12 @@ export function BerandaPage() {
             onClick={() => setMore(!more)}
             className="flex items-center justify-center gap-1.5 rounded-[14px] border border-dashed border-line py-2.5 text-[13px] text-muted"
           >
-            {more ? 'Sembunyikan ringkasan lain' : 'Ringkasan lain: tidur, ritme, prioritas, makan, uang…'}
+            {more ? 'Sembunyikan ringkasan lain' : 'Ringkasan lain: tidur, prioritas, makan, uang…'}
             <ChevronDown size={15} className={`transition-transform duration-300 ${more ? 'rotate-180' : ''}`} aria-hidden="true" />
           </button>
           {more && (
             <>
               <StatCards data={data} isPasca={isPasca} />
-              <Ritme data={data} />
               {!isPasca && <PrioritiesCard data={data} />}
               <MealsCard data={data} />
               {!isPasca && <RoadCard data={data} />}

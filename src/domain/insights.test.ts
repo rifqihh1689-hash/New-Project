@@ -35,6 +35,13 @@ describe('pickInsights', () => {
     expect(ids({ sleep: [5, 5.5, 5], streak: { current: 4, best: 4 } })[0]).toBe('tidur-kurang')
   })
 
+  it('bentrok di jadwal hari ini jadi temuan teratas dengan tautan ke Latihan', () => {
+    const [top] = pickInsights({ ...base, conflicts: ['Latihan beban 16.30 bentrok dengan Tentir AB 17.00.', 'x'] })
+    expect(top).toMatchObject({ id: 'jadwal-bentrok', tone: 'warn', href: '#/latihan' })
+    expect(top.detail).toMatch(/1 bentrok lain/)
+    expect(ids({ conflicts: [] })).not.toContain('jadwal-bentrok')
+  })
+
   it('pasca/jaga: hanya pemulihan dan ritme, tanpa uang/tentir', () => {
     expect(ids({ dayType: 'pasca', money: { expense: 3_000_000, budget: 1_000_000 } })).toEqual(['ritme'])
     expect(ids({ dayType: null })[0]).toBe('ritme')

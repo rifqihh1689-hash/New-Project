@@ -164,6 +164,7 @@ describe('protokol MCP', () => {
       'get_summary',
       'list_records',
       'get_training_plan',
+      'get_schedule',
       'propose',
     ])
     expect(list.result.tools.find((t: { name: string }) => t.name === 'propose').annotations.readOnlyHint).toBe(false)
@@ -230,6 +231,89 @@ describe('alat baca', () => {
     expect(bench.next).toMatchObject({ action: 'naik', kg: 62.5 })
     expect(p.readiness).toBe('normal')
     expect(p.run.targetKm).toBeGreaterThan(0)
+  })
+})
+
+describe('jadwal terpadu', () => {
+  const cloud = () =>
+    fakeCloud({
+      days: [
+        { id: '#day:2026-11-05', date: '2026-11-05', type: 'stase', sleepNight: 6, nap: 0, workEnd: null, note: '', updatedAt: 1 },
+        { id: '#day:2026-11-06', date: '2026-11-06', type: 'jaga', sleepNight: null, nap: 0, workEnd: null, note: '', updatedAt: 1 },
+      ],
+      tentirSessions: [
+        {
+          id: 'tnt_1',
+          student: 'AB',
+          topic: 'Anatomi',
+          date: '2026-11-05',
+          start: '17.00',
+          hours: 2,
+          fee: 170_000,
+          paid: false,
+          transactionId: null,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      plannedWorkouts: [
+        { id: '#plw:2026-11-05:beban', date: '2026-11-05', kind: 'beban', start: '16.30', minutes: 60, source: 'auto', updatedAt: 1 },
+        {
+          id: '#plw:2026-11-06:lari',
+          date: '2026-11-06',
+          kind: 'lari',
+          run: { type: 'easy', km: 4 },
+          start: '16.30',
+          minutes: 35,
+          source: 'auto',
+          updatedAt: 1,
+        },
+      ],
+    })
+
+  it('get_schedule: satu linimasa per hari, bentrok & hari jaga ditandai, tipe hari diperkirakan', async () => {
+    const r = (await call(cloud(), 'get_schedule', { from: '2026-11-05', to: '2026-11-07' })).structuredContent as Record<string, any>
+    expect(r.days.map((d: { dayType: string }) => d.dayType)).toEqual(['stase', 'jaga', 'pasca'])
+    expect(r.days[2].dayTypeSet).toBe(false)
+    const [thu, fri] = r.days
+    expect(thu.items.map((i: { source: string }) => i.source)).toEqual(expect.arrayContaining(['ritme', 'tentir', 'latihan', 'tidur']))
+    expect(thu.items.find((i: { source: string }) => i.source === 'tentir')).toMatchObject({
+      time: '17.00',
+      until: '19.00',
+      title: 'Tentir AB',
+    })
+    expect(thu.conflicts).toEqual(['Latihan beban 16.30 bentrok dengan Tentir AB 17.00.'])
+    expect(thu.bedtime).toMatch(/^\d\d\.\d\d$/)
+    expect(fri.items.find((i: { source: string }) => i.source === 'latihan').warn).toMatch(/Hari jaga/)
+    expect(fri.bedtime).toBeNull()
+  })
+
+  it('get_schedule menolak rentang > 14 hari; get_training_plan memuat sesi terjadwal minggu ini', async () => {
+    const c = cloud()
+    expect((await call(c, 'get_schedule', { from: '2026-11-01', to: '2026-11-20' })).isError).toBe(true)
+    const p = (await call(c, 'get_training_plan')).structuredContent as Record<string, any>
+    expect(p.schedule).toEqual([
+      { date: '2026-11-05', start: '16.30', minutes: 60, title: 'Latihan beban', source: 'auto', done: false },
+      { date: '2026-11-06', start: '16.30', minutes: 35, title: 'Lari santai 4 km', source: 'auto', done: false },
+    ])
+    expect(p.scheduleSettings).toMatchObject({ strengthPerWeek: 3, timeStase: '16.30' })
+  })
+
+  it('propose sesi_latihan: jenis dibaca dari judul; jam wajib', async () => {
+    const c = cloud()
+    const ok = await call(c, 'propose', {
+      summary: 'Latihan minggu depan',
+      items: [
+        { jenis: 'sesi_latihan', tanggal: '2026-11-09', jam: '16.30', judul: 'Beban · Atas', menit: 60 },
+        { jenis: 'sesi_latihan', tanggal: '2026-11-10', jam: '5', judul: 'Lari kualitas 5 km' },
+      ],
+    })
+    expect(ok.isError).toBeUndefined()
+    expect(ok.content[0].text).toMatch(/Sesi latihan terjadwal: Sen, 9 Nov 16\.30 · Latihan beban · Atas · 60 mnt/)
+    expect(ok.content[0].text).toMatch(/Sel, 10 Nov 05\.00 · Lari kualitas 5 km · 45 mnt/)
+    const bad = await call(c, 'propose', { summary: 'x', items: [{ jenis: 'sesi_latihan', tanggal: '2026-11-09', judul: 'Beban' }] })
+    expect(bad.isError).toBe(true)
+    expect(bad.content[0].text).toMatch(/Jam mulai/)
   })
 })
 

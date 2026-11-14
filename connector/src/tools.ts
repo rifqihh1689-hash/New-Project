@@ -23,9 +23,12 @@ import { detectPatientIdentity } from '../../src/domain/phi'
 import { computeStreak, dayStatus, levelFromXp } from '../../src/domain/progress'
 import { bridgeStatus, tokensLeft } from '../../src/domain/rewards'
 import { resolveRules } from '../../src/domain/rules'
+import { chapterOn, effectiveRitme } from '../../src/domain/ritme'
+import { daySchedule, plannedTitle } from '../../src/domain/schedule'
+import { resolveDayTypes, resolveTrainingSchedule } from '../../src/domain/trainingSchedule'
 import { sleepTotal } from '../../src/domain/sleep'
 import { dayTentir, DEFAULT_TENTIR_RATE, summarize as summarizeTentir } from '../../src/domain/tentir'
-import { addDays, dayKey, diffDays, isValidISODate, weekStart } from '../../src/domain/time'
+import { addDays, dayKey, diffDays, isValidISODate, weekStart, wibMinutes } from '../../src/domain/time'
 import {
   DEFAULT_TARGETS,
   estimate5k,
@@ -40,6 +43,7 @@ import {
 import { reviewXpTotal } from '../../src/domain/weekly'
 import { createId } from '../../src/lib/id'
 import type {
+  CalendarEvent,
   Category,
   Chapter,
   Claim,
@@ -52,6 +56,7 @@ import type {
   MutabaahItem,
   MutabaahLog,
   Phase,
+  PlannedWorkout,
   Profile,
   Proposal,
   Review,
@@ -356,6 +361,7 @@ const TABLES: Record<string, string | null> = {
   students: null,
   tentirPackages: null,
   materials: null,
+  plannedWorkouts: 'date',
   lifeRoles: null,
   phases: null,
   profile: null,
@@ -406,11 +412,12 @@ const getTrainingPlan: ToolDef = {
   readOnly: true,
   async run(_args, { store, now }) {
     const today = dayKey(now)
-    const [base, days, exercises, workouts] = await Promise.all([
+    const [base, days, exercises, workouts, planned] = await Promise.all([
       loadBase(store),
       store.all<Day>('days'),
       store.all<Exercise>('exercises'),
       store.all<Workout>('workouts'),
+      store.all<PlannedWorkout>('plannedWorkouts'),
     ])
     const sorted = [...workouts].sort((a, b) => a.date.localeCompare(b.date))
     const day = days.find((x) => x.date === today)
@@ -445,14 +452,119 @@ const getTrainingPlan: ToolDef = {
         est5kSec: estimate5k(runs, today),
         target5kSec: targets.fiveKSec,
       },
+      // Sesi minggu ini yang sudah diberi hari & jam (lihat get_schedule untuk jadwal lengkap tiap hari).
+      schedule: planned
+        .filter((p) => p.date >= monday && p.date <= addDays(monday, 6))
+        .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+        .map((p) => ({
+          date: p.date,
+          start: p.start,
+          minutes: p.minutes,
+          title: plannedTitle(p),
+          source: p.source,
+          done: sorted.some((w) => w.date === p.date && w.kind === p.kind),
+        })),
+      scheduleSettings: resolveTrainingSchedule(base.profile.trainingSchedule, split),
     }
+  },
+}
+
+/** Jadwal terpadu per tanggal, dihitung dengan kode yang sama dengan Beranda & Kalender. */
+async function schedules(
+  store: Store,
+  base: Awaited<ReturnType<typeof loadBase>>,
+  from: string,
+  to: string,
+  nowMinutes: number,
+  today: string,
+) {
+  const [days, chapters, sessions, events, planned, workouts] = await Promise.all([
+    store.all<Day>('days'),
+    store.all<Chapter>('chapters'),
+    store.all<TentirSession>('tentirSessions'),
+    store.all<CalendarEvent>('events'),
+    store.all<PlannedWorkout>('plannedWorkouts'),
+    store.all<Workout>('workouts'),
+  ])
+  const dates: string[] = []
+  for (let d = from; d <= to; d = addDays(d, 1)) dates.push(d)
+  const byDate = new Map(days.map((d) => [d.date, d]))
+  // Satu hari ekstra di ujung untuk menentukan jam bangun besok.
+  const types = resolveDayTypes([...dates, addDays(to, 1)], (d) => byDate.get(d)?.type ?? null, byDate.get(addDays(from, -1))?.type ?? null)
+  const ritmeOf = (i: number) => effectiveRitme(types[i].type, base.profile.ritme, chapterOn(chapters, types[i].date))
+  const morning = (slots: { time: string }[]) => slots.map((s) => s.time).find((t) => t >= '03.00' && t < '10.00') ?? null
+  return dates.map((date, i) => {
+    const day = byDate.get(date)
+    const ritme = ritmeOf(i)
+    const monday = weekStart(date)
+    const s = daySchedule({
+      date,
+      type: types[i].type,
+      ritme,
+      sessions,
+      events,
+      planned,
+      workouts,
+      planActive: planned.some((p) => p.date >= monday && p.date <= addDays(monday, 6)),
+      sleep: {
+        wake: morning(ritmeOf(i + 1)) ?? morning(ritme),
+        target: base.rules.sleepQuestMin,
+        napLogged: day?.nap ?? 0,
+        ...(date === today ? { nowMinutes } : {}),
+      },
+      readiness: readiness(day?.type ?? null, day ? sleepTotal(day.sleepNight, day.nap, base.rules) : null),
+      lowEnergy: day?.energy != null && day.energy <= 2,
+    })
+    return {
+      date,
+      dayType: types[i].type,
+      /** false = tipe hari belum dipilih (perkiraan: setelah jaga = pasca, Minggu = libur). */
+      dayTypeSet: types[i].typed,
+      items: s.items.map((x) => ({
+        time: x.time,
+        until: x.until ?? null,
+        title: x.title,
+        source: x.source,
+        ...(x.note ? { note: x.note } : {}),
+        ...(x.warn ? { warn: x.warn } : {}),
+        ...(x.source === 'latihan' ? { done: !!x.done } : {}),
+      })),
+      allDay: s.allDay.map((x) => x.title),
+      conflicts: s.conflicts,
+      bedtime: s.sleep?.bedtime ?? null,
+    }
+  })
+}
+
+const getSchedule: ToolDef = {
+  name: 'get_schedule',
+  title: 'Jadwal terpadu',
+  description:
+    'Jadwal terpadu per hari (bawaan: hari ini + 6 hari; maks. 14 hari): ritme tipe hari digabung sesi tentir, agenda, sesi latihan terjadwal, dan jam tidur paling lambat (dari jam bangun & qailulah). Tiap butir punya jam, sumber (ritme/tentir/agenda/latihan/tidur), dan peringatan bentrok. Pakai ini untuk mencari jam kosong sebelum mengusulkan sesi latihan, tentir, atau agenda.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      from: { type: 'string', description: 'YYYY-MM-DD (bawaan: hari ini)' },
+      to: { type: 'string', description: 'YYYY-MM-DD (bawaan: from + 6 hari)' },
+    },
+    additionalProperties: false,
+  },
+  readOnly: true,
+  async run(args, { store, now }) {
+    const today = dayKey(now)
+    const from = dateArg(args, 'from', today)
+    const to = dateArg(args, 'to', addDays(from, 6))
+    if (from > to) throw new ToolError('from harus ≤ to.')
+    if (diffDays(to, from) >= 14) throw new ToolError('Rentang maksimal 14 hari.')
+    const base = await loadBase(store)
+    return { today, days: await schedules(store, base, from, to, wibMinutes(now), today) }
   },
 }
 
 const propose: ToolDef = {
   name: 'propose',
   title: 'Kirim usulan',
-  description: `Kirim usulan ke Qawwam: jadwal, tugas, habit, menu, dan juga keuangan (pemasukan, pengeluaran, utang baru, cicilan utang, setoran/penarikan tabungan), dan kartu ulasan UKMPPD. TIDAK langsung ditulis: masuk halaman Usulan dan pengguna memilih item mana yang disetujui. Tidak bisa menghapus apa pun. Satu usulan = satu topik (mis. "Pengeluaran minggu ini"). Tanggal YYYY-MM-DD, jam HH.MM. Dilarang menulis identitas pasien (nama, No. RM, tanggal lahir); item seperti itu ditolak. Untuk cicilan/setoran, nama utang/tabungan harus sama dengan yang ada (lihat "uang" di get_overview).
+  description: `Kirim usulan ke Qawwam: jadwal, tugas, habit, menu, dan juga keuangan (pemasukan, pengeluaran, utang baru, cicilan utang, setoran/penarikan tabungan), dan kartu ulasan UKMPPD. TIDAK langsung ditulis: masuk halaman Usulan dan pengguna memilih item mana yang disetujui. Tidak bisa menghapus apa pun. Satu usulan = satu topik (mis. "Pengeluaran minggu ini"). Tanggal YYYY-MM-DD, jam HH.MM. Dilarang menulis identitas pasien (nama, No. RM, tanggal lahir); item seperti itu ditolak. Untuk cicilan/setoran, nama utang/tabungan harus sama dengan yang ada (lihat "uang" di get_overview). Untuk sesi latihan, cek get_schedule dulu supaya tidak jatuh di hari jaga/pasca-jaga atau menabrak tentir & agenda.
 
 Format item:
 ${IMPORT_ITEM_GUIDE}
@@ -516,7 +628,7 @@ Pakai id peran tanpa "#role:" (mis. "ukmppd", "orto", "koas", "tentir", "pulih",
   },
 }
 
-export const TOOLS: ToolDef[] = [getOverview, getSummary, listRecords, getTrainingPlan, propose]
+export const TOOLS: ToolDef[] = [getOverview, getSummary, listRecords, getTrainingPlan, getSchedule, propose]
 
 export const INSTRUCTIONS = `Qawwam adalah app pengatur hidup pribadi seorang koas FK (koas → UKMPPD → PPDS Ortopedi). Data milik pengguna; kamu hanya membaca, dan semua perubahan lewat alat "propose" yang masuk ke halaman Usulan untuk disetujui.
 - Hari Qawwam memakai WIB dan berganti pukul 03.00. Tipe hari: stase, jaga, pasca (pasca-jaga: hanya pemulihan), libur.
@@ -524,5 +636,6 @@ export const INSTRUCTIONS = `Qawwam adalah app pengatur hidup pribadi seorang ko
 - Prinsip: hadiah untuk pemulihan, bukan volume; maksimal 3 Main Quest aktif; kuota sampingan (tentir dll.) 9–15 jam/minggu.
 - Catatan uang dari percakapan ("tadi beli buku 150rb", "dapat kiriman 1,5jt", "bayar utang kakak 500rb", "nabung 1jt ke dana jembatan") dikirim lewat propose sebagai pemasukan/pengeluaran/cicilan/setoran, juga utang baru. Nama utang & tabungan ada di get_overview → uang.
 - Kartu ulasan UKMPPD (pengulangan berjarak) dibuat lewat propose jenis "kartu" (depan = pertanyaan/konsep, belakang = jawaban + alasan). Satu konsep per kartu, ringkas, mudah dijawab dari ingatan; bisa dari catatan pengguna atau soal yang sering salah.
+- Jadwal: get_schedule memberi satu linimasa per hari (ritme + tentir + agenda + latihan + jam tidur) beserta bentrok. Program latihan dimasukkan ke jam lewat propose "sesi_latihan"; hormati pemulihan (tidak ada latihan di hari jaga/pasca-jaga, jangan memotong tidur).
 - JANGAN pernah menulis identitas pasien (nama, No. RM, tanggal lahir, "Tn./Ny. + nama").
 Mulai dengan get_overview.`

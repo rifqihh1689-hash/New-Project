@@ -398,11 +398,13 @@ export function SlotsTab({ data, today }: { data: TentirPageData; today: string 
   const [start, setStart] = useState('19.00')
   const [end, setEnd] = useState(data.limit ?? '21.00')
   const days = useLiveQuery(() => db.days.where('date').between(`${month}-01`, `${month}-31`, true, true).toArray(), [month])
-  if (!days) return null
+  // Sesi latihan terjadwal ikut mengisi jam: slot tentir tidak ditawarkan di atasnya.
+  const training = useLiveQuery(() => db.plannedWorkouts.where('date').between(`${month}-01`, `${month}-31`, true, true).toArray(), [month])
+  if (!days || !training) return null
   const types = new Map(days.map((d) => [d.date, d.type]))
   // "20" saat masih diketik sudah dibaca 20.00.
   const opts = { start: normalizeClock(start) ?? '19.00', end: normalizeClock(end) ?? data.limit ?? '21.00' }
-  const slots = freeSlots(month, today, (d) => types.get(d) ?? null, data.allSessions, opts)
+  const slots = freeSlots(month, today, (d) => types.get(d) ?? null, data.allSessions, opts, training)
   const text = slotsMessage(month, slots, opts)
   const jaga = days.filter((d) => d.type === 'jaga').length
   return (
@@ -429,8 +431,8 @@ export function SlotsTab({ data, today }: { data: TentirPageData; today: string 
           </label>
         </div>
         <p className="mt-3 text-[13px] text-muted">
-          <b className="font-semibold text-text">{slots.length} slot</b> · tanpa {jaga} malam jaga & pasca-jaga, tanpa bentrok sesi lain.
-          {!jaga && ' Jadwal jaga bulan ini belum diisi di Kalender.'}
+          <b className="font-semibold text-text">{slots.length} slot</b> · tanpa {jaga} malam jaga & pasca-jaga, tanpa bentrok sesi lain
+          {training.length > 0 && ' dan latihan terjadwal'}.{!jaga && ' Jadwal jaga bulan ini belum diisi di Kalender.'}
         </p>
         <div className="mt-2 flex flex-wrap gap-1">
           {slots.map((d) => (
