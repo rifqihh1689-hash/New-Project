@@ -17,6 +17,7 @@ import { currentPhase, usePhases, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS, suggestDayType } from '../../domain/dayType'
 import { detectPatientIdentity } from '../../domain/phi'
 import { addDays, addMonths, DAY_SHORT, formatDateLong, formatDateShort, formatMonth, monthOf, weekStart } from '../../domain/time'
+import { carryType, JAGA_SHIFTS, jagaLabel, type JagaShift } from '../../domain/jaga'
 import { DayTypePicker } from '../beranda/DayTypePicker'
 import { DAY_TYPE_COLORS } from '../beranda/dayTypeColors'
 import { useKalender, type KalenderData } from './data'
@@ -37,7 +38,8 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
           const type = data.types(d)
           const events = data.eventCount.get(d) ?? 0
           const tentir = data.tentirCount.get(d) ?? 0
-          const label = `${formatDateLong(d)}${type ? `, ${DAY_TYPE_LABELS[type]}` : ''}${events ? `, ${events} agenda` : ''}`
+          const shift = data.shifts(d)
+          const label = `${formatDateLong(d)}${type ? `, ${type === 'jaga' ? jagaLabel(shift) : DAY_TYPE_LABELS[type]}` : ''}${events ? `, ${events} agenda` : ''}`
           return (
             <button
               key={d}
@@ -51,6 +53,11 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
               style={type === 'jaga' ? { background: DAY_TYPE_COLORS.jaga } : undefined}
             >
               {Number(d.slice(8))}
+              {type === 'jaga' && (
+                <span className="absolute top-0.5 right-1 text-[9px] leading-none font-semibold opacity-90" aria-hidden="true">
+                  {shift === 'pagi' ? 'P' : shift === 'malam' ? 'M' : '?'}
+                </span>
+              )}
               <span className="absolute bottom-1 flex gap-0.5" aria-hidden="true">
                 {type && type !== 'jaga' && <i className="size-1.5 rounded-full" style={{ background: DAY_TYPE_COLORS[type] }} />}
                 {events > 0 && <i className={`size-1.5 rounded-full ${type === 'jaga' ? 'bg-white' : 'bg-text'}`} />}
@@ -65,6 +72,7 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
           <span key={t} className="flex items-center gap-1">
             <i className="size-2 rounded-full" style={{ background: DAY_TYPE_COLORS[t] }} aria-hidden="true" />
             {DAY_TYPE_LABELS[t]}
+            {t === 'jaga' && <span className="text-faint">(P pagi · M malam)</span>}
           </span>
         ))}
         <span className="flex items-center gap-1">
@@ -127,7 +135,8 @@ function DayBody({ date, onClose }: { date: string; onClose: () => void }) {
       <DayTypePicker
         date={date}
         value={info.day?.type ?? null}
-        suggested={suggestDayType(date, info.prev?.type ?? null)}
+        jagaShift={info.day?.jagaShift ?? null}
+        suggested={suggestDayType(date, carryType(info.prev))}
         phase={currentPhase(phases ?? [], date)}
       />
       {schedule && (
@@ -238,12 +247,19 @@ export function KalenderPage() {
   const toast = useToast()
   const [month, setMonth] = useState(() => monthOf(today))
   const [jagaMode, setJagaMode] = useState(false)
+  // Shift yang dipakai saat mengetuk tanggal: sengaja kosong dulu, dipilih sendiri (jaga pagi dan malam beda jadwalnya).
+  const [shift, setShift] = useState<JagaShift | null>(null)
   const [picked, setPicked] = useState<string | null>(null)
   const data = useKalender(month)
   const pick = async (d: string) => {
     if (!jagaMode || !data) return setPicked(d)
-    const on = data.types(d) !== 'jaga'
-    const moved = await setJaga(d, on)
+    if (!shift) {
+      toast({ message: 'Pilih dulu: jaga pagi atau jaga malam.', tone: 'info' })
+      return
+    }
+    // Ketuk tanggal yang sudah jaga dengan shift yang sama = batalkan; shift lain = ganti shift.
+    const on = data.types(d) !== 'jaga' || data.shifts(d) !== shift
+    const moved = await setJaga(d, on, shift)
     // Jaga berubah → sesi latihan yang jatuh di hari jaga/pasca-jaga ditawarkan untuk disusun ulang.
     const from = weekStart(d) > today ? weekStart(d) : today
     const clash = on ? await plannedConflicts(from) : []
@@ -288,9 +304,31 @@ export function KalenderPage() {
         <div className="stagger mt-3 grid items-start gap-3 lg:grid-cols-[1.3fr_1fr]">
           <section className="card">
             {jagaMode && (
-              <p className="mb-3 rounded-xl bg-surface-2 px-3 py-2 text-[13px] text-muted">
-                Ketuk tanggal jaga. Besoknya otomatis pasca-jaga (kalau masih kosong). Ketuk lagi untuk membatalkan.
-              </p>
+              <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-muted">
+                <div
+                  role="radiogroup"
+                  aria-label="Shift untuk tanggal yang diketuk"
+                  className="mb-2 grid grid-cols-2 gap-1 rounded-full bg-bg p-1"
+                >
+                  {(['pagi', 'malam'] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      role="radio"
+                      aria-checked={shift === s}
+                      onClick={() => setShift(s)}
+                      className={`rounded-full px-2 py-1.5 text-[12.5px] ${shift === s ? 'bg-surface font-semibold text-text shadow-sm' : 'text-muted'}`}
+                    >
+                      {JAGA_SHIFTS[s].label} <span className="text-faint">{JAGA_SHIFTS[s].range}</span>
+                    </button>
+                  ))}
+                </div>
+                {shift
+                  ? `Ketuk tanggal untuk ${JAGA_SHIFTS[shift].label.toLowerCase()}. ${
+                      shift === 'malam' ? 'Besoknya otomatis pasca-jaga (kalau masih kosong).' : 'Tidak ada pasca-jaga.'
+                    } Ketuk lagi untuk membatalkan; pilih shift lain lalu ketuk tanggal yang sama untuk mengganti.`
+                  : 'Pilih shift dulu, lalu ketuk tanggalnya.'}
+              </div>
             )}
             <Grid data={data} today={today} jagaMode={jagaMode} onPick={(d) => void pick(d)} />
             <p className="mt-3 text-[13px] text-muted">

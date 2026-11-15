@@ -1,4 +1,5 @@
-import type { Chapter, DayType, RitmeSlot } from '../types'
+import type { Chapter, DayType, ISODate, RitmeSlot } from '../types'
+import { isWeekend, JAGA_PAGI_RITME, type JagaShift } from './jaga'
 import { parseClock } from './time'
 
 /** Menit untuk mengurutkan slot: sebelum 03.00 dianggap akhir hari (hari Qawwam berganti 03.00). */
@@ -57,9 +58,14 @@ export function effectiveRitme(
   type: DayType,
   templates: Partial<Record<DayType, RitmeSlot[]>>,
   chapter?: Pick<Chapter, 'name' | 'masuk' | 'pulang'> | null,
+  /** Untuk hari jaga: shift yang dipilih dan tanggalnya (Sabtu/Minggu tidak ada jam stase). */
+  jaga?: { shift?: JagaShift | null; date?: ISODate },
 ): RitmeSlot[] {
-  const slots = (templates[type] ?? []).map((s) =>
-    s.work && chapter
+  if (type === 'jaga' && jaga?.shift === 'pagi') return JAGA_PAGI_RITME
+  let base = templates[type] ?? []
+  if (type === 'jaga' && jaga?.date && isWeekend(jaga.date)) base = base.filter((s) => !s.work)
+  const slots = base.map((s) =>
+    s.work && chapter && !s.fixed
       ? { ...s, time: chapter.masuk || s.time, until: chapter.pulang || s.until, title: s.title === 'Stase' ? chapter.name : s.title }
       : s,
   )

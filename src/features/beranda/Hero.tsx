@@ -48,6 +48,7 @@ export function Hero({ data }: { data: BerandaData }) {
     minutes,
     workEndLimit: data.rules.workEndLimit,
     napDone: (data.snap.day?.nap ?? 0) > 0,
+    jagaShift: data.snap.day?.jagaShift ?? null,
   })
   const effType = type == null ? null : data.snap.result.effType
   const insights = pickInsights({
@@ -168,6 +169,7 @@ export function Hero({ data }: { data: BerandaData }) {
       <DayTypePicker
         date={data.today}
         value={type}
+        jagaShift={data.snap.day?.jagaShift ?? null}
         suggested={data.suggested}
         phase={data.phase}
         variant="segmented"

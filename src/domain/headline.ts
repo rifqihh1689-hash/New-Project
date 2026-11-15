@@ -1,4 +1,5 @@
 import type { DayType, RitmeSlot } from '../types'
+import type { JagaShift } from './jaga'
 import { DAY_TYPE_LABELS } from './dayType'
 import { parseClock } from './time'
 import { slotOrder } from './ritme'
@@ -18,6 +19,8 @@ export interface HeadlineContext {
   workEndLimit?: string | null
   /** Qailulah hari ini sudah dicatat. */
   napDone?: boolean
+  /** Shift jaga hari ini: `null` = belum dipilih; tidak diisi = tidak diperhatikan (kalimat lama). */
+  jagaShift?: JagaShift | null
 }
 
 /** Kalimat pembuka Beranda. Pendek, tenang, satu arahan. */
@@ -44,6 +47,8 @@ export function headline(ctx: HeadlineContext): string {
       return `Hari ${work}. ${ctx.pulang ? `Pulang ±${ctx.pulang}, q` : 'Setelah pulang, q'}ailulah dulu${ctx.hasTentir ? ' sebelum tentir' : ''}.`
     }
     case 'jaga':
+      if (ctx.jagaShift === null) return 'Jaga pagi atau malam? Pilih shift dulu, jadwalnya menyesuaikan.'
+      if (ctx.jagaShift === 'pagi') return 'Jaga pagi 07.00–19.00. Makan teratur, minum cukup; malam ini tidur normal (bukan pasca-jaga).'
       if (ctx.minutes != null && ctx.minutes >= 18 * 60) return 'Jaga malam ini. Makan teratur, minum cukup, tidur saat sepi.'
       return 'Malam ini jaga. Simpan tenaga, tidur sore dulu 2 jam.'
     case 'pasca':

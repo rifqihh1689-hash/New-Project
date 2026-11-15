@@ -189,3 +189,21 @@ describe('keuangan', () => {
     expect(one({ jenis: 'pengeluaran', jumlah: 50_000, catatan: 'obat untuk Tn. Budi' }).phi).toBeTruthy()
   })
 })
+
+describe('impor jaga dengan shift', () => {
+  it('kolom shift, jenis jaga_pagi / "jaga malam", dan tanpa shift', () => {
+    const rows = parseImport(
+      JSON.stringify([
+        { jenis: 'jaga', tanggal: '2026-11-14', shift: 'pagi' },
+        { jenis: 'jaga_malam', tanggal: '2026-11-21' },
+        { jenis: 'jaga', tanggal: '2026-11-28' },
+      ]),
+      ctx,
+    )
+    expect(rows.map((r) => r.item)).toEqual([
+      { kind: 'jaga', date: '2026-11-14', shift: 'pagi' },
+      { kind: 'jaga', date: '2026-11-21', shift: 'malam' },
+      { kind: 'jaga', date: '2026-11-28' },
+    ])
+  })
+})

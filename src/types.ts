@@ -71,6 +71,8 @@ export interface RitmeSlot {
   roleId?: string
   /** Slot kerja utama (stase/dinas): jam masuk & pulangnya mengikuti stase yang sedang berjalan. */
   work?: boolean
+  /** Jam tetap: tidak diganti jam masuk/pulang stase (mis. jaga pagi 07.00–19.00). */
+  fixed?: boolean
 }
 
 export interface Profile extends CloudFields {
@@ -170,6 +172,8 @@ export interface Day extends CloudFields {
   sleepNight: number | null
   /** Jam qailulah/tidur siang hari ini. */
   nap: number
+  /** Shift jaga bila tipe hari = jaga: pagi 07.00–19.00 atau malam 19.00–07.00. Kosong = belum dipilih (dianggap malam). */
+  jagaShift?: 'pagi' | 'malam'
   /** Energi subjektif hari ini, 1 (habis) – 5 (prima). Tidak masuk XP; hanya untuk melihat pola. */
   energy?: 1 | 2 | 3 | 4 | 5
   workEnd: WorkEnd | null

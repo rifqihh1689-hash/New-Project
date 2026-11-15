@@ -31,6 +31,6 @@ describe('tipe hari', () => {
   it('label mengikuti fase hidup', () => {
     expect(dayTypeLabel('stase')).toBe('Stase')
     expect(dayTypeLabel('stase', { dayTypeLabels: { stase: 'Dinas' } })).toBe('Dinas')
-    expect(dayTypeLabel('jaga', { dayTypeLabels: { stase: 'Dinas' } })).toBe('Jaga malam')
+    expect(dayTypeLabel('jaga', { dayTypeLabels: { stase: 'Dinas' } })).toBe('Jaga')
   })
 })

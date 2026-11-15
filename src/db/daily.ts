@@ -2,6 +2,7 @@ import { isAllowedOnDayType } from '../domain/dayType'
 import { applyMinutes } from '../domain/habitGrid'
 import { detectPatientIdentity } from '../domain/phi'
 import { addDays, weekStart } from '../domain/time'
+import { carryType, type JagaShift } from '../domain/jaga'
 import { computeDay, isLocked } from '../domain/xp'
 import { computeResults, dailyRows, toDayInput, type DailyRow } from '../domain/dayRows'
 import { createId, privateId } from '../lib/id'
@@ -38,12 +39,16 @@ export async function setEnergy(date: ISODate, energy: Day['energy'] | null): Pr
  * Memilih tipe hari. Saat pasca-jaga, tugas yang belum selesai dan bukan pemulihan pindah ke besok.
  * Mengembalikan ID tugas yang dipindah (untuk tombol Urungkan).
  */
-export async function setDayType(date: ISODate, type: DayType | null): Promise<string[]> {
+export async function setDayType(date: ISODate, type: DayType | null, jagaShift?: JagaShift | null): Promise<string[]> {
   let moved: string[] = []
   const roles = await loadRoles()
   const recovery = new Set(roles.filter((r) => r.recovery).map((r) => r.id))
   await db.transaction('rw', db.days, db.tasks, async () => {
-    await putDay(date, () => ({ type }))
+    // Shift hanya berarti di hari jaga: pindah ke tipe lain menghapusnya; memilih Jaga tanpa shift tidak menebak.
+    await putDay(date, (day) => ({
+      type,
+      jagaShift: type === 'jaga' ? (jagaShift === undefined ? day.jagaShift : (jagaShift ?? undefined)) : undefined,
+    }))
     if (type !== 'pasca') return
     const tasks = await db.tasks.where('date').equals(date).toArray()
     const toMove = tasks.filter((t) => !t.done && !isAllowedOnDayType('pasca', { recovery: recovery.has(t.roleId) }))
@@ -214,7 +219,7 @@ export async function loadDaySnapshot(date: ISODate, today: ISODate): Promise<Da
   ])
   const rules = rulesOf(profile)
   const rows = dailyRows(date, day?.type ?? null, tasks, habits, logs, roles, sessions, rules.workEndLimit)
-  const prevType = prev?.type ?? null
+  const prevType = carryType(prev)
   const result = day?.frozen ?? computeDay(toDayInput(day ?? null, prevType, rows), rules, { final: isLocked(date, today, rules) })
   return { date, day: day ?? null, prevType, rows, result, frozen: !!day?.frozen, rules }
 }

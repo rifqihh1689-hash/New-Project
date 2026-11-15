@@ -121,7 +121,7 @@ export async function applyImport(items: ImportItem[]): Promise<ImportSummary> {
   // Jaga: tanggal itu bertipe Jaga; besoknya otomatis pasca-jaga bila belum diisi.
   for (const it of items) {
     if (it.kind !== 'jaga') continue
-    await setJaga(it.date, true)
+    await setJaga(it.date, true, it.shift ?? null)
     sum.jaga++
   }
 

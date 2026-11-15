@@ -198,7 +198,7 @@ export async function loadBeranda(today: ISODate) {
     chapterWeek: chapter ? Math.floor((Date.parse(today) - Date.parse(weekStart(chapter.start))) / (7 * 86_400_000)) + 1 : null,
     profile,
     suggested,
-    ritme: effectiveRitme(ritmeType, profile.ritme, chapter),
+    ritme: effectiveRitme(ritmeType, profile.ritme, chapter, { shift: snap.day?.jagaShift ?? null, date: today }),
     /** Bahan jadwal terpadu hari ini (ritme + tentir + agenda + latihan + tidur); jam sekarang ditambahkan komponen. */
     scheduleInput: scheduleData.input,
     pulang: workEndTime(effectiveRitme('stase', profile.ritme, chapter)),

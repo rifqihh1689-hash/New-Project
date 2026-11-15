@@ -2,6 +2,7 @@ import type { Category, Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSl
 import { DEFAULT_CATEGORIES, guessCategory, matchCategory, parseAmount } from './money'
 import { parseIngredients } from './menu'
 import { DAY_TYPES } from './dayType'
+import { JAGA_SHIFTS, jagaLabel, type JagaShift } from './jaga'
 import { STUDY_SYSTEMS } from './study'
 import { detectPatientIdentity } from './phi'
 import { guessRole, matchRole, type RoleRef } from './quickCapture'
@@ -57,7 +58,7 @@ export type ImportItem =
       note?: string
     }
   | { kind: 'tugas'; title: string; date: ISODate; roleId: string; important: boolean }
-  | { kind: 'jaga'; date: ISODate }
+  | { kind: 'jaga'; date: ISODate; shift?: JagaShift }
   | { kind: 'agenda'; title: string; date: ISODate; start: string | null; end: string | null; roleId: string | null }
   | { kind: 'stase'; name: string; start: ISODate; end: ISODate; masuk?: string; pulang?: string; weight: Chapter['weight'] }
   | {
@@ -158,6 +159,8 @@ const COLUMN_ALIASES: Record<string, string> = {
   ukuran: 'ukuran',
   xp: 'ukuran',
   penting: 'penting',
+  shift: 'shift',
+  sif: 'shift',
   depan: 'depan',
   pertanyaan: 'depan',
   front: 'depan',
@@ -210,6 +213,8 @@ const KIND_ALIASES: Record<string, ImportKind> = {
   task: 'tugas',
   todo: 'tugas',
   jaga: 'jaga',
+  jaga_pagi: 'jaga',
+  jaga_malam: 'jaga',
   jadwal_jaga: 'jaga',
   agenda: 'agenda',
   acara: 'agenda',
@@ -503,7 +508,10 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
     case 'jaga': {
       const date = parseDate(r.tanggal ?? '', ctx.today)
       if (!date) return { error: `Tanggal jaga "${r.tanggal ?? ''}" tidak dikenali.` }
-      return { items: [{ kind, date }] }
+      // Shift dari kolom "shift" atau dari jenis ("jaga pagi", "jaga_malam"); kosong = belum dipilih.
+      const shiftText = normKey(`${r.shift ?? ''} ${r.jenis ?? ''}`)
+      const shift: JagaShift | undefined = /pagi/.test(shiftText) ? 'pagi' : /malam/.test(shiftText) ? 'malam' : undefined
+      return { items: [{ kind, date, ...(shift ? { shift } : {}) }] }
     }
     case 'agenda': {
       if (!title) return { error: 'Judul agenda kosong.' }
@@ -742,7 +750,7 @@ export function describeItem(
     case 'tugas':
       return `${formatDateShort(item.date)} · ${item.title} · ${roleName(item.roleId)}${item.important ? ' · penting' : ''}`
     case 'jaga':
-      return `Jaga malam ${formatDateShort(item.date)}`
+      return `${jagaLabel(item.shift)}${item.shift ? ` ${JAGA_SHIFTS[item.shift].range}` : ' (shift belum dipilih)'} ${formatDateShort(item.date)}`
     case 'agenda':
       return `${formatDateShort(item.date)}${item.start ? ` ${item.start}${item.end ? `–${item.end}` : ''}` : ''} · ${item.title}`
     case 'menu':
