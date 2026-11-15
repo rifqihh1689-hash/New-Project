@@ -21,7 +21,7 @@ export interface HeadlineContext {
   napDone?: boolean
   /** Shift jaga hari ini: `null` = belum dipilih; tidak diisi = tidak diperhatikan (kalimat lama). */
   jagaShift?: JagaShift | null
-  /** Jaga hari kerja: mulai sepulang stase sampai 07.00 (tanpa tidur sore). */
+  /** Jaga hari kerja: mulai 15.00 sampai 07.00 (tanpa tidur sore). */
   jagaFromStase?: boolean
 }
 
@@ -51,7 +51,7 @@ export function headline(ctx: HeadlineContext): string {
     case 'jaga':
       if (ctx.jagaShift === null) return 'Jaga pagi atau malam? Pilih shift dulu, jadwalnya menyesuaikan.'
       if (ctx.jagaShift === 'pagi') return 'Jaga pagi 07.00–19.00. Makan teratur, minum cukup; malam ini tidur normal (bukan pasca-jaga).'
-      if (ctx.jagaFromStase) return 'Jaga dari pulang stase sampai 07.00. Tidak ada tidur sore: makan dan minum teratur, tidur saat sepi.'
+      if (ctx.jagaFromStase) return 'Jaga 15.00 sampai 07.00. Tidak ada tidur sore: makan dan minum teratur, tidur saat sepi.'
       if (ctx.minutes != null && ctx.minutes >= 18 * 60) return 'Jaga malam ini. Makan teratur, minum cukup, tidur saat sepi.'
       return 'Malam ini jaga. Simpan tenaga, tidur sore dulu 2 jam.'
     case 'pasca':
