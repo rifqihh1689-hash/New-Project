@@ -25,6 +25,9 @@ export function carryType(day: Pick<Day, 'type' | 'jagaShift'> | null | undefine
   return day.type === 'jaga' && day.jagaShift === 'pagi' ? null : day.type
 }
 
+/** Jaga malam di hari kerja (Senin–Jumat) mulai pukul ini sampai 07.00, apa pun jam pulang stase. */
+export const JAGA_HARI_KERJA_START = '15.00'
+
 /** Ritme jaga pagi: serah terima 07.00 dan 19.00, lalu malam seperti biasa (bukan pasca-jaga). */
 export const JAGA_PAGI_RITME: RitmeSlot[] = [
   { time: '03.45', title: 'Qiyamul lail' },

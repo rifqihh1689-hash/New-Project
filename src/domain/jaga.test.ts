@@ -51,4 +51,34 @@ describe('jaga pagi & malam', () => {
     expect(headline({ ...base, jagaShift: null })).toMatch(/pagi atau malam/)
     expect(headline({ ...base, jagaShift: 'malam' })).toMatch(/jaga/i)
   })
+
+  it('jaga hari kerja: mulai 15.00 sampai 07.00, tanpa tidur sore; Sabtu/Minggu tetap 19.00', () => {
+    const weekday = ritme('jaga', 'malam', '2026-11-12') // Kamis
+    expect(weekday.find((s) => s.work)).toMatchObject({ time: '07.00', until: '14.00' })
+    expect(weekday.find((s) => s.title === 'Jaga malam')).toMatchObject({ time: '15.00', until: '07.00', fixed: true })
+    expect(weekday.some((s) => /tidur sore|bekal/i.test(s.title))).toBe(false)
+    // Tidak mengikuti jam pulang stase: tetap 15.00 walau stase pulang lebih awal atau lebih lambat.
+    for (const pulang of ['13.00', '16.30']) {
+      const r = effectiveRitme('jaga', DEFAULT_RITME, { ...chapter, pulang }, { shift: null, date: '2026-11-12' })
+      expect(r.find((s) => s.title === 'Jaga malam')?.time).toBe('15.00')
+    }
+    // Akhir pekan tidak ada stase, jaga malam mulai 19.00 dengan tidur sore sebelumnya.
+    const weekend = ritme('jaga', 'malam', '2026-11-14')
+    expect(weekend.find((s) => s.title === 'Jaga malam')?.time).toBe('19.00')
+    expect(weekend.some((s) => /tidur sore/i.test(s.title))).toBe(true)
+    // Jaga pagi di hari kerja tetap 07.00–19.00.
+    expect(ritme('jaga', 'pagi', '2026-11-12')).toBe(JAGA_PAGI_RITME)
+  })
+
+  it('kalimat pembuka jaga hari kerja', () => {
+    const base = {
+      type: 'jaga' as const,
+      suggested: 'jaga' as const,
+      invalidPasca: false,
+      hasTentir: false,
+      minutes: 10 * 60,
+      jagaShift: 'malam' as const,
+    }
+    expect(headline({ ...base, jagaFromStase: true })).toMatch(/Jaga 15\.00 sampai 07\.00.*Tidak ada tidur sore/)
+  })
 })
