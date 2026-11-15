@@ -54,3 +54,38 @@ export async function rejectProposal(id: string): Promise<void> {
 export async function reopenProposal(id: string): Promise<void> {
   await db.proposals.update(id, { status: 'menunggu', decidedAt: null, updatedAt: Date.now() })
 }
+
+/** Usulan yang sudah diputuskan diringkas (daftar item dibuang) setelah ini; baris riwayatnya tetap. */
+export const COMPACT_AFTER_DAYS = 30
+
+/**
+ * Meringkas usulan lama: yang sudah disetujui/ditolak lebih dari `COMPACT_AFTER_DAYS` hari dibuang daftar itemnya
+ * (hasilnya sudah ada di data aslinya: tugas, menu, jadwal). Judul, status, tanggal, dan hasil tetap.
+ * Yang masih menunggu tidak pernah disentuh. Aman diulang di banyak perangkat. Mengembalikan jumlah yang diringkas.
+ */
+export async function compactProposals(now: number = Date.now()): Promise<number> {
+  const cutoff = now - COMPACT_AFTER_DAYS * 86_400_000
+  const old = (await db.proposals.where('status').anyOf('disetujui', 'ditolak').toArray()).filter(
+    (p) => p.decidedAt != null && p.decidedAt < cutoff && p.items.length > 0,
+  )
+  if (!old.length) return 0
+  await db.proposals.bulkPut(old.map((p) => ({ ...p, items: [], updatedAt: now })))
+  return old.length
+}
+
+/** Menghapus satu usulan yang sudah diputuskan dari riwayat; mengembalikan barisnya untuk Urungkan. */
+export async function deleteProposal(id: string): Promise<Proposal | undefined> {
+  const p = await db.proposals.get(id)
+  if (!p || p.status === 'menunggu') return undefined
+  await db.proposals.delete(id)
+  return p
+}
+
+/** Menghapus semua usulan yang ditolak; mengembalikan barisnya untuk Urungkan. */
+export async function deleteRejectedProposals(): Promise<Proposal[]> {
+  const rows = await db.proposals.where('status').equals('ditolak').toArray()
+  await db.proposals.bulkDelete(rows.map((p) => p.id))
+  return rows
+}
+
+export const restoreProposals = (rows: Proposal[]) => db.proposals.bulkPut(rows)
