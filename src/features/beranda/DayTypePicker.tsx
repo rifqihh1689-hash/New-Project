@@ -3,6 +3,8 @@ import { addDays, dayKey, relativeDayLabel } from '../../domain/time'
 import { moveTasks, setDayType } from '../../db/daily'
 import { useToast } from '../../components/toast-context'
 import type { DayType, ISODate, Phase } from '../../types'
+import { setJaga } from '../../db/calendar'
+import { JAGA_SHIFTS, type JagaShift } from '../../domain/jaga'
 import { DAY_TYPE_COLORS } from './dayTypeColors'
 
 interface Props {
@@ -16,7 +18,7 @@ interface Props {
 }
 
 /** Stase / Jaga / Pasca-jaga / Libur. Saran ditandai garis putus-putus bila belum dipilih. */
-export function DayTypePicker({ date, value, suggested, phase, className = '', variant = 'chips' }: Props) {
+function DayTypeRow({ date, value, suggested, phase, className = '', variant = 'chips' }: Props) {
   const toast = useToast()
   const choose = async (type: DayType) => {
     const next = value === type ? null : type
@@ -86,5 +88,59 @@ export function DayTypePicker({ date, value, suggested, phase, className = '', v
         )
       })}
     </div>
+  )
+}
+
+/** Pilihan shift jaga: sengaja tidak menebak. Memilih Jaga lebih dulu bertanya "pagi atau malam?". */
+function JagaShiftChooser({ date, shift, className = '' }: { date: ISODate; shift: JagaShift | null; className?: string }) {
+  const toast = useToast()
+  const choose = async (next: JagaShift) => {
+    if (next === shift) return
+    const moved = await setJaga(date, true, next)
+    if (moved.length)
+      toast({
+        message: `Pasca-jaga besok: ${moved.length} tugas non-pemulihan dipindah.`,
+        tone: 'info',
+        duration: 6000,
+        action: { label: 'Urungkan', onClick: () => void moveTasks(moved, addDays(date, 1)) },
+      })
+  }
+  return (
+    <div className={className}>
+      <div role="radiogroup" aria-label="Shift jaga" className="grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1">
+        {(['pagi', 'malam'] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={shift === s}
+            onClick={() => void choose(s)}
+            className={`rounded-full px-2 py-[7px] text-[12.5px] whitespace-nowrap transition sm:text-[13px] ${
+              shift === s ? 'bg-surface font-semibold text-text shadow-sm' : 'text-muted hover:text-text'
+            }`}
+          >
+            {JAGA_SHIFTS[s].label} <span className="text-faint">{JAGA_SHIFTS[s].range}</span>
+          </button>
+        ))}
+      </div>
+      <p className={`mt-1 text-xs ${shift ? 'text-faint' : 'text-uang'}`}>
+        {shift === 'pagi'
+          ? 'Pulang 19.00: malam ini tidur normal, besok bukan pasca-jaga.'
+          : shift === 'malam'
+            ? 'Berangkat 19.00, pulang 07.00: besok pasca-jaga.'
+            : 'Pilih shift jaga supaya jadwal dan pasca-jaga pas.'}
+      </p>
+    </div>
+  )
+}
+
+/** Stase / Jaga / Pasca-jaga / Libur; bila Jaga, di bawahnya pilihan shift pagi atau malam. */
+export function DayTypePicker(props: Props & { jagaShift?: JagaShift | null }) {
+  const { jagaShift = null, ...row } = props
+  return (
+    <>
+      <DayTypeRow {...row} />
+      {props.value === 'jaga' && <JagaShiftChooser date={props.date} shift={jagaShift} className="relative mt-2 lg:max-w-[560px]" />}
+    </>
   )
 }

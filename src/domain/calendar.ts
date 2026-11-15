@@ -1,4 +1,5 @@
 import type { CalendarEvent, DayType, ISODate, MonthKey } from '../types'
+import type { JagaShift } from './jaga'
 import { addDays, daysInMonth, weekday } from './time'
 
 /** 6 minggu × 7 hari (Senin–Minggu) yang memuat seluruh bulan. */
@@ -15,18 +16,28 @@ export const monthDates = (month: MonthKey): ISODate[] =>
 export interface DayChange {
   date: ISODate
   type: DayType | null
+  /** Shift jaga (hanya untuk type = jaga). */
+  shift?: JagaShift | null
 }
 
 /**
  * Perubahan tipe hari saat sebuah tanggal dijadikan jaga (on) atau dibatalkan (off).
- * - Jaga: besoknya otomatis pasca-jaga bila masih kosong (tidak menimpa pilihan yang sudah ada).
+ * - Jaga malam (atau shift belum dipilih): besoknya otomatis pasca-jaga bila masih kosong (tidak menimpa pilihan yang ada).
+ * - Jaga pagi: pulang 19.00, tidak ada pasca-jaga; pasca-jaga besoknya (mis. sisa dari shift malam sebelumnya) dikosongkan.
  * - Batal: tanggal dikosongkan; pasca-jaga besoknya ikut dikosongkan karena pasca hanya sah setelah jaga.
  */
-export function jagaChanges(date: ISODate, on: boolean, types: (d: ISODate) => DayType | null): DayChange[] {
+export function jagaChanges(
+  date: ISODate,
+  on: boolean,
+  types: (d: ISODate) => DayType | null,
+  shift: JagaShift | null = null,
+): DayChange[] {
   const next = addDays(date, 1)
   if (on) {
-    const out: DayChange[] = [{ date, type: 'jaga' }]
-    if (!types(next)) out.push({ date: next, type: 'pasca' })
+    const out: DayChange[] = [{ date, type: 'jaga', shift }]
+    if (shift === 'pagi') {
+      if (types(next) === 'pasca') out.push({ date: next, type: null })
+    } else if (!types(next)) out.push({ date: next, type: 'pasca' })
     return out
   }
   const out: DayChange[] = [{ date, type: null }]

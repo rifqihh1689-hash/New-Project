@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { jagaStats, monthGrid, sortEvents } from '../../domain/calendar'
+import type { JagaShift } from '../../domain/jaga'
 import type { DayType, ISODate, MonthKey } from '../../types'
 
 export async function loadKalender(month: MonthKey) {
@@ -16,6 +17,8 @@ export async function loadKalender(month: MonthKey) {
   ])
   const typeMap = new Map(days.map((d) => [d.date, d.type]))
   const types = (d: ISODate): DayType | null => typeMap.get(d) ?? null
+  const shiftMap = new Map(days.map((d) => [d.date, d.jagaShift ?? null]))
+  const shifts = (d: ISODate): JagaShift | null => (types(d) === 'jaga' ? (shiftMap.get(d) ?? null) : null)
   const count = <T extends { date: ISODate }>(list: T[]) => {
     const m = new Map<ISODate, number>()
     for (const x of list) m.set(x.date, (m.get(x.date) ?? 0) + 1)
@@ -25,6 +28,7 @@ export async function loadKalender(month: MonthKey) {
     month,
     grid,
     types,
+    shifts,
     events: sortEvents(events),
     eventCount: count(events),
     tentirCount: count(sessions),

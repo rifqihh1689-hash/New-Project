@@ -23,6 +23,7 @@ import { detectPatientIdentity } from '../../src/domain/phi'
 import { computeStreak, dayStatus, levelFromXp } from '../../src/domain/progress'
 import { bridgeStatus, tokensLeft } from '../../src/domain/rewards'
 import { resolveRules } from '../../src/domain/rules'
+import { carryType } from '../../src/domain/jaga'
 import { chapterOn, effectiveRitme } from '../../src/domain/ritme'
 import { daySchedule, plannedTitle } from '../../src/domain/schedule'
 import { resolveDayTypes, resolveTrainingSchedule } from '../../src/domain/trainingSchedule'
@@ -490,8 +491,17 @@ async function schedules(
   for (let d = from; d <= to; d = addDays(d, 1)) dates.push(d)
   const byDate = new Map(days.map((d) => [d.date, d]))
   // Satu hari ekstra di ujung untuk menentukan jam bangun besok.
-  const types = resolveDayTypes([...dates, addDays(to, 1)], (d) => byDate.get(d)?.type ?? null, byDate.get(addDays(from, -1))?.type ?? null)
-  const ritmeOf = (i: number) => effectiveRitme(types[i].type, base.profile.ritme, chapterOn(chapters, types[i].date))
+  const types = resolveDayTypes(
+    [...dates, addDays(to, 1)],
+    (d) => byDate.get(d)?.type ?? null,
+    carryType(byDate.get(addDays(from, -1))),
+    (d) => byDate.get(d)?.jagaShift ?? null,
+  )
+  const ritmeOf = (i: number) =>
+    effectiveRitme(types[i].type, base.profile.ritme, chapterOn(chapters, types[i].date), {
+      shift: byDate.get(types[i].date)?.jagaShift ?? null,
+      date: types[i].date,
+    })
   const morning = (slots: { time: string }[]) => slots.map((s) => s.time).find((t) => t >= '03.00' && t < '10.00') ?? null
   return dates.map((date, i) => {
     const day = byDate.get(date)

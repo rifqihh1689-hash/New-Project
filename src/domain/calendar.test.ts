@@ -14,10 +14,23 @@ describe('kalender', () => {
 
   it('jaga → besoknya pasca bila kosong; tidak menimpa pilihan lain', () => {
     expect(jagaChanges('2026-11-10', true, typesOf({}))).toEqual([
-      { date: '2026-11-10', type: 'jaga' },
+      { date: '2026-11-10', type: 'jaga', shift: null },
       { date: '2026-11-11', type: 'pasca' },
     ])
-    expect(jagaChanges('2026-11-10', true, typesOf({ '2026-11-11': 'jaga' }))).toEqual([{ date: '2026-11-10', type: 'jaga' }])
+    expect(jagaChanges('2026-11-10', true, typesOf({ '2026-11-11': 'jaga' }))).toEqual([{ date: '2026-11-10', type: 'jaga', shift: null }])
+  })
+
+  it('jaga malam → pasca besok; jaga pagi → tidak ada pasca, dan pasca sisa besoknya dikosongkan', () => {
+    expect(jagaChanges('2026-11-14', true, typesOf({}), 'malam')).toEqual([
+      { date: '2026-11-14', type: 'jaga', shift: 'malam' },
+      { date: '2026-11-15', type: 'pasca' },
+    ])
+    expect(jagaChanges('2026-11-14', true, typesOf({}), 'pagi')).toEqual([{ date: '2026-11-14', type: 'jaga', shift: 'pagi' }])
+    // Ganti malam → pagi: pasca yang tadinya otomatis ikut dibersihkan.
+    expect(jagaChanges('2026-11-14', true, typesOf({ '2026-11-14': 'jaga', '2026-11-15': 'pasca' }), 'pagi')).toEqual([
+      { date: '2026-11-14', type: 'jaga', shift: 'pagi' },
+      { date: '2026-11-15', type: null },
+    ])
   })
 
   it('batal jaga ikut mengosongkan pasca besoknya', () => {

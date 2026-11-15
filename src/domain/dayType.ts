@@ -5,7 +5,7 @@ export const DAY_TYPES: readonly DayType[] = ['stase', 'jaga', 'pasca', 'libur']
 
 export const DAY_TYPE_LABELS: Record<DayType, string> = {
   stase: 'Stase',
-  jaga: 'Jaga malam',
+  jaga: 'Jaga',
   pasca: 'Pasca-jaga',
   libur: 'Libur',
 }

@@ -68,12 +68,14 @@ export function resolveDayTypes(
   dates: ISODate[],
   stored: (d: ISODate) => DayType | null,
   before: DayType | null,
+  /** Shift jaga per tanggal: setelah jaga pagi tidak ada pasca-jaga. */
+  shiftOf?: (d: ISODate) => 'pagi' | 'malam' | null,
 ): { date: ISODate; type: DayType; typed: boolean }[] {
   let prev = before
   return dates.map((date) => {
     const s = stored(date)
     const type = s ?? suggestDayType(date, prev)
-    prev = type
+    prev = type === 'jaga' && shiftOf?.(date) === 'pagi' ? null : type
     return { date, type, typed: s != null }
   })
 }

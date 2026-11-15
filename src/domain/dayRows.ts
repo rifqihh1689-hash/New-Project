@@ -1,3 +1,4 @@
+import { carryType } from './jaga'
 import type { Day, DayResult, DayType, Habit, HabitLog, ISODate, Role, Task, TentirSession, XpRules, XpSize } from '../types'
 import { dayTentir } from './tentir'
 import { addDays, weekStart } from './time'
@@ -158,7 +159,7 @@ export function computeResults(
       results.set(day.date, day.frozen)
       continue
     }
-    const prevType = byDate.get(addDays(day.date, -1))?.type ?? null
+    const prevType = carryType(byDate.get(addDays(day.date, -1)))
     const rows = dailyRows(
       day.date,
       day.type,

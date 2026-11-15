@@ -1,4 +1,5 @@
 import { jagaChanges } from '../domain/calendar'
+import type { JagaShift } from '../domain/jaga'
 import { normalizeClock } from '../domain/ritme'
 import { addDays, isValidISODate } from '../domain/time'
 import { createId, privateId } from '../lib/id'
@@ -9,14 +10,16 @@ import { db } from './db'
 export class CalendarError extends Error {}
 
 /**
- * Menandai / membatalkan jaga. Besoknya otomatis pasca-jaga bila kosong (tugas non-pemulihan di hari itu
- * dipindah ke lusa, sama seperti memilih pasca-jaga di Beranda). Mengembalikan ID tugas yang dipindah.
+ * Menandai / membatalkan jaga. Jaga malam (atau shift belum dipilih): besoknya otomatis pasca-jaga bila kosong
+ * (tugas non-pemulihan di hari itu dipindah ke lusa, sama seperti memilih pasca-jaga di Beranda).
+ * Jaga pagi: tidak ada pasca-jaga. Mengembalikan ID tugas yang dipindah.
  */
-export async function setJaga(date: ISODate, on: boolean): Promise<string[]> {
+export async function setJaga(date: ISODate, on: boolean, shift: JagaShift | null = null): Promise<string[]> {
   const days = await db.days.bulkGet([privateId.day(date), privateId.day(addDays(date, 1))])
   const types = new Map(days.filter(Boolean).map((d) => [d!.date, d!.type]))
   const moved: string[] = []
-  for (const c of jagaChanges(date, on, (d) => types.get(d) ?? null)) moved.push(...(await setDayType(c.date, c.type)))
+  for (const c of jagaChanges(date, on, (d) => types.get(d) ?? null, shift))
+    moved.push(...(await setDayType(c.date, c.type, c.shift ?? null)))
   return moved
 }
 

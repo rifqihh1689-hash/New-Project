@@ -15,6 +15,7 @@ import {
   type PlanResult,
 } from '../domain/trainingSchedule'
 import { suggestDayType } from '../domain/dayType'
+import { carryType } from '../domain/jaga'
 import { privateId } from '../lib/id'
 import type { DayType, ISODate, PlannedWorkout, RunType, TrainingScheduleSettings, TrainingSplit, Workout } from '../types'
 import { db } from './db'
@@ -39,22 +40,27 @@ async function weekContext(today: ISODate) {
   const split: TrainingSplit = profile.trainingSplit ?? 'fullbody'
   const settings = resolveTrainingSchedule(profile.trainingSchedule, split)
   const typeOf = new Map(stored.map((d) => [d.date, d.type]))
-  const days: PlanDay[] = resolveDayTypes(week, (d) => typeOf.get(d) ?? null, typeOf.get(addDays(week[0], -1)) ?? null).map(
-    ({ date, type, typed }) => {
-      const ritme = effectiveRitme(type, profile.ritme, chapterOn(chapters, date))
-      return {
-        date,
-        type,
-        typed,
+  const shiftOf = new Map(stored.map((d) => [d.date, d.jagaShift ?? null]))
+  const before = stored.find((d) => d.date === addDays(week[0], -1))
+  const days: PlanDay[] = resolveDayTypes(
+    week,
+    (d) => typeOf.get(d) ?? null,
+    carryType(before),
+    (d) => shiftOf.get(d) ?? null,
+  ).map(({ date, type, typed }) => {
+    const ritme = effectiveRitme(type, profile.ritme, chapterOn(chapters, date), { shift: shiftOf.get(date) ?? null, date })
+    return {
+      date,
+      type,
+      typed,
+      ritme,
+      busy: busyOf(
         ritme,
-        busy: busyOf(
-          ritme,
-          sessions.filter((s) => s.date === date),
-          events.filter((e) => e.date === date),
-        ),
-      }
-    },
-  )
+        sessions.filter((s) => s.date === date),
+        events.filter((e) => e.date === date),
+      ),
+    }
+  })
   const weekly = workouts.filter((w) => w.date >= week[0] && w.date <= week[6])
   const pref = (kind: Workout['kind']) => {
     const set = new Set<number>()
@@ -271,13 +277,15 @@ export async function loadDaySchedule(date: ISODate): Promise<DayScheduleData> {
   ])
   const rules = rulesOf(profile)
   const [prev, day, next] = stored
-  const type: DayType = day?.type ?? suggestDayType(date, prev?.type ?? null)
-  const ritme = effectiveRitme(type, profile.ritme, chapterOn(chapters, date))
+  const type: DayType = day?.type ?? suggestDayType(date, carryType(prev))
+  const ritme = effectiveRitme(type, profile.ritme, chapterOn(chapters, date), { shift: day?.jagaShift ?? null, date })
   const tomorrow = addDays(date, 1)
-  const nextType: DayType = next?.type ?? suggestDayType(tomorrow, type)
+  const nextType: DayType = next?.type ?? suggestDayType(tomorrow, type === 'jaga' && day?.jagaShift === 'pagi' ? null : type)
   // Jam bangun besok = slot pertama ritme besok bila pagi; kalau tidak ada, slot pertama hari ini.
   const morning = (slots: { time: string }[]) => slots.map((s) => s.time).find((t) => t >= '03.00' && t < '10.00') ?? null
-  const wake = morning(effectiveRitme(nextType, profile.ritme, chapterOn(chapters, tomorrow))) ?? morning(ritme)
+  const wake =
+    morning(effectiveRitme(nextType, profile.ritme, chapterOn(chapters, tomorrow), { shift: next?.jagaShift ?? null, date: tomorrow })) ??
+    morning(ritme)
   return {
     typed: day?.type != null,
     input: {

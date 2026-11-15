@@ -131,8 +131,8 @@ export const DEFAULT_RITME: Record<DayType, RitmeSlot[]> = {
     slot('03.45', 'Qiyamul lail'),
     work('06.00', '14.00'),
     slot('14.30', 'Tidur sore', '2 jam sebelum jaga', 'pulih'),
-    slot('17.00', 'Makan & siapkan bekal', undefined, 'pulih'),
-    slot('18.00', 'Jaga malam', 'sampai pagi', 'koas'),
+    slot('18.00', 'Makan & siapkan bekal', undefined, 'pulih'),
+    slot('19.00', 'Jaga malam', 'sampai 07.00', 'koas'),
   ],
   pasca: [
     slot('07.00', 'Selesai jaga', 'serah terima', 'koas'),
