@@ -69,6 +69,15 @@ export function effectiveRitme(
       ? { ...s, time: chapter.masuk || s.time, until: chapter.pulang || s.until, title: s.title === 'Stase' ? chapter.name : s.title }
       : s,
   )
+  // Jaga di hari kerja: berangkat langsung dari stase (pulang stase = mulai jaga) sampai 07.00, tanpa tidur sore.
+  if (type === 'jaga' && jaga?.date && !isWeekend(jaga.date)) {
+    const start = slots.find((s) => s.work)?.until
+    if (start)
+      return [
+        ...slots.filter((s) => !/^jaga\b|tidur sore|siapkan bekal/i.test(s.title)),
+        { time: start, until: '07.00', title: 'Jaga malam', note: 'langsung dari stase, sampai 07.00', roleId: '#role:koas', fixed: true },
+      ].sort((a, b) => slotOrder(a.time) - slotOrder(b.time))
+  }
   return [...slots].sort((a, b) => slotOrder(a.time) - slotOrder(b.time))
 }
 
