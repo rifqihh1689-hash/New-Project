@@ -1,7 +1,18 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDatabase } from '../test/db-utils'
 import { db } from './db'
-import { addProposal, approveProposal, loadProposals, previewProposal, rejectProposal, reopenProposal } from './proposals'
+import {
+  addProposal,
+  approveProposal,
+  compactProposals,
+  deleteProposal,
+  deleteRejectedProposals,
+  loadProposals,
+  previewProposal,
+  rejectProposal,
+  reopenProposal,
+  restoreProposals,
+} from './proposals'
 import { loadRoles } from './structure'
 
 beforeEach(resetDatabase)
@@ -66,6 +77,56 @@ describe('usulan dari Claude', () => {
       source: 'claude',
       interval: 0,
       reps: 0,
+    })
+  })
+
+  describe('pembersihan riwayat', () => {
+    const DAY = 86_400_000
+    const NOW = Date.UTC(2026, 10, 15)
+    const decidedAgo = async (summary: string, days: number, status: 'disetujui' | 'ditolak') => {
+      const p = await addProposal(summary, items.slice(0, 2))
+      await db.proposals.update(p.id, {
+        status,
+        decidedAt: NOW - days * DAY,
+        result: status === 'disetujui' ? 'Diimpor: 2 tugas.' : undefined,
+      })
+      return p.id
+    }
+
+    it('meringkas yang diputuskan > 30 hari: item dibuang, judul/status/hasil tetap; yang baru dan yang menunggu tidak disentuh', async () => {
+      const lama = await decidedAgo('Lama disetujui', 40, 'disetujui')
+      const lamaTolak = await decidedAgo('Lama ditolak', 31, 'ditolak')
+      const baru = await decidedAgo('Baru', 5, 'disetujui')
+      const menunggu = (await addProposal('Menunggu', items.slice(0, 1))).id
+      expect(await compactProposals(NOW)).toBe(2)
+      expect(await db.proposals.get(lama)).toMatchObject({
+        items: [],
+        summary: 'Lama disetujui',
+        status: 'disetujui',
+        result: 'Diimpor: 2 tugas.',
+      })
+      expect((await db.proposals.get(lamaTolak))?.items).toEqual([])
+      expect((await db.proposals.get(baru))?.items).toHaveLength(2)
+      expect((await db.proposals.get(menunggu))?.items).toHaveLength(1)
+      // Aman diulang.
+      expect(await compactProposals(NOW)).toBe(0)
+    })
+
+    it('hapus satu: hanya yang sudah diputuskan, bisa diurungkan; hapus semua yang ditolak', async () => {
+      const a = await decidedAgo('A', 1, 'disetujui')
+      await decidedAgo('B', 1, 'ditolak')
+      await decidedAgo('C', 2, 'ditolak')
+      const menunggu = (await addProposal('Menunggu', items.slice(0, 1))).id
+      expect(await deleteProposal(menunggu)).toBeUndefined() // usulan menunggu tidak bisa dihapus dari riwayat
+      const row = await deleteProposal(a)
+      expect(await db.proposals.get(a)).toBeUndefined()
+      await restoreProposals([row!])
+      expect(await db.proposals.get(a)).toBeDefined()
+      const removed = await deleteRejectedProposals()
+      expect(removed).toHaveLength(2)
+      expect((await db.proposals.toArray()).map((p) => p.status).sort()).toEqual(['disetujui', 'menunggu'])
+      await restoreProposals(removed)
+      expect(await db.proposals.count()).toBe(4)
     })
   })
 })

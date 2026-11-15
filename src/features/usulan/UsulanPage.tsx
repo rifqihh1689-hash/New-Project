@@ -1,4 +1,4 @@
-import { ChevronDown, Inbox } from 'lucide-react'
+import { ChevronDown, Inbox, Trash2 } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { routeHref } from '../../app/router'
@@ -7,7 +7,17 @@ import { Limited } from '../../components/Limited'
 import { PageTop } from '../../components/PageTop'
 import { useToast } from '../../components/toast-context'
 import { useMoneyRefs, type MoneyRefs } from '../../db/money'
-import { approveProposal, loadProposals, previewProposal, rejectProposal, reopenProposal } from '../../db/proposals'
+import {
+  approveProposal,
+  COMPACT_AFTER_DAYS,
+  deleteProposal,
+  deleteRejectedProposals,
+  loadProposals,
+  previewProposal,
+  rejectProposal,
+  reopenProposal,
+  restoreProposals,
+} from '../../db/proposals'
 import { roleLookup, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS } from '../../domain/dayType'
 import { describeItem, itemLabel } from '../../domain/importer'
@@ -94,7 +104,21 @@ function Pending({ p, roles, money, today }: { p: Proposal; roles: Role[]; money
 
 /** Riwayat disembunyikan di balik tombol; yang terbuka pun dibatasi 10 terbaru supaya tidak menumpuk. */
 function History({ decided }: { decided: Proposal[] }) {
+  const toast = useToast()
   const [open, setOpen] = useState(false)
+  const rejected = decided.filter((p) => p.status === 'ditolak').length
+  const remove = async (id: string) => {
+    const row = await deleteProposal(id)
+    if (row) toast({ message: 'Dihapus dari riwayat.', action: { label: 'Urungkan', onClick: () => void restoreProposals([row]) } })
+  }
+  const removeRejected = async () => {
+    const rows = await deleteRejectedProposals()
+    if (rows.length)
+      toast({
+        message: `${rows.length} usulan ditolak dihapus.`,
+        action: { label: 'Urungkan', onClick: () => void restoreProposals(rows) },
+      })
+  }
   return (
     <section className="card self-start lg:col-span-2">
       <button type="button" className="card-title w-full text-left" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -102,24 +126,47 @@ function History({ decided }: { decided: Proposal[] }) {
         <ChevronDown size={16} aria-hidden="true" className={`ml-auto text-faint transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <Limited items={decided} limit={10}>
-          {(list) => (
-            <ul>
-              {list.map((p) => (
-                <li key={p.id} className="border-t border-line py-2 text-[13.5px] first:border-t-0">
-                  <div className="flex gap-2">
-                    <span className="flex-1">{p.summary || 'Usulan dari Claude'}</span>
-                    <span className={`text-xs ${p.status === 'disetujui' ? 'text-ok' : 'text-faint'}`}>{p.status}</span>
-                  </div>
-                  <div className="text-xs text-muted">
-                    {p.decidedAt ? when(p.decidedAt) : ''}
-                    {p.result ? ` · ${p.result}` : ''}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Limited>
+        <>
+          <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-faint">
+            <span className="flex-1">
+              Setelah {COMPACT_AFTER_DAYS} hari, rincian item dibuang otomatis; judul dan hasilnya tetap. Menghapus riwayat tidak
+              membatalkan yang sudah diterapkan.
+            </span>
+            {rejected > 0 && (
+              <button type="button" className="btn-ghost border border-line px-2.5 py-1 text-xs" onClick={() => void removeRejected()}>
+                Hapus yang ditolak ({rejected})
+              </button>
+            )}
+          </div>
+          <Limited items={decided} limit={10}>
+            {(list) => (
+              <ul>
+                {list.map((p) => (
+                  <li key={p.id} className="flex items-start gap-1 border-t border-line py-2 text-[13.5px] first:border-t-0">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex gap-2">
+                        <span className="flex-1">{p.summary || 'Usulan dari Claude'}</span>
+                        <span className={`text-xs ${p.status === 'disetujui' ? 'text-ok' : 'text-faint'}`}>{p.status}</span>
+                      </div>
+                      <div className="text-xs text-muted">
+                        {p.decidedAt ? when(p.decidedAt) : ''}
+                        {p.result ? ` · ${p.result}` : ''}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-ghost -my-0.5 shrink-0 p-1.5 text-faint"
+                      aria-label={`Hapus dari riwayat: ${p.summary || 'usulan'}`}
+                      onClick={() => void remove(p.id)}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Limited>
+        </>
       )}
     </section>
   )

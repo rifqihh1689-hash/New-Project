@@ -4,6 +4,7 @@ import { useToday } from './app/useToday'
 import { ToastProvider } from './components/Toast'
 import { freezeLockedDays } from './db/daily'
 import { runRecurring } from './db/money'
+import { compactProposals } from './db/proposals'
 import { ensureWeekPlan } from './db/schedule'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { BerandaPage } from './features/beranda/BerandaPage'
@@ -100,6 +101,8 @@ function Shell() {
     void runRecurring(today)
     // Jadwal latihan minggu ini disusun sekali per minggu bila "otomatis" diaktifkan di Latihan.
     void ensureWeekPlan(today)
+    // Riwayat usulan lama diringkas supaya tidak menumpuk (judul & hasil tetap).
+    void compactProposals()
   }, [today])
 
   return (
