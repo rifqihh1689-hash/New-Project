@@ -4,7 +4,7 @@ import { moveTasks, setDayType } from '../../db/daily'
 import { useToast } from '../../components/toast-context'
 import type { DayType, ISODate, Phase } from '../../types'
 import { setJaga } from '../../db/calendar'
-import { JAGA_SHIFTS, type JagaShift } from '../../domain/jaga'
+import { isWeekend, JAGA_HARI_KERJA_RANGE, JAGA_SHIFTS, type JagaShift } from '../../domain/jaga'
 import { DAY_TYPE_COLORS } from './dayTypeColors'
 
 interface Props {
@@ -134,13 +134,23 @@ function JagaShiftChooser({ date, shift, className = '' }: { date: ISODate; shif
   )
 }
 
-/** Stase / Jaga / Pasca-jaga / Libur; bila Jaga, di bawahnya pilihan shift pagi atau malam. */
+/**
+ * Stase / Jaga / Pasca-jaga / Libur. Bila Jaga: Sabtu/Minggu ditanya shift pagi atau malam; hari kerja tidak,
+ * karena jaga hari kerja selalu sepulang stase sampai 07.00.
+ */
 export function DayTypePicker(props: Props & { jagaShift?: JagaShift | null }) {
   const { jagaShift = null, ...row } = props
   return (
     <>
       <DayTypeRow {...row} />
-      {props.value === 'jaga' && <JagaShiftChooser date={props.date} shift={jagaShift} className="relative mt-2 lg:max-w-[560px]" />}
+      {props.value === 'jaga' &&
+        (isWeekend(props.date) ? (
+          <JagaShiftChooser date={props.date} shift={jagaShift} className="relative mt-2 lg:max-w-[560px]" />
+        ) : (
+          <p className="relative mt-2 text-xs text-faint lg:max-w-[560px]">
+            Jaga hari kerja {JAGA_HARI_KERJA_RANGE}, sepulang stase. Besok pasca-jaga.
+          </p>
+        ))}
     </>
   )
 }

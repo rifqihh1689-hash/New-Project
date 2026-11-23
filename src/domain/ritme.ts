@@ -61,7 +61,8 @@ export function effectiveRitme(
   /** Untuk hari jaga: shift yang dipilih dan tanggalnya (Sabtu/Minggu tidak ada jam stase). */
   jaga?: { shift?: JagaShift | null; date?: ISODate },
 ): RitmeSlot[] {
-  if (type === 'jaga' && jaga?.shift === 'pagi') return JAGA_PAGI_RITME
+  // Jaga pagi hanya ada di Sabtu/Minggu; di hari kerja shift yang tersimpan diabaikan.
+  if (type === 'jaga' && jaga?.shift === 'pagi' && (!jaga.date || isWeekend(jaga.date))) return JAGA_PAGI_RITME
   let base = templates[type] ?? []
   if (type === 'jaga' && jaga?.date && isWeekend(jaga.date)) base = base.filter((s) => !s.work)
   const slots = base.map((s) =>

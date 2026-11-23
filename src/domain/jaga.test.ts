@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_RITME } from '../db/defaults'
 import { effectiveDayType, suggestDayType } from './dayType'
 import { headline } from './headline'
-import { carryType, isWeekend, jagaLabel, JAGA_PAGI_RITME } from './jaga'
+import { jagaChanges } from './calendar'
+import { carryType, isWeekend, jagaLabel, JAGA_PAGI_RITME, shiftOn } from './jaga'
 import { effectiveRitme } from './ritme'
 
 const chapter = { name: 'Stase DV', masuk: '07.00', pulang: '14.00' }
@@ -17,14 +18,34 @@ describe('jaga pagi & malam', () => {
   })
 
   it('setelah jaga pagi tidak ada pasca-jaga; setelah jaga malam atau shift kosong ada', () => {
-    expect(carryType({ type: 'jaga', jagaShift: 'pagi' })).toBeNull()
-    expect(carryType({ type: 'jaga', jagaShift: 'malam' })).toBe('jaga')
-    expect(carryType({ type: 'jaga' })).toBe('jaga')
-    expect(carryType({ type: 'stase', jagaShift: 'pagi' })).toBe('stase')
-    expect(suggestDayType('2026-11-15', carryType({ type: 'jaga', jagaShift: 'pagi' }))).toBe('libur') // Minggu biasa
-    expect(suggestDayType('2026-11-16', carryType({ type: 'jaga', jagaShift: 'malam' }))).toBe('pasca')
+    expect(carryType({ date: '2026-11-14', type: 'jaga', jagaShift: 'pagi' })).toBeNull()
+    expect(carryType({ date: '2026-11-14', type: 'jaga', jagaShift: 'malam' })).toBe('jaga')
+    expect(carryType({ date: '2026-11-14', type: 'jaga' })).toBe('jaga')
+    expect(carryType({ date: '2026-11-14', type: 'stase', jagaShift: 'pagi' })).toBe('stase')
+    expect(suggestDayType('2026-11-15', carryType({ date: '2026-11-14', type: 'jaga', jagaShift: 'pagi' }))).toBe('libur') // Minggu biasa
+    expect(suggestDayType('2026-11-16', carryType({ date: '2026-11-14', type: 'jaga', jagaShift: 'malam' }))).toBe('pasca')
     // Pasca yang dipilih sesudah jaga pagi tidak sah: dihitung stase.
-    expect(effectiveDayType('pasca', carryType({ type: 'jaga', jagaShift: 'pagi' }))).toEqual({ type: 'stase', invalidPasca: true })
+    expect(effectiveDayType('pasca', carryType({ date: '2026-11-14', type: 'jaga', jagaShift: 'pagi' }))).toEqual({
+      type: 'stase',
+      invalidPasca: true,
+    })
+  })
+
+  it('hari kerja tidak punya shift: selalu 15.00–07.00, besoknya pasca-jaga', () => {
+    // Kamis 3 Des 2026: shift "pagi" yang terlanjur tersimpan diabaikan.
+    expect(shiftOn('2026-12-03', 'pagi')).toBeNull()
+    expect(shiftOn('2026-12-05', 'pagi')).toBe('pagi')
+    expect(carryType({ date: '2026-12-03', type: 'jaga', jagaShift: 'pagi' })).toBe('jaga')
+    const r = ritme('jaga', 'pagi', '2026-12-03')
+    const jaga = r.find((s) => /^jaga/i.test(s.title))!
+    expect([jaga.time, jaga.until]).toEqual(['15.00', '07.00'])
+    expect(jagaChanges('2026-12-03', true, () => null, 'pagi')).toEqual([
+      { date: '2026-12-03', type: 'jaga', shift: null },
+      { date: '2026-12-04', type: 'pasca' },
+    ])
+    expect(
+      headline({ type: 'jaga', suggested: 'jaga', invalidPasca: false, hasTentir: false, jagaShift: null, jagaFromStase: true }),
+    ).toMatch(/^Jaga 15.00 sampai 07.00/)
   })
 
   it('ritme jaga pagi: 07.00–19.00 tetap, tidak diganti jam stase, tanpa tidur sore pra-jaga', () => {
@@ -66,8 +87,9 @@ describe('jaga pagi & malam', () => {
     const weekend = ritme('jaga', 'malam', '2026-11-14')
     expect(weekend.find((s) => s.title === 'Jaga malam')?.time).toBe('19.00')
     expect(weekend.some((s) => /tidur sore/i.test(s.title))).toBe(true)
-    // Jaga pagi di hari kerja tetap 07.00–19.00.
-    expect(ritme('jaga', 'pagi', '2026-11-12')).toBe(JAGA_PAGI_RITME)
+    // Hari kerja tidak punya shift: "pagi" yang tersimpan tetap jadi jaga 15.00–07.00.
+    expect(ritme('jaga', 'pagi', '2026-11-12')).toEqual(weekday)
+    expect(ritme('jaga', 'pagi', '2026-11-14')).toBe(JAGA_PAGI_RITME)
   })
 
   it('kalimat pembuka jaga hari kerja', () => {

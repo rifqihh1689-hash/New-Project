@@ -1,5 +1,5 @@
 import type { CalendarEvent, DayType, ISODate, MonthKey } from '../types'
-import type { JagaShift } from './jaga'
+import { shiftOn, type JagaShift } from './jaga'
 import { addDays, daysInMonth, weekday } from './time'
 
 /** 6 minggu × 7 hari (Senin–Minggu) yang memuat seluruh bulan. */
@@ -22,6 +22,7 @@ export interface DayChange {
 
 /**
  * Perubahan tipe hari saat sebuah tanggal dijadikan jaga (on) atau dibatalkan (off).
+ * - Hari kerja: selalu jaga 15.00–07.00 (shift diabaikan), sama seperti jaga malam.
  * - Jaga malam (atau shift belum dipilih): besoknya otomatis pasca-jaga bila masih kosong (tidak menimpa pilihan yang ada).
  * - Jaga pagi: pulang 19.00, tidak ada pasca-jaga; pasca-jaga besoknya (mis. sisa dari shift malam sebelumnya) dikosongkan.
  * - Batal: tanggal dikosongkan; pasca-jaga besoknya ikut dikosongkan karena pasca hanya sah setelah jaga.
@@ -33,6 +34,8 @@ export function jagaChanges(
   shift: JagaShift | null = null,
 ): DayChange[] {
   const next = addDays(date, 1)
+  // Hari kerja tidak punya shift: selalu 15.00–07.00, besoknya pasca-jaga.
+  shift = shiftOn(date, shift)
   if (on) {
     const out: DayChange[] = [{ date, type: 'jaga', shift }]
     if (shift === 'pagi') {

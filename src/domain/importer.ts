@@ -2,7 +2,7 @@ import type { Category, Chapter, DayType, Ingredient, ISODate, MealSlot, RitmeSl
 import { DEFAULT_CATEGORIES, guessCategory, matchCategory, parseAmount } from './money'
 import { parseIngredients } from './menu'
 import { DAY_TYPES } from './dayType'
-import { JAGA_SHIFTS, jagaLabel, type JagaShift } from './jaga'
+import { isWeekend, JAGA_HARI_KERJA_RANGE, JAGA_SHIFTS, jagaLabel, shiftOn, type JagaShift } from './jaga'
 import { STUDY_SYSTEMS } from './study'
 import { detectPatientIdentity } from './phi'
 import { guessRole, matchRole, type RoleRef } from './quickCapture'
@@ -510,7 +510,9 @@ function rowToItems(r: Rec, ctx: ImportContext): { items?: ImportItem[]; error?:
       if (!date) return { error: `Tanggal jaga "${r.tanggal ?? ''}" tidak dikenali.` }
       // Shift dari kolom "shift" atau dari jenis ("jaga pagi", "jaga_malam"); kosong = belum dipilih.
       const shiftText = normKey(`${r.shift ?? ''} ${r.jenis ?? ''}`)
-      const shift: JagaShift | undefined = /pagi/.test(shiftText) ? 'pagi' : /malam/.test(shiftText) ? 'malam' : undefined
+      const parsed: JagaShift | undefined = /pagi/.test(shiftText) ? 'pagi' : /malam/.test(shiftText) ? 'malam' : undefined
+      // Shift hanya untuk Sabtu/Minggu; hari kerja selalu 15.00–07.00.
+      const shift = shiftOn(date, parsed) ?? undefined
       return { items: [{ kind, date, ...(shift ? { shift } : {}) }] }
     }
     case 'agenda': {
@@ -750,6 +752,7 @@ export function describeItem(
     case 'tugas':
       return `${formatDateShort(item.date)} · ${item.title} · ${roleName(item.roleId)}${item.important ? ' · penting' : ''}`
     case 'jaga':
+      if (!isWeekend(item.date)) return `Jaga ${JAGA_HARI_KERJA_RANGE} ${formatDateShort(item.date)}`
       return `${jagaLabel(item.shift)}${item.shift ? ` ${JAGA_SHIFTS[item.shift].range}` : ' (shift belum dipilih)'} ${formatDateShort(item.date)}`
     case 'agenda':
       return `${formatDateShort(item.date)}${item.start ? ` ${item.start}${item.end ? `–${item.end}` : ''}` : ''} · ${item.title}`

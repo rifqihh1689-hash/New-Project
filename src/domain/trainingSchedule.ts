@@ -1,3 +1,4 @@
+import { shiftOn } from './jaga'
 import type { DayType, ISODate, PlannedWorkout, RitmeSlot, RunType, TrainingScheduleSettings, TrainingSplit, Workout } from '../types'
 import { suggestDayType } from './dayType'
 import { SPLITS } from './exerciseCatalog'
@@ -75,7 +76,7 @@ export function resolveDayTypes(
   return dates.map((date) => {
     const s = stored(date)
     const type = s ?? suggestDayType(date, prev)
-    prev = type === 'jaga' && shiftOf?.(date) === 'pagi' ? null : type
+    prev = type === 'jaga' && shiftOn(date, shiftOf?.(date)) === 'pagi' ? null : type
     return { date, type, typed: s != null }
   })
 }

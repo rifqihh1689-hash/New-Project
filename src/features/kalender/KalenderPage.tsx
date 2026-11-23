@@ -17,7 +17,7 @@ import { currentPhase, usePhases, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS, suggestDayType } from '../../domain/dayType'
 import { detectPatientIdentity } from '../../domain/phi'
 import { addDays, addMonths, DAY_SHORT, formatDateLong, formatDateShort, formatMonth, monthOf, weekStart } from '../../domain/time'
-import { carryType, JAGA_SHIFTS, jagaLabel, type JagaShift } from '../../domain/jaga'
+import { carryType, isWeekend, JAGA_HARI_KERJA_RANGE, JAGA_SHIFTS, jagaLabel, type JagaShift } from '../../domain/jaga'
 import { DayTypePicker } from '../beranda/DayTypePicker'
 import { DAY_TYPE_COLORS } from '../beranda/dayTypeColors'
 import { useKalender, type KalenderData } from './data'
@@ -39,7 +39,8 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
           const events = data.eventCount.get(d) ?? 0
           const tentir = data.tentirCount.get(d) ?? 0
           const shift = data.shifts(d)
-          const label = `${formatDateLong(d)}${type ? `, ${type === 'jaga' ? jagaLabel(shift) : DAY_TYPE_LABELS[type]}` : ''}${events ? `, ${events} agenda` : ''}`
+          const jagaText = isWeekend(d) ? jagaLabel(shift) : `Jaga ${JAGA_HARI_KERJA_RANGE}`
+          const label = `${formatDateLong(d)}${type ? `, ${type === 'jaga' ? jagaText : DAY_TYPE_LABELS[type]}` : ''}${events ? `, ${events} agenda` : ''}`
           return (
             <button
               key={d}
@@ -53,7 +54,8 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
               style={type === 'jaga' ? { background: DAY_TYPE_COLORS.jaga } : undefined}
             >
               {Number(d.slice(8))}
-              {type === 'jaga' && (
+              {/* Penanda shift hanya untuk Sabtu/Minggu: P = pagi, M = malam, ? = belum dipilih. */}
+              {type === 'jaga' && isWeekend(d) && (
                 <span className="absolute top-0.5 right-1 text-[9px] leading-none font-semibold opacity-90" aria-hidden="true">
                   {shift === 'pagi' ? 'P' : shift === 'malam' ? 'M' : '?'}
                 </span>
@@ -253,13 +255,15 @@ export function KalenderPage() {
   const data = useKalender(month)
   const pick = async (d: string) => {
     if (!jagaMode || !data) return setPicked(d)
-    if (!shift) {
-      toast({ message: 'Pilih dulu: jaga pagi atau jaga malam.', tone: 'info' })
+    // Hari kerja: jaga selalu 15.00–07.00, cukup diketuk. Sabtu/Minggu: perlu shift pagi atau malam.
+    const weekend = isWeekend(d)
+    if (weekend && !shift) {
+      toast({ message: 'Sabtu/Minggu: pilih dulu jaga pagi atau jaga malam.', tone: 'info' })
       return
     }
-    // Ketuk tanggal yang sudah jaga dengan shift yang sama = batalkan; shift lain = ganti shift.
-    const on = data.types(d) !== 'jaga' || data.shifts(d) !== shift
-    const moved = await setJaga(d, on, shift)
+    // Ketuk tanggal yang sudah jaga (dengan shift yang sama di akhir pekan) = batalkan; shift lain = ganti shift.
+    const on = data.types(d) !== 'jaga' || (weekend && data.shifts(d) !== shift)
+    const moved = await setJaga(d, on, weekend ? shift : null)
     // Jaga berubah → sesi latihan yang jatuh di hari jaga/pasca-jaga ditawarkan untuk disusun ulang.
     const from = weekStart(d) > today ? weekStart(d) : today
     const clash = on ? await plannedConflicts(from) : []
@@ -307,7 +311,7 @@ export function KalenderPage() {
               <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-muted">
                 <div
                   role="radiogroup"
-                  aria-label="Shift untuk tanggal yang diketuk"
+                  aria-label="Shift untuk Sabtu/Minggu yang diketuk"
                   className="mb-2 grid grid-cols-2 gap-1 rounded-full bg-bg p-1"
                 >
                   {(['pagi', 'malam'] as const).map((s) => (
@@ -323,11 +327,13 @@ export function KalenderPage() {
                     </button>
                   ))}
                 </div>
+                Hari kerja: cukup ketuk tanggalnya (jaga {JAGA_HARI_KERJA_RANGE} sepulang stase, besoknya pasca-jaga). Sabtu/Minggu:{' '}
                 {shift
-                  ? `Ketuk tanggal untuk ${JAGA_SHIFTS[shift].label.toLowerCase()}. ${
-                      shift === 'malam' ? 'Besoknya otomatis pasca-jaga (kalau masih kosong).' : 'Tidak ada pasca-jaga.'
-                    } Ketuk lagi untuk membatalkan; pilih shift lain lalu ketuk tanggal yang sama untuk mengganti.`
-                  : 'Pilih shift dulu, lalu ketuk tanggalnya.'}
+                  ? `ketuk tanggal untuk ${JAGA_SHIFTS[shift].label.toLowerCase()} (${
+                      shift === 'malam' ? 'besoknya pasca-jaga' : 'tanpa pasca-jaga'
+                    }); pilih shift lain lalu ketuk lagi untuk mengganti.`
+                  : 'pilih shift di atas dulu.'}{' '}
+                Ketuk lagi untuk membatalkan.
               </div>
             )}
             <Grid data={data} today={today} jagaMode={jagaMode} onPick={(d) => void pick(d)} />
