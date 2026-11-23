@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { DAY_TYPES, dayTypeLabel } from '../../domain/dayType'
 import { addDays, dayKey, relativeDayLabel } from '../../domain/time'
 import { moveTasks, setDayType } from '../../db/daily'
@@ -92,7 +93,18 @@ function DayTypeRow({ date, value, suggested, phase, className = '', variant = '
 }
 
 /** Pilihan shift jaga: sengaja tidak menebak. Memilih Jaga lebih dulu bertanya "pagi atau malam?". */
-function JagaShiftChooser({ date, shift, className = '' }: { date: ISODate; shift: JagaShift | null; className?: string }) {
+function JagaShiftChooser({
+  date,
+  shift,
+  className = '',
+  onReset,
+}: {
+  date: ISODate
+  shift: JagaShift | null
+  className?: string
+  /** Hari kerja (tanggal merah): kembali ke jaga biasa 15.00–07.00 tanpa shift. */
+  onReset?: () => void
+}) {
   const toast = useToast()
   const choose = async (next: JagaShift) => {
     if (next === shift) return
@@ -130,25 +142,45 @@ function JagaShiftChooser({ date, shift, className = '' }: { date: ISODate; shif
             ? 'Berangkat 19.00, pulang 07.00: besok pasca-jaga.'
             : 'Pilih shift jaga supaya jadwal dan pasca-jaga pas.'}
       </p>
+      {onReset && (
+        <button type="button" className="mt-1 text-xs text-muted underline underline-offset-2 hover:text-text" onClick={onReset}>
+          Bukan tanggal merah? Kembali ke jaga {JAGA_HARI_KERJA_RANGE}
+        </button>
+      )}
     </div>
   )
 }
 
 /**
- * Stase / Jaga / Pasca-jaga / Libur. Bila Jaga: Sabtu/Minggu ditanya shift pagi atau malam; hari kerja tidak,
- * karena jaga hari kerja selalu sepulang stase sampai 07.00.
+ * Stase / Jaga / Pasca-jaga / Libur. Bila Jaga: Sabtu/Minggu ditanya shift pagi atau malam. Hari kerja biasa tidak
+ * (jaga sepulang stase sampai 07.00); tanggal merah dipilih sendiri lewat tautan dan mengikuti sistem akhir pekan.
  */
 export function DayTypePicker(props: Props & { jagaShift?: JagaShift | null }) {
   const { jagaShift = null, ...row } = props
+  const [holiday, setHoliday] = useState(false)
+  const chooser = 'relative mt-2 lg:max-w-[560px]'
   return (
     <>
       <DayTypeRow {...row} />
       {props.value === 'jaga' &&
         (isWeekend(props.date) ? (
-          <JagaShiftChooser date={props.date} shift={jagaShift} className="relative mt-2 lg:max-w-[560px]" />
+          <JagaShiftChooser date={props.date} shift={jagaShift} className={chooser} />
+        ) : jagaShift || holiday ? (
+          <JagaShiftChooser
+            date={props.date}
+            shift={jagaShift}
+            className={chooser}
+            onReset={() => {
+              setHoliday(false)
+              if (jagaShift) void setJaga(props.date, true, null)
+            }}
+          />
         ) : (
           <p className="relative mt-2 text-xs text-faint lg:max-w-[560px]">
-            Jaga hari kerja {JAGA_HARI_KERJA_RANGE}, sepulang stase. Besok pasca-jaga.
+            Jaga hari kerja {JAGA_HARI_KERJA_RANGE}, sepulang stase. Besok pasca-jaga.{' '}
+            <button type="button" className="text-muted underline underline-offset-2 hover:text-text" onClick={() => setHoliday(true)}>
+              Tanggal merah? Pilih shift
+            </button>
           </p>
         ))}
     </>

@@ -15,7 +15,7 @@ import {
   type PlanResult,
 } from '../domain/trainingSchedule'
 import { suggestDayType } from '../domain/dayType'
-import { carryType, shiftOn } from '../domain/jaga'
+import { carryType } from '../domain/jaga'
 import { privateId } from '../lib/id'
 import type { DayType, ISODate, PlannedWorkout, RunType, TrainingScheduleSettings, TrainingSplit, Workout } from '../types'
 import { db } from './db'
@@ -280,8 +280,7 @@ export async function loadDaySchedule(date: ISODate): Promise<DayScheduleData> {
   const type: DayType = day?.type ?? suggestDayType(date, carryType(prev))
   const ritme = effectiveRitme(type, profile.ritme, chapterOn(chapters, date), { shift: day?.jagaShift ?? null, date })
   const tomorrow = addDays(date, 1)
-  const nextType: DayType =
-    next?.type ?? suggestDayType(tomorrow, type === 'jaga' && shiftOn(date, day?.jagaShift) === 'pagi' ? null : type)
+  const nextType: DayType = next?.type ?? suggestDayType(tomorrow, type === 'jaga' && day?.jagaShift === 'pagi' ? null : type)
   // Jam bangun besok = slot pertama ritme besok bila pagi; kalau tidak ada, slot pertama hari ini.
   const morning = (slots: { time: string }[]) => slots.map((s) => s.time).find((t) => t >= '03.00' && t < '10.00') ?? null
   const wake =

@@ -14,12 +14,10 @@ export const isJagaShift = (v: unknown): v is JagaShift => v === 'pagi' || v ===
 export const isWeekend = (date: ISODate) => weekday(date) === 0 || weekday(date) === 6
 
 /**
- * Shift yang berlaku di tanggal itu. Hanya Sabtu/Minggu yang dibagi jaga pagi & malam; hari kerja selalu jaga
- * sepulang stase (15.00–07.00, besoknya pasca-jaga), jadi shift yang tersimpan diabaikan.
+ * Jaga yang mengikuti sistem akhir pekan (dua shift: pagi & malam, tanpa jam stase): Sabtu/Minggu, atau hari kerja
+ * yang shift-nya dipilih sendiri (tanggal merah). Hari kerja tanpa shift = jaga sepulang stase, 15.00–07.00.
  */
-export function shiftOn(date: ISODate, shift: JagaShift | null | undefined): JagaShift | null {
-  return isWeekend(date) ? (shift ?? null) : null
-}
+export const isWeekendJaga = (date: ISODate, shift: JagaShift | null | undefined) => isWeekend(date) || !!shift
 
 /** Rentang jaga hari kerja untuk teks. */
 export const JAGA_HARI_KERJA_RANGE = '15.00–07.00'
@@ -31,9 +29,9 @@ export const jagaLabel = (shift: JagaShift | null | undefined) => (shift ? JAGA_
  * Tipe hari yang diwariskan ke besok untuk menentukan pasca-jaga. Setelah jaga pagi (pulang 19.00) tidak ada
  * pasca-jaga: besoknya hari biasa. Jaga malam (atau shift yang belum dipilih) → besoknya pasca-jaga.
  */
-export function carryType(day: Pick<Day, 'type' | 'jagaShift' | 'date'> | null | undefined): DayType | null {
+export function carryType(day: Pick<Day, 'type' | 'jagaShift'> | null | undefined): DayType | null {
   if (!day) return null
-  return day.type === 'jaga' && shiftOn(day.date, day.jagaShift) === 'pagi' ? null : day.type
+  return day.type === 'jaga' && day.jagaShift === 'pagi' ? null : day.type
 }
 
 /** Jaga malam di hari kerja (Senin–Jumat) mulai pukul ini sampai 07.00, apa pun jam pulang stase. */

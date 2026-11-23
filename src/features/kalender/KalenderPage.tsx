@@ -17,7 +17,7 @@ import { currentPhase, usePhases, useRoles } from '../../db/structure'
 import { DAY_TYPE_LABELS, suggestDayType } from '../../domain/dayType'
 import { detectPatientIdentity } from '../../domain/phi'
 import { addDays, addMonths, DAY_SHORT, formatDateLong, formatDateShort, formatMonth, monthOf, weekStart } from '../../domain/time'
-import { carryType, isWeekend, JAGA_HARI_KERJA_RANGE, JAGA_SHIFTS, jagaLabel, type JagaShift } from '../../domain/jaga'
+import { carryType, isWeekend, isWeekendJaga, JAGA_HARI_KERJA_RANGE, JAGA_SHIFTS, jagaLabel, type JagaShift } from '../../domain/jaga'
 import { DayTypePicker } from '../beranda/DayTypePicker'
 import { DAY_TYPE_COLORS } from '../beranda/dayTypeColors'
 import { useKalender, type KalenderData } from './data'
@@ -39,7 +39,7 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
           const events = data.eventCount.get(d) ?? 0
           const tentir = data.tentirCount.get(d) ?? 0
           const shift = data.shifts(d)
-          const jagaText = isWeekend(d) ? jagaLabel(shift) : `Jaga ${JAGA_HARI_KERJA_RANGE}`
+          const jagaText = isWeekendJaga(d, shift) ? jagaLabel(shift) : `Jaga ${JAGA_HARI_KERJA_RANGE}`
           const label = `${formatDateLong(d)}${type ? `, ${type === 'jaga' ? jagaText : DAY_TYPE_LABELS[type]}` : ''}${events ? `, ${events} agenda` : ''}`
           return (
             <button
@@ -54,8 +54,8 @@ function Grid({ data, today, jagaMode, onPick }: { data: KalenderData; today: st
               style={type === 'jaga' ? { background: DAY_TYPE_COLORS.jaga } : undefined}
             >
               {Number(d.slice(8))}
-              {/* Penanda shift hanya untuk Sabtu/Minggu: P = pagi, M = malam, ? = belum dipilih. */}
-              {type === 'jaga' && isWeekend(d) && (
+              {/* Penanda shift untuk Sabtu/Minggu dan tanggal merah: P = pagi, M = malam, ? = belum dipilih. */}
+              {type === 'jaga' && isWeekendJaga(d, shift) && (
                 <span className="absolute top-0.5 right-1 text-[9px] leading-none font-semibold opacity-90" aria-hidden="true">
                   {shift === 'pagi' ? 'P' : shift === 'malam' ? 'M' : '?'}
                 </span>
@@ -327,7 +327,8 @@ export function KalenderPage() {
                     </button>
                   ))}
                 </div>
-                Hari kerja: cukup ketuk tanggalnya (jaga {JAGA_HARI_KERJA_RANGE} sepulang stase, besoknya pasca-jaga). Sabtu/Minggu:{' '}
+                Hari kerja: cukup ketuk tanggalnya (jaga {JAGA_HARI_KERJA_RANGE} sepulang stase, besoknya pasca-jaga). Tanggal merah: buka
+                tanggalnya, pilih Jaga, lalu &quot;Tanggal merah? Pilih shift&quot;. Sabtu/Minggu:{' '}
                 {shift
                   ? `ketuk tanggal untuk ${JAGA_SHIFTS[shift].label.toLowerCase()} (${
                       shift === 'malam' ? 'besoknya pasca-jaga' : 'tanpa pasca-jaga'
