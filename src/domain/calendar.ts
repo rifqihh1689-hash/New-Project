@@ -22,6 +22,7 @@ export interface DayChange {
 
 /**
  * Perubahan tipe hari saat sebuah tanggal dijadikan jaga (on) atau dibatalkan (off).
+ * - Hari kerja tanpa shift: jaga 15.00–07.00 sepulang stase, besoknya pasca-jaga (seperti jaga malam). Tanggal merah: pilih shift seperti akhir pekan.
  * - Jaga malam (atau shift belum dipilih): besoknya otomatis pasca-jaga bila masih kosong (tidak menimpa pilihan yang ada).
  * - Jaga pagi: pulang 19.00, tidak ada pasca-jaga; pasca-jaga besoknya (mis. sisa dari shift malam sebelumnya) dikosongkan.
  * - Batal: tanggal dikosongkan; pasca-jaga besoknya ikut dikosongkan karena pasca hanya sah setelah jaga.

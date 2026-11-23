@@ -49,9 +49,10 @@ export function headline(ctx: HeadlineContext): string {
       return `Hari ${work}. ${ctx.pulang ? `Pulang ±${ctx.pulang}, q` : 'Setelah pulang, q'}ailulah dulu${ctx.hasTentir ? ' sebelum tentir' : ''}.`
     }
     case 'jaga':
+      // Hari kerja: selalu sepulang stase sampai 07.00, tanpa pilihan shift.
+      if (ctx.jagaFromStase) return 'Jaga 15.00 sampai 07.00. Tidak ada tidur sore: makan dan minum teratur, tidur saat sepi.'
       if (ctx.jagaShift === null) return 'Jaga pagi atau malam? Pilih shift dulu, jadwalnya menyesuaikan.'
       if (ctx.jagaShift === 'pagi') return 'Jaga pagi 07.00–19.00. Makan teratur, minum cukup; malam ini tidur normal (bukan pasca-jaga).'
-      if (ctx.jagaFromStase) return 'Jaga 15.00 sampai 07.00. Tidak ada tidur sore: makan dan minum teratur, tidur saat sepi.'
       if (ctx.minutes != null && ctx.minutes >= 18 * 60) return 'Jaga malam ini. Makan teratur, minum cukup, tidur saat sepi.'
       return 'Malam ini jaga. Simpan tenaga, tidur sore dulu 2 jam.'
     case 'pasca':

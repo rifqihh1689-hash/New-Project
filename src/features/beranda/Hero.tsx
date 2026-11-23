@@ -1,4 +1,4 @@
-import { isWeekend } from '../../domain/jaga'
+import { isWeekendJaga } from '../../domain/jaga'
 import { roleLookup } from '../../db/structure'
 import { dayTypeLabel } from '../../domain/dayType'
 import { dayRibbon, DAY_END, formatIn, headline, nowNext } from '../../domain/headline'
@@ -50,7 +50,7 @@ export function Hero({ data }: { data: BerandaData }) {
     workEndLimit: data.rules.workEndLimit,
     napDone: (data.snap.day?.nap ?? 0) > 0,
     jagaShift: data.snap.day?.jagaShift ?? null,
-    jagaFromStase: type === 'jaga' && data.snap.day?.jagaShift !== 'pagi' && !isWeekend(data.today),
+    jagaFromStase: type === 'jaga' && !isWeekendJaga(data.today, data.snap.day?.jagaShift),
   })
   const effType = type == null ? null : data.snap.result.effType
   const insights = pickInsights({

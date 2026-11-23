@@ -1,5 +1,5 @@
 import type { Chapter, DayType, ISODate, RitmeSlot } from '../types'
-import { isWeekend, JAGA_HARI_KERJA_START, JAGA_PAGI_RITME, type JagaShift } from './jaga'
+import { isWeekendJaga, JAGA_HARI_KERJA_START, JAGA_PAGI_RITME, type JagaShift } from './jaga'
 import { parseClock } from './time'
 
 /** Menit untuk mengurutkan slot: sebelum 03.00 dianggap akhir hari (hari Qawwam berganti 03.00). */
@@ -62,15 +62,17 @@ export function effectiveRitme(
   jaga?: { shift?: JagaShift | null; date?: ISODate },
 ): RitmeSlot[] {
   if (type === 'jaga' && jaga?.shift === 'pagi') return JAGA_PAGI_RITME
+  // Akhir pekan atau tanggal merah (shift dipilih sendiri): tidak ada jam stase. Hari kerja biasa: jaga sepulang stase.
+  const weekendJaga = type === 'jaga' && !!jaga?.date && isWeekendJaga(jaga.date, jaga.shift)
   let base = templates[type] ?? []
-  if (type === 'jaga' && jaga?.date && isWeekend(jaga.date)) base = base.filter((s) => !s.work)
+  if (weekendJaga) base = base.filter((s) => !s.work)
   const slots = base.map((s) =>
     s.work && chapter && !s.fixed
       ? { ...s, time: chapter.masuk || s.time, until: chapter.pulang || s.until, title: s.title === 'Stase' ? chapter.name : s.title }
       : s,
   )
   // Jaga di hari kerja: mulai 15.00 (setelah stase) sampai 07.00, tanpa tidur sore.
-  if (type === 'jaga' && jaga?.date && !isWeekend(jaga.date) && slots.some((s) => s.work))
+  if (type === 'jaga' && jaga?.date && !weekendJaga && slots.some((s) => s.work))
     return [
       ...slots.filter((s) => !/^jaga\b|tidur sore|siapkan bekal/i.test(s.title)),
       {

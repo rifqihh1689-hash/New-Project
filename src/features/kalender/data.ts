@@ -18,6 +18,7 @@ export async function loadKalender(month: MonthKey) {
   const typeMap = new Map(days.map((d) => [d.date, d.type]))
   const types = (d: ISODate): DayType | null => typeMap.get(d) ?? null
   const shiftMap = new Map(days.map((d) => [d.date, d.jagaShift ?? null]))
+  // Shift hanya untuk Sabtu/Minggu; jaga hari kerja selalu 15.00–07.00.
   const shifts = (d: ISODate): JagaShift | null => (types(d) === 'jaga' ? (shiftMap.get(d) ?? null) : null)
   const count = <T extends { date: ISODate }>(list: T[]) => {
     const m = new Map<ISODate, number>()

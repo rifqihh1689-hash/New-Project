@@ -13,6 +13,15 @@ export const isJagaShift = (v: unknown): v is JagaShift => v === 'pagi' || v ===
 /** Sabtu atau Minggu: tidak ada jam stase, jaga bisa pagi atau malam. */
 export const isWeekend = (date: ISODate) => weekday(date) === 0 || weekday(date) === 6
 
+/**
+ * Jaga yang mengikuti sistem akhir pekan (dua shift: pagi & malam, tanpa jam stase): Sabtu/Minggu, atau hari kerja
+ * yang shift-nya dipilih sendiri (tanggal merah). Hari kerja tanpa shift = jaga sepulang stase, 15.00–07.00.
+ */
+export const isWeekendJaga = (date: ISODate, shift: JagaShift | null | undefined) => isWeekend(date) || !!shift
+
+/** Rentang jaga hari kerja untuk teks. */
+export const JAGA_HARI_KERJA_RANGE = '15.00–07.00'
+
 /** Label jaga menurut shift ("Jaga pagi", "Jaga malam"); "Jaga" bila belum dipilih. */
 export const jagaLabel = (shift: JagaShift | null | undefined) => (shift ? JAGA_SHIFTS[shift].label : 'Jaga')
 
